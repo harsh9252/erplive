@@ -1,0 +1,2471 @@
+{
+  "info": {
+    "_postman_id": "84df4301-bc0f-4d9d-aba6-7d9edb0db954",
+    "name": "Atyani ERP - Live API Collection",
+    "description": "Complete API collection for Atyani ERP Backend\nBase URL: https://apidevelop.yanibooks.com\n\n⚡ QUICK START:\n1. Run '01 Register Owner' in ONBOARDING folder\n2. Run '02 Login' — token and active company are saved automatically\n3. Run '03 Create Company' in ONBOARDING folder\n4. Run 'Get Profile' or 'List My Companies' to inspect active company context\n5. Run 'List Roles' before creating users so you use a valid role ID for the active company\n\nMulti-company notes:\n- Most APIs run in the active company from the JWT token\n- To test another company, call 'Switch Active Company' or send header x-company-id: {{company_id_override}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53193489",
+    "_collection_link": "https://go.postman.co/collection/53193489-84df4301-bc0f-4d9d-aba6-7d9edb0db954?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "🚀 ONBOARDING (Start Here)",
+      "item": [
+        {
+          "name": "01 Register Owner (Step 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ankit Panwar\",\n  \"email\": \"owner@yanibooks.com\",\n  \"password\": \"SecurePass@123\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/onboarding/register-owner",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "register-owner"
+              ]
+            },
+            "description": "Creates owner account. No auth required. Do this ONCE per business."
+          },
+          "response": []
+        },
+        {
+          "name": "02 Login (Step 2 - saves token automatically)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data) {",
+                  "  pm.collectionVariables.set('token', json.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "  if (json.data.user && json.data.user.company_id) pm.collectionVariables.set('active_company_id', json.data.user.company_id);",
+                  "  if (json.data.companies && json.data.companies.length) {",
+                  "    var firstCompany = json.data.companies[0];",
+                  "    pm.collectionVariables.set('switch_company_id', firstCompany.id);",
+                  "    if (!pm.collectionVariables.get('company_id_override')) pm.collectionVariables.set('company_id_override', firstCompany.id);",
+                  "  }",
+                  "  console.log('✅ Token saved automatically');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@yanibooks.com\",\n  \"password\": \"SecurePass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Token, refresh token, and active company context are saved automatically to collection variables via Tests script."
+          },
+          "response": []
+        },
+        {
+          "name": "03 Create Company (Step 3 - seeds all data)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.company) {",
+                  "  pm.collectionVariables.set('created_company_id', json.data.company.id);",
+                  "  pm.collectionVariables.set('active_company_id', json.data.company.id);",
+                  "  pm.collectionVariables.set('company_id_override', json.data.company.id);",
+                  "  pm.collectionVariables.set('switch_company_id', json.data.company.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Yani Books Pvt Ltd\",\n  \"legal_name\": \"Yani Books Private Limited\",\n  \"gstin\": \"27AAPFU0939F1ZV\",\n  \"pan\": \"AAPFU0939F\",\n  \"address\": \"123 Business Street, Mumbai\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"state_code\": \"27\",\n  \"pincode\": \"400001\",\n  \"phone\": \"9876543210\",\n  \"email\": \"info@yanibooks.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/onboarding/company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "company"
+              ]
+            },
+            "description": "Creates a company and auto-seeds: 24 ledger groups, 12 ledgers, 9 voucher types, 1 financial year, 1 warehouse. In multi-company mode you can run this more than once for the same owner."
+          },
+          "response": []
+        }
+      ],
+      "description": "Step 1 → 2 → 3 must be done in order for a fresh setup"
+    },
+    {
+      "name": "🔐 AUTH",
+      "item": [
+        {
+          "name": "Get Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data) {",
+                  "  if (json.data.company && json.data.company.id) pm.collectionVariables.set('active_company_id', json.data.company.id);",
+                  "  if (json.data.companies && json.data.companies.length) {",
+                  "    var anotherCompany = json.data.companies.find(function(company) { return !company.is_active; }) || json.data.companies[0];",
+                  "    if (anotherCompany) pm.collectionVariables.set('switch_company_id', anotherCompany.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Returns active company, all accessible companies, and roles scoped to the current company. Enable x-company-id only when you want to override the active company context for this request."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data) {",
+                  "  pm.collectionVariables.set('token', json.data.accessToken);",
+                  "  if (json.data.user && json.data.user.company_id) pm.collectionVariables.set('active_company_id', json.data.user.company_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Switch Active Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data) {",
+                  "  if (json.data.accessToken) pm.collectionVariables.set('token', json.data.accessToken);",
+                  "  if (json.data.active_company && json.data.active_company.id) {",
+                  "    pm.collectionVariables.set('active_company_id', json.data.active_company.id);",
+                  "    pm.collectionVariables.set('company_id_override', json.data.active_company.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": {{switch_company_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/switch-company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "switch-company"
+              ]
+            },
+            "description": "Switches the active company and returns a fresh access token for the new company context."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 COMPANY",
+      "item": [
+        {
+          "name": "List My Companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company/my-companies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "my-companies"
+              ]
+            },
+            "description": "Returns all accessible companies for the logged-in user. Use this before switching company."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company"
+              ]
+            },
+            "description": "Returns the currently active company. Enable x-company-id only if you want to override the active company context for this request."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Additional Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.company) {",
+                  "  pm.collectionVariables.set('created_company_id', json.data.company.id);",
+                  "  pm.collectionVariables.set('switch_company_id', json.data.company.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Yani Books Second Company Pvt Ltd\",\n  \"legal_name\": \"Yani Books Second Company Private Limited\",\n  \"gstin\": \"29AAPFY0939E1ZV\",\n  \"pan\": \"AAPFY0939E\",\n  \"address\": \"789 Growth Avenue, Bengaluru\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"state_code\": \"29\",\n  \"pincode\": \"560001\",\n  \"phone\": \"9876543210\",\n  \"email\": \"second@yanibooks.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company"
+              ]
+            },
+            "description": "Creates another company under the same owner account using the same seeding flow as onboarding."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Yani Books Pvt Ltd\",\n  \"phone\": \"9876543210\",\n  \"address\": \"456 New Street, Mumbai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/company/{{active_company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "{{active_company_id}}"
+              ]
+            },
+            "description": "Updates a specific company. By default this uses the currently active company ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 USERS & ROLES",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Lists users for the current company context."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sub-User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('created_user_id', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Smith\",\n  \"email\": \"alice@yanibooks.com\",\n  \"password\": \"SecurePass@456\",\n  \"role_ids\": [{{role_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Create a company-scoped user. Run 'List Roles' first so {{role_id}} is populated with a valid role for the active company. Password is optional; if omitted, the API returns temp_password."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{created_user_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Johnson\",\n  \"phone\": \"9876543211\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{created_user_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && Array.isArray(json.data) && json.data.length) {",
+                  "  var preferred = json.data.find(function(role) { return role.name === 'admin'; }) || json.data[0];",
+                  "  pm.collectionVariables.set('role_id', preferred.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            },
+            "description": "Lists roles only for the current company context and stores one role ID into {{role_id}} automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role Permissions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{company_id_override}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": [\n    { \"module\": \"sales_invoice\", \"can_create\": true, \"can_read\": true, \"can_update\": true, \"can_delete\": false },\n    { \"module\": \"purchase_invoice\", \"can_create\": false, \"can_read\": true, \"can_update\": false, \"can_delete\": false }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/roles/{{role_id}}/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{role_id}}",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👤 CUSTOMERS",
+      "item": [
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/customers?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajesh Enterprises\",\n  \"gstin\": \"27AABCE1234F1Z5\",\n  \"phone\": \"9876543210\",\n  \"email\": \"rajesh@example.com\",\n  \"address\": \"Shop 5, Market Road, Mumbai\",\n  \"state_code\": \"27\",\n  \"opening_balance\": 0,\n  \"balance_type\": \"DR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajesh Enterprises Updated\",\n  \"phone\": \"9876543299\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏭 VENDORS",
+      "item": [
+        {
+          "name": "List Vendors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendors?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendors"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vendor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sharma Suppliers\",\n  \"gstin\": \"07AABCS1234D1Z3\",\n  \"phone\": \"9123456780\",\n  \"email\": \"sharma@supplier.com\",\n  \"address\": \"Delhi Wholesale Market\",\n  \"state_code\": \"07\",\n  \"opening_balance\": 0,\n  \"balance_type\": \"CR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vendors",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vendor by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendors/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendors",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Vendor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sharma Suppliers Updated\",\n  \"phone\": \"9123456799\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vendors/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendors",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📦 ITEMS (Products)",
+      "item": [
+        {
+          "name": "List Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/items?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop HP 15\",\n  \"sku\": \"HP-LAP-001\",\n  \"description\": \"HP 15 inch laptop\",\n  \"unit\": \"PCS\",\n  \"sale_price\": 55000,\n  \"purchase_price\": 45000,\n  \"gst_rate\": 18,\n  \"hsn_code\": \"8471\",\n  \"opening_stock\": 10,\n  \"reorder_level\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Item by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/items/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "items",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_price\": 56000,\n  \"purchase_price\": 46000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/items/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "items",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/items/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "items",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📒 LEDGERS",
+      "item": [
+        {
+          "name": "List Ledger Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/ledger-groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ledger-groups"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ledger Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Travel Expenses\",\n  \"nature\": \"EXPENSE\",\n  \"parent_group_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ledger-groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ledger-groups"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Ledgers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && Array.isArray(json.data) && json.data.length) {",
+                  "  var cashLedger = json.data.find(function(ledger) { return ledger.name === 'Cash'; });",
+                  "  var drLedger = json.data.find(function(ledger) { return ledger.name === 'Discount Allowed'; }) || json.data.find(function(ledger) { return ledger.balance_type === 'DR' && ledger.name !== 'Cash'; }) || json.data[0];",
+                  "  if (drLedger) pm.collectionVariables.set('voucher_dr_ledger_id', drLedger.id);",
+                  "  if (cashLedger) pm.collectionVariables.set('voucher_cr_ledger_id', cashLedger.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/ledgers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ledgers"
+              ]
+            },
+            "description": "Lists ledgers for the current company and stores default voucher ledgers in {{voucher_dr_ledger_id}} and {{voucher_cr_ledger_id}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ledger",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HDFC Bank\",\n  \"ledger_group_id\": 16,\n  \"opening_balance\": 100000,\n  \"balance_type\": \"DR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ledgers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ledgers"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📝 VOUCHERS",
+      "item": [
+        {
+          "name": "List Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Voucher (Payment)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('created_voucher_id', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucher_type_id\": {{voucher_type_id}},\n  \"voucher_date\": \"2026-03-12\",\n  \"narration\": \"Office rent payment\",\n  \"entries\": [\n    { \"ledger_id\": {{voucher_dr_ledger_id}}, \"dr_cr\": \"DR\", \"amount\": 25000 },\n    { \"ledger_id\": {{voucher_cr_ledger_id}}, \"dr_cr\": \"CR\", \"amount\": 25000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vouchers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers"
+              ]
+            },
+            "description": "Run 'Get Voucher Types' and 'List Ledgers' first so voucher and ledger IDs are populated for the active company."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Voucher by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/{{created_voucher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers",
+                "{{created_voucher_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧾 SALES INVOICES",
+      "item": [
+        {
+          "name": "List Sales Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sales Invoice (DRAFT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 1,\n  \"invoice_date\": \"2026-03-12\",\n  \"due_date\": \"2026-04-12\",\n  \"place_of_supply\": \"27\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"warehouse_id\": 1,\n      \"qty\": 2,\n      \"rate\": 55000,\n      \"gst_rate\": 18,\n      \"discount_pct\": 0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices"
+              ]
+            },
+            "description": "Creates invoice in DRAFT status. Stock NOT deducted yet."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales Invoice by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Post Sales Invoice (DRAFT → POSTED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices/1/post",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices",
+                "1",
+                "post"
+              ]
+            },
+            "description": "Posts the invoice. Stock is deducted HERE (txn_type=OUT)."
+          },
+          "response": []
+        },
+        {
+          "name": "Collect Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 129800,\n  \"payment_date\": \"2026-03-12\",\n  \"payment_mode\": \"BANK\",\n  \"reference\": \"NEFT/20260312/001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices/1/payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices",
+                "1",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Sales Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-invoices/1/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-invoices",
+                "1",
+                "cancel"
+              ]
+            },
+            "description": "Cancels invoice. If POSTED, stock is reversed (txn_type=IN)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Flow: Create (DRAFT) → Post → Collect Payment → Cancel (if needed)"
+    },
+    {
+      "name": "🛒 PURCHASE INVOICES",
+      "item": [
+        {
+          "name": "List Purchase Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Purchase Invoice (DRAFT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendor_id\": 1,\n  \"invoice_date\": \"2026-03-12\",\n  \"due_date\": \"2026-04-12\",\n  \"place_of_supply\": \"27\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"warehouse_id\": 1,\n      \"qty\": 5,\n      \"rate\": 45000,\n      \"gst_rate\": 18,\n      \"discount_pct\": 0,\n      \"itc_eligibility\": \"ELIGIBLE\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase Invoice by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Post Purchase Invoice (DRAFT → POSTED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices/1/post",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices",
+                "1",
+                "post"
+              ]
+            },
+            "description": "Posts invoice. Stock is received HERE (txn_type=IN)."
+          },
+          "response": []
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 265650,\n  \"payment_date\": \"2026-03-12\",\n  \"payment_mode\": \"BANK\",\n  \"reference\": \"NEFT/20260312/002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices/1/payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices",
+                "1",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Purchase Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-invoices/1/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-invoices",
+                "1",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Flow: Create (DRAFT) → Post (stock received) → Pay → Cancel (if needed)"
+    },
+    {
+      "name": "📋 SALES ORDERS",
+      "item": [
+        {
+          "name": "List Sales Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-orders?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sales Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 1,\n  \"order_date\": \"2026-03-12\",\n  \"items\": [\n    { \"item_id\": 1, \"qty\": 3, \"rate\": 55000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-orders"
+              ]
+            },
+            "description": "Orders are auto-created as CONFIRMED status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-orders/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-orders",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Sales Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"item_id\": 1, \"qty\": 5, \"rate\": 55000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sales-orders/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-orders",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Sales Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sales-orders/1/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sales-orders",
+                "1",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏪 INVENTORY",
+      "item": [
+        {
+          "name": "Stock Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory?type=stock-summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "stock-summary"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stock Ledger (Item History)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory?type=stock-ledger&item_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "stock-ledger"
+                },
+                {
+                  "key": "item_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 REPORTS",
+      "item": [
+        {
+          "name": "Trial Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/trial-balance?as_on_date=2026-03-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "trial-balance"
+              ],
+              "query": [
+                {
+                  "key": "as_on_date",
+                  "value": "2026-03-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Profit & Loss",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/profit-loss?from_date=2026-04-01&to_date=2026-03-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "profit-loss"
+              ],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2026-04-01"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-03-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Balance Sheet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/balance-sheet?as_on_date=2026-03-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "balance-sheet"
+              ],
+              "query": [
+                {
+                  "key": "as_on_date",
+                  "value": "2026-03-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Outstanding Receivables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/outstanding-receivables",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "outstanding-receivables"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Outstanding Payables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/outstanding-payables",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "outstanding-payables"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stock Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/stock-summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "stock-summary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GST Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reports/gst-summary?from_date=2026-04-01&to_date=2026-03-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "gst-summary"
+              ],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2026-04-01"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-03-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚙️ SETTINGS",
+      "item": [
+        {
+          "name": "Get System Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/settings/system",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "system"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/settings/company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "company"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gstin\": \"27AAPFU0939F1ZV\",\n  \"state_code\": \"27\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings/company",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "company"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Financial Years",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/settings/financial-years",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "financial-years"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Financial Year",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"FY 2026-27\",\n  \"start_date\": \"2026-04-01\",\n  \"end_date\": \"2027-03-31\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings/financial-years",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "financial-years"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Voucher Types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && Array.isArray(json.data) && json.data.length) {",
+                  "  var paymentType = json.data.find(function(type) { return type.name === 'Payment'; }) || json.data[0];",
+                  "  if (paymentType) pm.collectionVariables.set('voucher_type_id', paymentType.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/settings/voucher-types",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "voucher-types"
+              ]
+            },
+            "description": "Lists voucher types for the active company and stores the Payment voucher type ID in {{voucher_type_id}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Warehouses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/settings/warehouses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "warehouses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Warehouse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Delhi Warehouse\",\n  \"location\": \"Okhla Industrial Area, Delhi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings/warehouses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "warehouses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Warehouse",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Delhi Warehouse - Main\",\n  \"location\": \"Okhla Phase 2, Delhi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings/warehouses/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "warehouses",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://apidevelop.yanibooks.com"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "active_company_id",
+      "value": ""
+    },
+    {
+      "key": "company_id_override",
+      "value": ""
+    },
+    {
+      "key": "switch_company_id",
+      "value": ""
+    },
+    {
+      "key": "role_id",
+      "value": ""
+    },
+    {
+      "key": "created_user_id",
+      "value": ""
+    },
+    {
+      "key": "created_company_id",
+      "value": ""
+    },
+    {
+      "key": "voucher_type_id",
+      "value": ""
+    },
+    {
+      "key": "voucher_dr_ledger_id",
+      "value": ""
+    },
+    {
+      "key": "voucher_cr_ledger_id",
+      "value": ""
+    },
+    {
+      "key": "created_voucher_id",
+      "value": ""
+    }
+  ]
+}

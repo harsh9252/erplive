@@ -1,0 +1,112 @@
+{
+  "gstrReturns": [
+    {
+      "id": "gstr-1",
+      "path": "/gstr-1",
+      "title": "GSTR-1",
+      "subtitle": "Manage GSTR-1 Returns",
+      "description": "Details of outward supplies of goods and/or services",
+      "frequency": "Monthly/Quarterly",
+      "dueDate": "11th of next month",
+      "sections": [
+        {
+          "name": "B2B Invoices",
+          "code": "4A, 4B, 4C, 6B, 6C",
+          "description": "Business to Business - Taxable outward supplies"
+        },
+        {
+          "name": "B2C Large Invoices",
+          "code": "5A, 5B",
+          "description": "Business to Consumer - Invoice value more than 2.5 lakhs"
+        },
+        {
+          "name": "B2C Small Invoices",
+          "code": "7",
+          "description": "Business to Consumer - Other than 5A and 5B"
+        },
+        {
+          "name": "Credit/Debit Notes",
+          "code": "9B, 9C",
+          "description": "Credit and Debit notes for B2B and B2C"
+        },
+        {
+          "name": "Exports",
+          "code": "6A",
+          "description": "Exports with and without payment of tax"
+        },
+        {
+          "name": "Nil Rated/Exempted",
+          "code": "8",
+          "description": "Nil rated, exempted and non-GST supplies"
+        }
+      ]
+    },
+    {
+      "id": "gstr-3b",
+      "path": "/gstr-3b",
+      "title": "GSTR-3B",
+      "subtitle": "Manage GSTR-3B Returns",
+      "description": "Summary return of outward and inward supplies",
+      "frequency": "Monthly",
+      "dueDate": "20th of next month",
+      "sections": [
+        {
+          "name": "Outward Supplies",
+          "code": "3.1",
+          "description": "Details of outward supplies and inward supplies liable to reverse charge"
+        },
+        {
+          "name": "ITC Claimed",
+          "code": "4",
+          "description": "Eligible ITC - Inputs, Capital Goods, Input Services"
+        },
+        {
+          "name": "Exempt/Nil/Non-GST",
+          "code": "5",
+          "description": "Values of exempt, nil-rated and non-GST inward supplies"
+        },
+        {
+          "name": "Payment of Tax",
+          "code": "6.1",
+          "description": "Tax payable and paid - IGST, CGST, SGST, Cess"
+        }
+      ]
+    },
+    {
+      "id": "gstr-9",
+      "path": "/gstr-9",
+      "title": "GSTR-9 / 9C",
+      "subtitle": "Manage GSTR-9 Annual Returns",
+      "description": "Annual return consolidating details from GSTR-1 and GSTR-3B",
+      "frequency": "Annually",
+      "dueDate": "31st December of next financial year",
+      "sections": [
+        {
+          "name": "Outward Supplies",
+          "code": "Part II",
+          "description": "Details of outward supplies made during the financial year"
+        },
+        {
+          "name": "Inward Supplies",
+          "code": "Part III",
+          "description": "Details of ITC availed during the financial year"
+        },
+        {
+          "name": "Tax Paid",
+          "code": "Part IV",
+          "description": "Details of tax paid as declared in returns filed during the financial year"
+        },
+        {
+          "name": "Reconciliation",
+          "code": "Part V",
+          "description": "Particulars of the transactions for the previous FY declared in returns of April to September of current FY or up to date of filing of annual return of previous FY"
+        },
+        {
+          "name": "GSTR-9C",
+          "code": "Reconciliation Statement",
+          "description": "Reconciliation of turnover declared in audited annual financial statement with turnover declared in annual return (for turnover > 5 Cr)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+/* App specific styles */
+.main-wrapper {
+  min-height: 100vh;
+  position: relative;
+}
+
+.main-wrapper.auth-bg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 0;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+.page-wrapper {
+  min-height: calc(100vh - 60px);
+}
+
+/* Ensure content takes full height */
+.content {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Loading state */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+/* Page content wrapper */
+.page-content {
+  width: 100%;
+}
+
+/* Fix for dropdown menus */
+.dropdown-menu {
+  z-index: 1050;
+}
+
+/* Fix for modals */
+.modal {
+  z-index: 1060;
+}
+
+/* Print styles */
+@media print {
+
+  .header,
+  .two-col-sidebar,
+  .footer {
+    display: none !important;
+  }
+
+  .page-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Fix for overlapping text in sidebar */
+.two-col-sidebar .sidebar-menu ul li {
+  position: relative;
+  z-index: 1;
+}
+
+.two-col-sidebar .sidebar-menu ul li a {
+  display: block;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.two-col-sidebar .sidebar-menu ul li ul {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure proper stacking context */
+.two-col-sidebar .twocol-mini {
+  position: relative;
+  z-index: 3;
+}
+
+.two-col-sidebar .sidebar {
+  position: relative;
+  z-index: 2;
+}
+
+/* Fix for menu items positioning */
+.sidebar-menu .submenu ul {
+  position: static !important;
+  display: none;
+  padding-left: 20px;
+}
+
+.sidebar-menu .submenu.active ul,
+.sidebar-menu .submenu.subdrop ul {
+  display: block !important;
+}
+
+/* Prevent text overlap */
+.sidebar-menu li a span {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Hide text in mini-sidebar mode */
+.mini-sidebar .sidebar-menu li a span {
+  display: none !important;
+}
+
+.mini-sidebar .sidebar-menu .menu-title span {
+  display: none !important;
+}
+
+/* Show text when expanded */
+.mini-sidebar.expand-menu .sidebar-menu li a span {
+  display: inline-block !important;
+}
+
+.mini-sidebar.expand-menu .sidebar-menu .menu-title span {
+  display: inline-block !important;
+}
+
+.sidebar-menu .menu-title {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix form-check label wrapping on auth pages */
+.main-wrapper.auth-bg .form-check-label {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.main-wrapper.auth-bg .form-check-label a {
+  word-break: break-word;
+}
+
+@media (max-width: 991px) {
+
+  .two-col-sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    width: 260px;
+    height: 100%;
+    background: #fff;
+    z-index: 999;
+    transition: all 0.3s ease;
+  }
+
+  body.slide-nav .two-col-sidebar {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    top: 0;
+    left: 0;
+    z-index: 998;
+  }
+
+  body.slide-nav .sidebar-overlay {
+    display: block;
+  }
+
+}
+.slide-nav .sidebar {
+  left: 0;
+}
+
+.sidebar {
+  left: -260px;
+  transition: all 0.3s;
+}
+body .sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+}
+body.slide-nav .sidebar-overlay {
+  display: block;
+}
+body.slide-nav .sidebar {
+  transform: translateX(0); /* slide in */
+}
