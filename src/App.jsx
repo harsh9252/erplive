@@ -53,6 +53,8 @@ import CallHistory from "./pages/call-history";
 import Call from "./pages/call";
 import CarBookingInvoice from "./pages/car-booking-invoice";
 import CashFlow from "./pages/cash-flow";
+import CashBankBook from "./pages/cash-bank-book";
+import DayBook from "./pages/day-book";
 import FundFlow from "./pages/fund-flow";
 import Category from "./pages/category";
 import ChartApex from "./pages/chart-apex";
@@ -281,6 +283,8 @@ import AddSalesInvoice from "./pages/add-sales-invoice";
 import EditSalesInvoice from "./pages/edit-sales-invoice";
 import SalesInvoiceDetails from "./pages/sales-invoice-details";
 import SalesReport from "./pages/sales-report";
+import SalesAnalysis from "./pages/sales-analysis";
+import PurchaseAnalysis from "./pages/purchase-analysis";
 import SalesReturns from "./pages/sales-returns";
 import SassSettings from "./pages/sass-settings";
 import SearchList from "./pages/search-list";
@@ -515,7 +519,7 @@ function App() {
             
             {/* GST & TAXATION */}
             <Route path="gst">
-              <Route path="summary" element={<GstSummaryReport />} />
+                <Route path="summary" element={<Navigate to="/reports/gst-summary" replace />} />
               <Route path="rcm" element={<GstRcm />} />
             </Route>
 
@@ -588,8 +592,10 @@ function App() {
             <Route path="call-history" element={<CallHistory />} />
             <Route path="call" element={<Call />} />
             <Route path="car-booking-invoice" element={<CarBookingInvoice />} />
-            <Route path="cash-flow" element={<CashFlow />} />
-            <Route path="fund-flow" element={<FundFlow />} />
+            <Route path="reports/cash-flow" element={<CashFlow />} />
+            <Route path="cash-flow" element={<Navigate to="/reports/cash-flow" replace />} />
+            <Route path="reports/fund-flow" element={<FundFlow />} />
+            <Route path="fund-flow" element={<Navigate to="/reports/fund-flow" replace />} />
             <Route path="category" element={<Category />} />
             <Route path="chart-apex" element={<ChartApex />} />
             <Route path="chart-c3" element={<ChartC3 />} />
@@ -1037,6 +1043,11 @@ function App() {
             <Route path="edit-sales-order/:id" element={<AddSalesOrder />} />
             <Route path="sales-orders" element={<SalesOrders />} />
             <Route path="sales-report" element={<SalesReport />} />
+            <Route path="reports/sales-analysis" element={<SalesAnalysis />} />
+            <Route path="reports/purchase-analysis" element={<PurchaseAnalysis />} />
+            <Route path="reports/gst-summary" element={<GstSummaryReport />} />
+            <Route path="reports/cash-bank-book" element={<CashBankBook />} />
+            <Route path="reports/day-book" element={<DayBook />} />
             <Route path="sales-returns" element={<SalesReturns />} />
             <Route path="sass-settings" element={<SassSettings />} />
             <Route path="search-list" element={<SearchList />} />

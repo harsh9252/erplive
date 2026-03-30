@@ -773,8 +773,8 @@ const Sidebar = () => {
                     </li> */}
                     <li>
                       <Link
-                        to="/gst/summary"
-                        className={isActive("/gst/summary") ? "active" : ""}
+                        to="/reports/gst-summary"
+                        className={isActive("/reports/gst-summary") ? "active" : ""}
                       >
                         GST Report
                       </Link>
@@ -1004,51 +1004,59 @@ const Sidebar = () => {
                     </li>
                     <li>
                       <Link
-                        to="/sales-report"
-                        className={isActive("/sales-report") ? "active" : ""}
+                        to="/reports/sales-analysis"
+                        className={isActive("/reports/sales-analysis") ? "active" : ""}
                       >
                         Sales Analysis
                       </Link>
                     </li>
                     <li>
                       <Link
-                        to="/purchases-report"
-                        className={
-                          isActive("/purchases-report") ? "active" : ""
-                        }
+                        to="/reports/purchase-analysis"
+                        className={isActive("/reports/purchase-analysis") ? "active" : ""}
                       >
                         Purchase Analysis
                       </Link>
                     </li>
                     <li>
                       <Link
-                        to="/gstr-1"
-                        className={isActive("/gstr-1") ? "active" : ""}
+                        to="/reports/gst-summary"
+                        className={isActive("/reports/gst-summary") ? "active" : ""}
                       >
                         GST Summary
                       </Link>
                     </li>
                     <li>
                       <Link
-                        to="/cash-flow"
-                        className={isActive("/cash-flow") ? "active" : ""}
+                        to="/reports/cash-flow"
+                        className={isActive("/reports/cash-flow") ? "active" : ""}
                       >
                         Cash Flow
                       </Link>
                     </li>
                     <li>
                       <Link
-                        to="/fund-flow"
-                        className={isActive("/fund-flow") ? "active" : ""}
+                        to="/reports/fund-flow"
+                        className={isActive("/reports/fund-flow") ? "active" : ""}
                       >
                         Fund Flow
                       </Link>
                     </li>
                     <li>
-                      <Link to="#">Cash/Bank Book</Link>
+                      <Link
+                        to="/reports/cash-bank-book"
+                        className={isActive("/reports/cash-bank-book") ? "active" : ""}
+                      >
+                        Cash/Bank Book
+                      </Link>
                     </li>
                     <li>
-                      <Link to="#">Day Book</Link>
+                      <Link
+                        to="/reports/day-book"
+                        className={isActive("/reports/day-book") ? "active" : ""}
+                      >
+                        Day Book
+                      </Link>
                     </li>
                   </ul>
                 </li>

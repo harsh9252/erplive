@@ -96,11 +96,7 @@ const buildNormalizedError = (error) => {
   }
 
   const responseData = error?.response?.data || error?.data || error;
-  const message =
-    responseData?.message ||
-    responseData?.errors?.[0]?.message ||
-    error?.message ||
-    'Request failed';
+  const message = responseData?.message || responseData?.errors?.[0]?.message || error?.message || 'Request failed';
 
   const normalizedError = new Error(message);
   normalizedError.status = error?.response?.status || error?.status || null;
@@ -276,6 +272,7 @@ apiClient.interceptors.request.use((config) => {
 
   return nextConfig;
 });
+ 
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -283,10 +280,10 @@ apiClient.interceptors.response.use(
     const originalRequest = error?.config;
     const status = error?.response?.status;
 
-    if (status === 429 && originalRequest && !originalRequest._retry) {
-      originalRequest._retry = true;
-      // Wait 1.5s before retrying to allow the rate limit to reset
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    if (status === 429 && originalRequest && !originalRequest._isRetry429) {
+      originalRequest._isRetry429 = true;
+      // Wait 2s before retrying for rate limit specifically
+      await new Promise(resolve => setTimeout(resolve, 2000));
       return apiClient(originalRequest);
     }
 

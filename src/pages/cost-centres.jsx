@@ -6,7 +6,9 @@ import { costCategoryService } from '../services/costCategoryService';
 
 const CostCentres = () => {
   const [activeTab, setActiveTab] = useState('centres'); // 'centres' or 'categories'
-  const [loading, setLoading] = useState(true);
+  const [loadingCentres, setLoadingCentres] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Data states
@@ -33,6 +35,10 @@ const CostCentres = () => {
   }, []);
 
   useEffect(() => {
+    if (activeTab === 'categories' && !categoriesLoaded) {
+      fetchCategories();
+    }
+
     // Apply search filter locally
     if (activeTab === 'centres') {
       setFilteredCentres(centres.filter(c => 
@@ -47,19 +53,30 @@ const CostCentres = () => {
   }, [searchTerm, centres, categories, activeTab]);
 
   const fetchData = async () => {
-    setLoading(true);
+    console.log("API CALLED"); 
+    setLoadingCentres(true);
     try {
-      const [centresResp, categoriesResp] = await Promise.all([
-        costCenterService.getCostCenters(),
-        costCategoryService.getCategories()
-      ]);
+      const centresResp = await costCenterService.getCostCenters();
       setCentres(centresResp.data || []);
-      setCategories(categoriesResp.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
     } finally {
-      setLoading(false);
+      setLoadingCentres(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const categoriesResp = await costCategoryService.getCategories();
+      setCategories(categoriesResp.data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setCategoriesLoaded(true);
+      setLoadingCategories(false);
     }
   };
 
@@ -80,7 +97,11 @@ const CostCentres = () => {
     setSelectedItem(null);
   };
 
-  const openModal = (item = null) => {
+  const openModal = async (item = null) => {
+    if (activeTab === 'centres' && categories.length === 0) {
+      await fetchCategories();
+    }
+
     if (item) {
       setIsEdit(true);
       setSelectedItem(item);
@@ -108,6 +129,7 @@ const CostCentres = () => {
           await costCategoryService.createCategory(payload);
           toast.success('Category created successfully');
         }
+        await fetchCategories();
       } else {
         const payload = { 
           name: formData.name, 
@@ -149,12 +171,13 @@ const CostCentres = () => {
         try {
           if (type === 'category') {
             await costCategoryService.deleteCategory(id);
+            await fetchCategories();
           } else {
             await costCenterService.deleteCostCenter(id);
+            await fetchData();
           }
           toast.success('Deleted successfully');
-          fetchData();
-        } catch (error) {
+        } catch {
           toast.error('Deletion failed');
         }
       }
@@ -203,21 +226,29 @@ const CostCentres = () => {
         </div>
         
         <div className="card-body p-4">
-          <div className="d-flex align-items-center justify-content-between mb-4 mt-2">
-            <div className="search-input w-25">
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder={`Search ${activeTab}...`} 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <i className="isax isax-search-normal search-icon"></i>
+          <div className="d-flex align-items-center gap-2 mb-4 mt-2">
+            <div className="table-search d-flex align-items-center mb-0">
+              <div className="search-input">
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder={`Search ${activeTab}...`} 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button type="button" className="btn btn-searchset">
+                  <i className="isax isax-search-normal fs-12"></i>
+                </button>
+              </div>
             </div>
             <div className="right-tools">
-               <button className="btn btn-outline-light btn-sm me-2" onClick={fetchData} title="Refresh Data">
-                 <i className="isax isax-refresh"></i>
-               </button>
+              <button
+                className="btn btn-light btn-sm"
+                onClick={activeTab === 'categories' ? fetchCategories : fetchData}
+                title="Refresh Data"
+              >
+                <i className="isax isax-refresh"></i>
+              </button>
             </div>
           </div>
 
@@ -234,7 +265,7 @@ const CostCentres = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loadingCentres ? (
                     <tr><td colSpan="5" className="text-center py-5"><div className="spinner-border text-primary"></div></td></tr>
                   ) : filteredCentres.length > 0 ? (
                     filteredCentres.map(centre => (
@@ -273,7 +304,7 @@ const CostCentres = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loadingCategories ? (
                     <tr><td colSpan="3" className="text-center py-5"><div className="spinner-border text-primary"></div></td></tr>
                   ) : filteredCategories.length > 0 ? (
                     filteredCategories.map(cat => (

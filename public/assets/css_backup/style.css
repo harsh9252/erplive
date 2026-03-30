@@ -26094,7 +26094,7 @@ table.table.dataTable>thead>tr th {
   transform: translateY(-50%);
   -webkit-transform: translateY(-50%);
   -ms-transform: translateY(-50%);
-  left: 12px;
+  left: 2px;
   border: 0;
   color: var(--gray-500);
 }

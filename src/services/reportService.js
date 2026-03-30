@@ -50,6 +50,48 @@ export const getGstSummaryReport = async (params = {}) =>
     params: cleanParams(params),
   });
 
+export const getSalesAnalysisReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/sales-analysis',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
+export const getPurchaseAnalysisReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/purchase-analysis',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
+export const getCashFlowReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/cash-flow',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
+export const getFundFlowReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/fund-flow',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
+export const getCashBankBookReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/cash-bank-book',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
+export const getDayBookReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/day-book',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
 const reportService = {
   getTrialBalanceReport,
   getProfitLossReport,
@@ -58,6 +100,12 @@ const reportService = {
   getOutstandingPayablesReport,
   getStockSummaryReport,
   getGstSummaryReport,
+  getSalesAnalysisReport,
+  getPurchaseAnalysisReport,
+  getCashFlowReport,
+  getFundFlowReport,
+  getCashBankBookReport,
+  getDayBookReport,
 };
 
 export default reportService;

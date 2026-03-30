@@ -3,6 +3,28 @@ import React, { useState, useRef } from "react";
 const Version = () => {
   const [versions, setVersions] = useState([
     {
+      current: "2.1.0",
+      releaseDate: "2026-03-30",
+      changes: `
+                <div class="mb-3">
+                    <h6 class="fw-bold">Atyani ERP — Frontend Development Update (30/03/2026)</h6>
+                    <p class="text-muted mb-2">Today’s progress includes successful completion of all planned frontend integrations and UI updates as per the provided documentation.</p>
+                    <ul>
+                        <li>The feature branch <b>feature_ERP_30_03_26</b> has been created and updated on GitHub.</li>
+                        <li>All APIs mentioned in the provided document have been fully integrated.</li>
+                        <li>Additional UI improvements and refinements have been implemented where required.</li>
+                        <li>All modules are now functionally connected with backend APIs.</li>
+                    </ul>
+                    <h6 class="fw-bold">Current Status:</h6>
+                    <ul>
+                        <li>Development work is completed.</li>
+                        <li>The application has now moved to the testing phase for validation and bug identification.</li>
+                    </ul>
+                    <p class="text-muted">Overall, the system is stable and ready for thorough testing.</p>
+                </div>
+            `,
+    },
+    {
       current: "2.0.0",
       releaseDate: "2026-03-28",
       changes: `

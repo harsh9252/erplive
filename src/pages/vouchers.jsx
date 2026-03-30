@@ -46,6 +46,7 @@ const Vouchers = () => {
       };
       
       const response = await voucherService.getVouchers(params);
+      console.log('Fetched vouchers:', response);
       if (response && response.data) {
         setVouchers(response.data);
         setPagination(response.pagination || { 
@@ -125,6 +126,18 @@ const Vouchers = () => {
       setCurrentPage(newPage);
     }
   };
+
+  const hasFilters = Boolean(
+    searchTerm ||
+    typeFilter !== 'All' ||
+    statusFilter !== 'All' ||
+    fromDate !== '2025-04-01' ||
+    toDate !== '2026-03-31'
+  );
+
+  const emptyVoucherMessage = hasFilters
+    ? 'No vouchers match your current filter criteria. Try clearing the filters or changing the date range.'
+    : 'No vouchers have been created yet. Click Add New Voucher to create your first voucher.';
 
   const getTypeLabel = (code) => {
     return voucherTypes.find((t) => t.id.toString() === code?.toString())?.name || code;
@@ -346,7 +359,7 @@ const Vouchers = () => {
                     <td colSpan="9" className="text-center py-5">
                       <div className="empty-state">
                         <i className="isax isax-document-text text-muted" style={{ fontSize: '3rem' }}></i>
-                        <p className="mt-3 fs-16 text-muted">No vouchers found matching your filters</p>
+                        <p className="mt-3 fs-16 text-muted">{emptyVoucherMessage}</p>
                       </div>
                     </td>
                   </tr>

@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import companyService from '../services/companyService';
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const Header = () => {
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const fetchInProgress = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -18,7 +19,10 @@ const Header = () => {
   }, [user]);
 
   const fetchCompanies = async () => {
-    try {
+    if (fetchInProgress.current) return fetchInProgress.current;
+
+    fetchInProgress.current = (async () => {
+      try {
       setLoadingCompanies(true);
       const response = await companyService.getAccessibleCompanies();
       const data = response.data || response || [];
@@ -27,7 +31,11 @@ const Header = () => {
       console.error('Error fetching companies:', error);
     } finally {
       setLoadingCompanies(false);
+      fetchInProgress.current = null;
     }
+    })();
+    
+    return fetchInProgress.current;
   };
 
   const handleSwitchCompany = async (companyId) => {
@@ -77,7 +85,7 @@ const Header = () => {
 
   return (
     <div className="header">
-      <div className="main-header">
+      <div className="main-header d-flex align-items-center justify-content-between flex-wrap">
         {/* Logo */}
         {/* <div className="header-left">
           <Link to="/" className="logo">
@@ -99,9 +107,9 @@ const Header = () => {
 
 
 
-        <div className="header-user">
-          <div className="nav user-menu nav-list">
-            <div className="me-auto d-flex align-items-center">
+        <div className="header-user w-100 w-lg-auto">
+          <div className="nav user-menu nav-list d-flex align-items-center justify-content-between flex-wrap w-100">
+            <div className="me-auto d-flex align-items-center flex-wrap">
               {/* Breadcrumb */}
               <nav aria-label="breadcrumb">
                 <ol className="breadcrumb breadcrumb-divide mb-0">
@@ -113,7 +121,7 @@ const Header = () => {
               </nav>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
               {/* Search */}
               {/* <div className="input-icon-end position-relative">
                 <input type="text" className="form-control" placeholder="Search" style={{ width: '180px' }} />
@@ -208,22 +216,22 @@ const Header = () => {
               </div> */}
 
               {/* Company Switcher Dropdown */}
-              <div className="dropdown">
-                <Link
-                  className="btn btn-menubar bg-primary-transparent d-flex align-items-center"
+              <div className="dropdown position-relative">
+                <button
+                  type="button"
+                  className="btn bg-primary-transparent d-flex align-items-center"
                   data-bs-toggle="dropdown"
-                  href="#"
-                  role="button"
+                  aria-expanded="false"
                 >
                   <i className="isax isax-building-3 me-2 text-primary"></i>
                   <span
-                    className="fs-13 fw-semibold text-primary d-none d-md-inline-block text-truncate"
-                    style={{ maxWidth: '120px' }}
+                    className="fs-13 fw-semibold text-primary text-truncate"
+                    style={{ maxWidth: '140px', minWidth: '80px', whiteSpace: 'nowrap' }}
                   >
                     {activeCompany?.name || 'Select Company'}
                   </span>
                   <i className="isax isax-arrow-down-1 ms-2 fs-12 text-primary"></i>
-                </Link>
+                </button>
                 <div className="dropdown-menu dropdown-menu-end p-2" style={{ minWidth: '220px' }}>
                   <div className="dropdown-header p-2 border-bottom mb-2">
                     <h6 className="m-0 fs-12 text-muted text-uppercase fw-bold">Switch Company</h6>
@@ -264,13 +272,18 @@ const Header = () => {
               </div>
 
               {/* User Dropdown */}
-              <div className="dropdown profile-dropdown">
-                <Link to="/" className="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+              <div className="dropdown profile-dropdown position-relative">
+                <button
+                  type="button"
+                  className="dropdown-toggle btn p-0 border-0 bg-transparent d-flex align-items-center"
+                  data-bs-toggle="dropdown"
+                  data-bs-auto-close="outside"
+                  aria-expanded="false"
+                >
                   <span className="avatar online">
                     <img src="/assets/img/profiles/avatar-01.jpg" alt="Img" className="img-fluid rounded-circle" />
                   </span>
-                </Link >
-                {/* <div className="dropdown-menu p-2" style={{ background: 'red', top: 'auto', right: 0, left: '100px' }}>hello</div> */}
+                </button>
                 <div className="dropdown-menu p-2" style={{ top: 'auto', right: 0, }}>
                   <div className="d-flex align-items-center bg-light rounded-1 p-2 mb-2">
                     <span className="avatar avatar-lg me-2">

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import * as authService from '../services/authService';
 import { getStoredActiveCompany, getAccessToken, AUTH_STATE_CHANGED_EVENT } from '../services/apiClient';
 import pushNotificationService from '../services/pushNotificationService';
@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const fetchInProgress = useRef(null);
 
   // Initialize push notifications
   const initializePushNotifications = async () => {
@@ -76,7 +77,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchFullProfile = async (authToken, isInitialLoad = false) => {
-    try {
+    // Deduplicate in-flight requests
+    if (fetchInProgress.current) {
+      return fetchInProgress.current;
+    }
+
+    fetchInProgress.current = (async () => {
+      try {
       const response = await authService.getProfile();
       const data = response.data || response;
       
@@ -110,9 +117,14 @@ export const AuthProvider = ({ children }) => {
       } else if (!fullUserData.isTempPassword && !isInitialLoad) {
         initializePushNotifications();
       }
-    } catch (error) {
-      console.error('Error fetching full profile:', error);
-    }
+      } catch (error) {
+        console.error('Error fetching full profile:', error);
+      } finally {
+        fetchInProgress.current = null;
+      }
+    })();
+    
+    return fetchInProgress.current;
   };
 
   const login = async (token, userData) => {

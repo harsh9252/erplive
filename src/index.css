@@ -111,3 +111,40 @@ button:focus-visible {
   background-color: rgba(13, 202, 240, 0.1) !important;
   color: #0dcaf0 !important;
 }
+
+@media (min-width: 992px) {
+  .header .profile-dropdown .dropdown-menu,
+  .header .dropdown.position-relative .dropdown-menu {
+    top: 31px !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .header,
+  .header .main-header,
+  .header .header-user,
+  .header .header-user .user-menu,
+  .header .header-user .user-menu .dropdown,
+  .header .header-user .user-menu .profile-dropdown {
+    overflow: visible !important;
+  }
+
+  .header .header-user .user-menu .dropdown .dropdown-menu,
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu {
+    position: fixed !important;
+    top: 56px !important;
+    right: 12px !important;
+    left: auto !important;
+    z-index: 2200 !important;
+    margin: 0 !important;
+    transform: none !important;
+    max-width: calc(100vw - 24px) !important;
+    width: auto !important;
+  }
+
+  .header .header-user .user-menu .dropdown .dropdown-menu.show,
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu.show {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}

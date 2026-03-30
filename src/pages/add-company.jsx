@@ -609,7 +609,7 @@ const AddCompany = () => {
 
         {/* Sidebar Help */}
         <div className="col-lg-4">
-          <div className="card sticky-top" style={{ top: '20px' }}>
+          <div className="card " >
             <div className="card-header">
               <h5 className="card-title">Quick Help</h5>
             </div>
