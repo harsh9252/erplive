@@ -7,6 +7,7 @@ import {
   collectPayment,
 } from "../services/salesInvoiceService";
 import { getCompanySettings } from "../services/settingsService";
+import approvalService from "../services/approvalService";
 import { toast } from "react-toastify";
 import CollectPaymentModal from "../components/CollectPaymentModal";
 /* Using global bootstrap from window */
@@ -74,6 +75,26 @@ const SalesInvoiceDetails = () => {
       fetchInvoice();
     } catch (error) {
       toast.error(error.message || "Failed to cancel invoice");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    const remarks = window.prompt("Enter any remarks for approval (optional):");
+    if (remarks === null) return;
+
+    setProcessing(true);
+    try {
+      await approvalService.submitForApproval({
+        entity_type: "SALES_INVOICE",
+        entity_id: id,
+        remarks: remarks,
+      });
+      toast.success("Submitted for approval successfully!");
+      fetchInvoice();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit for approval");
     } finally {
       setProcessing(false);
     }
@@ -152,6 +173,13 @@ const SalesInvoiceDetails = () => {
               >
                 <i className="isax isax-edit me-1"></i>Edit
               </Link>
+              <button
+                className="btn btn-outline-primary btn-sm px-4"
+                onClick={handleSubmitForApproval}
+                disabled={processing}
+              >
+                {processing ? "Submitting..." : "Submit for Approval"}
+              </button>
               <button
                 className="btn btn-primary btn-sm px-4"
                 onClick={handlePost}

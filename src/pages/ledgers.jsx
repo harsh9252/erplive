@@ -265,10 +265,10 @@ const Ledgers = () => {
                                     ledgers.map((ledger) => (
                                         <tr key={ledger.id}>
                                             <td className="fw-semibold text-dark">{ledger.name}</td>
-                                            <td>{ledger.LedgerGroup?.name || 'Unassigned'}</td>
+                                            <td>{ledger.ledgerGroup?.name || 'Unassigned'}</td>
                                             <td className="text-center">
-                                                <span className={getNatureBadge(ledger.LedgerGroup?.nature)}>
-                                                    {ledger.LedgerGroup?.nature || 'N/A'}
+                                                <span className={getNatureBadge(ledger.ledgerGroup?.nature)}>
+                                                    {ledger.ledgerGroup?.nature || 'N/A'}
                                                 </span>
                                             </td>
                                             <td className="text-end fw-medium">

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import approvalService from '../services/approvalService';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -67,6 +69,26 @@ const Expenses = () => {
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       setExpenses(expenses.filter((expense) => expense.id !== id));
+    }
+  };
+
+  const handleSubmitForApproval = async (expense) => {
+    const remarks = window.prompt('Enter any remarks for approval (optional):');
+    if (remarks === null) return;
+
+    try {
+      await approvalService.submitForApproval({
+        entity_type: 'EXPENSE',
+        entity_id: expense.id,
+        remarks: remarks,
+      });
+      toast.success('Submitted for approval successfully!');
+      // Update local state if necessary or re-fetch
+      setExpenses(expenses.map(exp => 
+        exp.id === expense.id ? { ...exp, status: 'Pending Approval' } : exp
+      ));
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit for approval');
     }
   };
 
@@ -241,6 +263,15 @@ const Expenses = () => {
                     </td>
                     <td>
                       <div className="d-flex align-items-center gap-2">
+                        {expense.status?.toLowerCase() === 'pending' && (
+                          <button 
+                            className="btn btn-sm btn-outline-info"
+                            onClick={() => handleSubmitForApproval(expense)}
+                            title="Submit for Approval"
+                          >
+                            <i className="isax isax-send-1"></i>
+                          </button>
+                        )}
                         <button className="btn btn-sm btn-outline-primary">
                           <i className="isax isax-eye"></i>
                         </button>

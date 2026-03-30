@@ -8,6 +8,9 @@ const STORAGE_KEYS = {
   legacyToken: 'token',
   refreshToken: 'refreshToken',
   user: 'user',
+  userId: 'user_id',
+  companyId: 'company_id',
+  userName: 'user_name',
   permissions: 'permissions',
   companies: 'companies',
   activeCompany: 'activeCompany',
@@ -157,6 +160,18 @@ export const persistAuthSession = ({
 
   if (user) {
     safeStorageSet(STORAGE_KEYS.user, JSON.stringify(user));
+
+    // Store specific user fields as requested
+    const userId = user.id || user.user_id;
+    const companyId =
+      user.company_id ||
+      activeCompany?.id ||
+      (Array.isArray(companies) ? companies.find((c) => c.is_active)?.id : null);
+    const userName = user.name || user.user_name || user.first_name;
+
+    if (userId) safeStorageSet(STORAGE_KEYS.userId, String(userId));
+    if (companyId) safeStorageSet(STORAGE_KEYS.companyId, String(companyId));
+    if (userName) safeStorageSet(STORAGE_KEYS.userName, userName);
   }
 
   if (permissions) {

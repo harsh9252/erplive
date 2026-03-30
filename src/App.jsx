@@ -14,6 +14,9 @@ import AddBlog from "./pages/add-blog";
 import AddCompany from "./pages/add-company";
 import AddCreditNote from "./pages/add-credit-note";
 import AddCustomer from "./pages/add-customer";
+import Customers from "./pages/customers";
+import Vendors from "./pages/vendors";
+import AddVendor from "./pages/add-vendor";
 import AddDebitNote from "./pages/add-debit-note";
 import AddDeliveryChallan from "./pages/add-delivery-challan";
 import AddInvoice from "./pages/add-invoice";
@@ -102,7 +105,6 @@ import CustomerRecurringInvoices from "./pages/customer-recurring-invoices";
 import CustomerSecuritySettings from "./pages/customer-security-settings";
 import CustomerTransactions from "./pages/customer-transactions";
 import CustomersReport from "./pages/customers-report";
-import Customers from "./pages/customers";
 import DataTables from "./pages/data-tables";
 import DatabaseBackup from "./pages/database-backup";
 import DebitNotes from "./pages/debit-notes";
@@ -302,8 +304,6 @@ import SuperAdminDashboard from "./pages/super-admin-dashboard";
 import SupplierPayments from "./pages/supplier-payments";
 import SupplierReport from "./pages/supplier-report";
 import Suppliers from "./pages/suppliers";
-import Vendors from "./pages/vendors";
-import AddVendor from "./pages/add-vendor";
 import EditVendor from "./pages/edit-vendor";
 import VendorDetails from "./pages/vendor-details";
 import SystemBackup from "./pages/system-backup";
@@ -422,10 +422,33 @@ import Budgets from "./pages/Budgets";
 import AddBudget from "./pages/add-budget";
 import EditBudget from "./pages/edit-budget";
 import BudgetVariance from "./pages/BudgetVariance";
+import BOMList from "./pages/bom-list";
+import AddBOM from "./pages/add-bom";
+import BOMDetails from "./pages/bom-details";
+import ProductionOrderList from "./pages/production-order-list";
+import AddProductionOrder from "./pages/add-production-order";
+import ProductionOrderDetails from "./pages/production-order-details";
+import JobWorkList from "./pages/job-work-list";
+import AddJobWork from "./pages/add-job-work";
+import GstSummaryReport from "./pages/gst-summary";
+import GstRcm from "./pages/gst-rcm";
+import EmployeeList from "./pages/employee-list";
+import AddEmployee from "./pages/add-employee";
+import Attendance from "./pages/attendance";
+import SalaryStructure from "./pages/salary-structure";
+import Payslips from "./pages/payslips";
+import Cheques from "./pages/cheques";
+import Approvals from "./pages/approvals";
+import VoucherTypes from "./pages/voucher-types";
 
 // Root redirect component
 const RootRedirect = () => {
-  const { authenticated } = useAuth();
+  const { authenticated, loading } = useAuth();
+  
+  if (loading) {
+    return null;
+  }
+  
   console.log("##### login ", authenticated);
   return <Navigate to={authenticated ? "/dashboard" : "/login"} replace />;
 };
@@ -475,6 +498,28 @@ function App() {
             }
           >
             <Route path="dashboard" element={<AdminDashboard />} />
+
+            {/* PAYROLL */}
+            <Route path="payroll/employees" element={<EmployeeList />} />
+            <Route path="payroll/employees/add" element={<AddEmployee />} />
+            <Route path="payroll/employees/edit/:id" element={<AddEmployee />} />
+            <Route path="payroll/attendance" element={<Attendance />} />
+            <Route path="payroll/salary-structure" element={<SalaryStructure />} />
+            <Route path="payroll/payslips" element={<Payslips />} />
+            
+            {/* BANKING & PAYMENTS */}
+            <Route path="banking/cheques" element={<Cheques />} />
+            
+            {/* APPROVAL WORKFLOW */}
+            <Route path="approvals" element={<Approvals />} />
+            
+            {/* GST & TAXATION */}
+            <Route path="gst">
+              <Route path="summary" element={<GstSummaryReport />} />
+              <Route path="rcm" element={<GstRcm />} />
+            </Route>
+
+
             <Route path="account-settings" element={<AccountSettings />} />
             <Route path="account-statement" element={<AccountStatement />} />
             <Route path="add-blog" element={<AddBlog />} />
@@ -580,7 +625,14 @@ function App() {
               path="accounting/budgets/:id/variance"
               element={<BudgetVariance />}
             />
-            <Route path="company-settings" element={<CompanySettings />} />
+            <Route path="settings">
+              <Route path="company" element={<CompanySettings />} />
+              <Route path="voucher-types" element={<VoucherTypes />} />
+            </Route>
+            <Route
+              path="company-settings"
+              element={<Navigate to="/settings/company" replace />}
+            />
             <Route path="branches" element={<Branches />} />
             <Route path="contact-message" element={<ContactMessage />} />
             <Route path="contact-messages" element={<ContactMessages />} />
@@ -651,7 +703,18 @@ function App() {
               element={<CustomerTransactions />}
             />
             <Route path="customers-report" element={<CustomersReport />} />
-            <Route path="customers" element={<Customers />} />
+            <Route path="master">
+              <Route path="customers" element={<Customers />} />
+              <Route path="customers/add" element={<AddCustomer />} />
+              <Route path="customers/edit/:id" element={<AddCustomer />} />
+              <Route path="vendors" element={<Vendors />} />
+              <Route path="vendors/add" element={<AddVendor />} />
+              <Route path="vendors/edit/:id" element={<AddVendor />} />
+            </Route>
+            <Route
+              path="customers"
+              element={<Navigate to="/master/customers" replace />}
+            />
             <Route path="data-tables" element={<DataTables />} />
             <Route path="database-backup" element={<DatabaseBackup />} />
             <Route
@@ -666,7 +729,18 @@ function App() {
             <Route path="domain" element={<Domain />} />
             <Route path="ecommerce-invoice" element={<EcommerceInvoice />} />
             <Route path="edit-blog" element={<EditBlog />} />
-            <Route path="edit-customer" element={<EditCustomer />} />
+            <Route
+              path="add-customer"
+              element={<Navigate to="/master/customers/add" replace />}
+            />
+            <Route
+              path="edit-customer/:id"
+              element={<Navigate to="/master/customers/edit/:id" replace />}
+            />
+            <Route
+              path="edit-customer"
+              element={<Navigate to="/master/customers" replace />}
+            />
             <Route
               path="edit-delivery-challan"
               element={<EditDeliveryChallan />}
@@ -991,9 +1065,9 @@ function App() {
             <Route path="supplier-payments" element={<SupplierPayments />} />
             <Route path="supplier-report" element={<SupplierReport />} />
             <Route path="suppliers" element={<Suppliers />} />
-            <Route path="vendors" element={<Vendors />} />
-            <Route path="add-vendor" element={<AddVendor />} />
-            <Route path="edit-vendor/:id" element={<EditVendor />} />
+            <Route path="vendors" element={<Navigate to="/master/vendors" replace />} />
+            <Route path="add-vendor" element={<Navigate to="/master/vendors/add" replace />} />
+            <Route path="edit-vendor/:id" element={<Navigate to="/master/vendors/edit/:id" replace />} />
             <Route path="vendor-details/:id" element={<VendorDetails />} />
             <Route path="system-backup" element={<SystemBackup />} />
             <Route path="system-update" element={<SystemUpdate />} />
@@ -1127,6 +1201,18 @@ function App() {
             <Route path="gstr-3b" element={<GSTR3B />} />
             <Route path="gstr-9" element={<GSTR9 />} />
             <Route path="itc-register" element={<ITCRegister />} />
+
+            {/* MANUFACTURING */}
+            <Route path="manufacturing/bom" element={<BOMList />} />
+            <Route path="manufacturing/bom/add" element={<AddBOM />} />
+            <Route path="manufacturing/bom/:id" element={<BOMDetails />} />
+            <Route path="manufacturing/production-orders" element={<ProductionOrderList />} />
+            <Route path="manufacturing/production-orders/add" element={<AddProductionOrder />} />
+            <Route path="manufacturing/production-orders/:id" element={<ProductionOrderDetails />} />
+            <Route path="manufacturing/job-work" element={<JobWorkList />} />
+            <Route path="manufacturing/job-work/add" element={<AddJobWork />} />
+
+            {/* MANUFACTURING */}
           </Route>
         </Routes>
         <ToastContainer

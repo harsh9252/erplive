@@ -3,6 +3,73 @@ import { Link, useNavigate } from 'react-router-dom';
 import dashboardService from '../services/dashboardService';
 import financialYearService from '../services/financialYearService';
 import { toast } from 'react-toastify';
+import { hasPermission } from '../services/authService';
+
+const QUICK_ACTIONS = [
+  {
+    label: 'Invoice',
+    route: '/invoicing/sales/add',
+    icon: 'isax-document-text-1',
+    module: 'sales_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Purchase',
+    route: '/invoicing/purchases/add',
+    icon: 'isax-document',
+    module: 'purchase_invoice',
+    action: 'create'
+  },
+  // {
+  //   label: 'Expense',
+  //   route: '/expenses',
+  //   icon: 'isax-money-send',
+  //   module: 'accounting',
+  //   action: 'create'
+  // },
+  {
+    label: 'Credit Note',
+    route: '/invoicing/credit-notes/add',
+    icon: 'isax-money-add',
+    module: 'sales_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Debit Note',
+    route: '/invoicing/debit-notes/add',
+    icon: 'isax-money-recive',
+    module: 'purchase_invoice',
+    action: 'create'
+  },
+  // {
+  //   label: 'Quotation',
+  //   route: '/add-quotation',
+  //   icon: 'isax-document-download',
+  //   module: 'sales_invoice',
+  //   action: 'create'
+  // },
+  {
+    label: 'Sales Order',
+    route: '/invoicing/sales-orders/add',
+    icon: 'isax-note-text-1',
+    module: 'sales_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Purchase Order',
+    route: '/invoicing/purchase-orders/add',
+    icon: 'isax-document-copy',
+    module: 'purchase_invoice',
+    action: 'create'
+  },
+  // {
+  //   label: 'Delivery Challan',
+  //   route: '/add-delivery-challan',
+  //   icon: 'isax-document-forward',
+  //   module: 'sales_invoice',
+  //   action: 'create'
+  // },
+];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -41,7 +108,7 @@ const AdminDashboard = () => {
       setSummary(summaryRes.data || summaryRes);
       setChartData(chartRes.data || chartRes || []);
       setTopCustomers(customersRes.data || customersRes || []);
-      
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -147,10 +214,17 @@ const AdminDashboard = () => {
               Create New
             </button>
             <ul className="dropdown-menu dropdown-menu-start">
-              <li><Link to="/add-invoice" className="dropdown-item"><i className="isax isax-document-text-1 me-2"></i>Invoice</Link></li>
-              <li><Link to="/expenses" className="dropdown-item"><i className="isax isax-money-send me-2"></i>Expense</Link></li>
-              <li><Link to="/add-credit-notes" className="dropdown-item"><i className="isax isax-money-add me-2"></i>Credit Notes</Link></li>
-              <li><Link to="/invoicing/purchases/add" className="dropdown-item"><i className="isax isax-document me-2"></i>Purchase</Link></li>
+              {QUICK_ACTIONS.filter(item => hasPermission(item.module, item.action)).map((item, idx) => (
+                <li key={idx}>
+                  <Link to={item.route} className="dropdown-item">
+                    <i className={`isax ${item.icon} me-2`}></i>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              {QUICK_ACTIONS.filter(item => hasPermission(item.module, item.action)).length === 0 && (
+                <li><span className="dropdown-item disabled text-muted">No actions available</span></li>
+              )}
             </ul>
           </div>
           <div className="reportrange-picker d-flex align-items-center bg-white border px-3 py-1 rounded">
@@ -272,7 +346,7 @@ const AdminDashboard = () => {
 
         {/* Pending Cheques */}
         <div className="col-sm-6 col-xl-3 d-flex mb-4">
-          <Link to="#" className="card overflow-hidden z-1 flex-fill mb-0">
+          <Link to="/banking/cheques" className="card overflow-hidden z-1 flex-fill mb-0">
             <div className="card-body">
               <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
                 <div>

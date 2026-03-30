@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { registerOwner } from '../services/authService';
+import { registerOwner, login } from '../services/authService';
 
 const initialFormData = {
   name: '',
@@ -79,15 +79,22 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const response = await registerOwner({
+      // Step 1: Register Owner
+      await registerOwner({
         name: formData.name.trim(),
         email: formData.email.trim(),
         password: formData.password,
         phone: formData.phone.trim() || undefined,
       });
 
-      toast.success(response?.message || 'Owner account created. Please sign in to continue.');
-      navigate('/login', { replace: true });
+      toast.success('Account created! Setting up your session...');
+
+      // Step 2: Auto-login
+      await login(formData.email.trim(), formData.password);
+
+      // Step 3: Redirect to company onboarding
+      toast.info('Please set up your company details to continue.');
+      navigate('/add-company?onboarding=true', { replace: true });
     } catch (error) {
       toast.error(error?.message || 'Registration failed.');
     } finally {

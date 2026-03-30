@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createCustomer } from '../services/customerService';
+import { createCustomer, updateCustomer, getCustomerById } from '../services/customerService';
+import { ledgerService } from '../services/ledgerService';
 import { toast } from 'react-toastify';
 
 const AddCustomer = () => {
@@ -10,29 +11,23 @@ const AddCustomer = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    display_name: '',
-    company_name: '',
-    customer_type: 'INDIVIDUAL',
     gstin: '',
-    pan: '',
-    email: '',
     phone: '',
-    mobile: '',
+    email: '',
     address: '',
     city: '',
     state: '',
     state_code: '',
-    pincode: '',
-    credit_limit: '',
-    credit_days: '',
     opening_balance: '',
-    opening_balance_type: 'DR',
-    bank_account: '',
+    balance_type: 'DR',
+    credit_limit: '',
+    payment_terms: '',
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [ledgerId, setLedgerId] = useState(null);
 
   const states = [
     { code: 'AN', name: 'Andaman and Nicobar Islands' },
@@ -81,31 +76,41 @@ const AddCustomer = () => {
 
   useEffect(() => {
     if (isEditMode) {
-      // Load existing customer data
-      const existingCustomer = {
-        name: 'John Doe',
-        display_name: 'JD',
-        company_name: 'Doe Enterprises',
-        customer_type: 'BUSINESS',
-        gstin: '27AABCT1234H1Z0',
-        pan: 'AABCT1234H',
-        email: 'john@example.com',
-        phone: '9876543210',
-        mobile: '9876543210',
-        address: '123 Business Street',
-        city: 'Mumbai',
-        state: 'MH',
-        state_code: 'MH',
-        pincode: '400001',
-        credit_limit: '100000',
-        credit_days: '30',
-        opening_balance: '5000',
-        opening_balance_type: 'DR',
-        bank_account: 'HDFC Bank - 1234567890',
-      };
-      setFormData(existingCustomer);
+      fetchCustomerData();
     }
   }, [isEditMode, id]);
+
+  const fetchCustomerData = async () => {
+    setLoading(true);
+    try {
+      console.log('Fetching customer data for id:', id);
+      const response = await getCustomerById(id);
+      if (response.success && response.data) {
+        const data = response.data;
+        console.log('Fetched data:', data);
+        setLedgerId(data.ledger_id);
+        setFormData({
+          name: data.name || '',
+          gstin: data.gstin || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          state_code: data.state_code || '',
+          opening_balance: data.ledger?.opening_balance || data.opening_balance || '',
+          balance_type: data.ledger?.balance_type || data.opening_balance_type || 'DR',
+          credit_limit: data.credit_limit || '',
+          payment_terms: data.credit_days || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+      toast.error('Failed to load customer data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -141,14 +146,11 @@ const AddCustomer = () => {
       newErrors.name = 'Customer Name is required';
     }
 
-    if (!formData.customer_type) {
-      newErrors.customer_type = 'Customer Type is required';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone is required';
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Phone must be 10 digits';
+    if (formData.phone && formData.phone.trim()) {
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
+        newErrors.phone = 'Phone must be 10 digits';
+      }
     }
 
     // Optional field validations
@@ -160,14 +162,6 @@ const AddCustomer = () => {
       newErrors.email = 'Invalid email format';
     }
 
-    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
-      newErrors.pincode = 'Pincode must be 6 digits';
-    }
-
-    if (formData.mobile && !/^\d{10}$/.test(formData.mobile.replace(/\D/g, ''))) {
-      newErrors.mobile = 'Mobile must be 10 digits';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -176,21 +170,57 @@ const AddCustomer = () => {
     e.preventDefault();
 
     if (!validateForm()) {
+      toast.warning('Please check the form for errors');
       return;
     }
 
     setLoading(true);
     try {
-      await createCustomer(formData);
+      console.log('Submitting customer data:', formData);
+      let response;
       
-      toast.success('Customer created successfully', {
-        position: 'top-right',
-        autoClose: 2000
-      });
+      const payload = {
+        ...formData,
+        opening_balance: parseFloat(formData.opening_balance) || 0,
+        credit_limit: parseFloat(formData.credit_limit) || 0,
+      };
 
-      setTimeout(() => {
-        navigate('/customers');
-      }, 2000);
+      if (isEditMode) {
+        // Exclude fields not allowed on update
+        const { opening_balance, balance_type, payment_terms, opening_balance_type, credit_days, ...updateData } = payload;
+        console.log('Filtered update payload:', updateData);
+        response = await updateCustomer(id, updateData);
+
+        // Update the linked ledger separately for balance-related fields
+        if (response.success && ledgerId) {
+          try {
+            await ledgerService.updateLedger(ledgerId, {
+              name: formData.name + ' (Customer)',
+              opening_balance: parseFloat(formData.opening_balance) || 0,
+              opening_balance_type: formData.balance_type
+            });
+          } catch (ledgerErr) {
+            console.error('Error updating linked ledger:', ledgerErr);
+            // We don't block the UI if only the ledger fails, but we log it
+          }
+        }
+      } else {
+        // Exclude fields not allowed on create
+        const { balance_type, payment_terms, opening_balance_type, credit_days, ...createData } = payload;
+        console.log('Filtered create payload:', createData);
+        response = await createCustomer(createData);
+      }
+
+      if (response && response.success) {
+        toast.success(isEditMode ? 'Customer updated successfully' : 'Customer created successfully');
+        setTimeout(() => {
+          navigate('/master/customers');
+        }, 1500);
+      } else {
+        const errorMsg = response?.message || 'Action failed';
+        setErrors({ submit: errorMsg });
+        toast.error(errorMsg);
+      }
     } catch (error) {
       console.error('Error saving customer:', error);
       const errorMessage = typeof error === 'string' ? error : (error.message || 'Failed to save customer');
@@ -202,7 +232,7 @@ const AddCustomer = () => {
   };
 
   const handleCancel = () => {
-    navigate('/customers');
+    navigate('/master/customers');
   };
 
   return (
@@ -262,60 +292,6 @@ const AddCustomer = () => {
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Display Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="display_name"
-                      value={formData.display_name}
-                      onChange={handleInputChange}
-                      placeholder="Short name for listings"
-                    />
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Company / Firm</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="company_name"
-                      value={formData.company_name}
-                      onChange={handleInputChange}
-                      placeholder="Business name"
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">
-                      Customer Type <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      className={`form-control ${errors.customer_type ? 'is-invalid' : ''}`}
-                      name="customer_type"
-                      value={formData.customer_type}
-                      onChange={handleInputChange}
-                    >
-                      {customerTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.customer_type && (
-                      <div className="invalid-feedback d-block">{errors.customer_type}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Tax Information */}
-              <div className="mb-4">
-                <h6 className="fw-bold mb-3">Tax Information</h6>
-
-                <div className="row">
-                  <div className="col-md-6 mb-3">
                     <label className="form-label text-dark">GSTIN</label>
                     <input
                       type="text"
@@ -328,28 +304,25 @@ const AddCustomer = () => {
                     {errors.gstin && (
                       <div className="invalid-feedback d-block">{errors.gstin}</div>
                     )}
-                    <small className="text-gray-9">Format: 15 alphanumeric characters</small>
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">PAN</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="pan"
-                      value={formData.pan}
-                      onChange={handleInputChange}
-                      placeholder="PAN number"
-                    />
                   </div>
                 </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="mb-4">
-                <h6 className="fw-bold mb-3">Contact Information</h6>
 
                 <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label text-dark">Phone</label>
+                    <input
+                      type="tel"
+                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="Phone number"
+                    />
+                    {errors.phone && (
+                      <div className="invalid-feedback d-block">{errors.phone}</div>
+                    )}
+                  </div>
+
                   <div className="col-md-6 mb-3">
                     <label className="form-label text-dark">Email</label>
                     <input
@@ -364,58 +337,12 @@ const AddCustomer = () => {
                       <div className="invalid-feedback d-block">{errors.email}</div>
                     )}
                   </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">
-                      Phone <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="10-digit phone number"
-                    />
-                    {errors.phone && (
-                      <div className="invalid-feedback d-block">{errors.phone}</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Mobile</label>
-                    <input
-                      type="tel"
-                      className={`form-control ${errors.mobile ? 'is-invalid' : ''}`}
-                      name="mobile"
-                      value={formData.mobile}
-                      onChange={handleInputChange}
-                      placeholder="10-digit mobile number"
-                    />
-                    {errors.mobile && (
-                      <div className="invalid-feedback d-block">{errors.mobile}</div>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Bank Account</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="bank_account"
-                      value={formData.bank_account}
-                      onChange={handleInputChange}
-                      placeholder="For payment reference"
-                    />
-                  </div>
                 </div>
               </div>
 
               {/* Address Information */}
               <div className="mb-4">
-                <h6 className="fw-bold mb-3">Address Information</h6>
+                <h6 className="fw-bold mb-3">Address & Location</h6>
 
                 <div className="mb-3">
                   <label className="form-label text-dark">Address</label>
@@ -425,12 +352,12 @@ const AddCustomer = () => {
                     value={formData.address}
                     onChange={handleInputChange}
                     placeholder="Enter full address"
-                    rows="3"
+                    rows="2"
                   ></textarea>
                 </div>
 
                 <div className="row">
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label text-dark">City</label>
                     <input
                       type="text"
@@ -438,11 +365,11 @@ const AddCustomer = () => {
                       name="city"
                       value={formData.city}
                       onChange={handleInputChange}
-                      placeholder="City name"
+                      placeholder="City"
                     />
                   </div>
 
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label text-dark">State</label>
                     <select
                       className="form-control"
@@ -458,25 +385,8 @@ const AddCustomer = () => {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Pincode</label>
-                    <input
-                      type="text"
-                      className={`form-control ${errors.pincode ? 'is-invalid' : ''}`}
-                      name="pincode"
-                      value={formData.pincode}
-                      onChange={handleInputChange}
-                      placeholder="6-digit pincode"
-                    />
-                    {errors.pincode && (
-                      <div className="invalid-feedback d-block">{errors.pincode}</div>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label text-dark">State Code</label>
                     <input
                       type="text"
@@ -484,54 +394,18 @@ const AddCustomer = () => {
                       name="state_code"
                       value={formData.state_code}
                       onChange={handleInputChange}
-                      placeholder="Auto-filled from state"
-                      disabled
-                    />
-                    <small className="text-gray-9">Auto-filled based on state selection</small>
-                  </div>
-                </div>
-              </div>
-
-              {/* Credit Information */}
-              <div className="mb-4">
-                <h6 className="fw-bold mb-3">Credit Information</h6>
-
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Credit Limit (₹)</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="credit_limit"
-                      value={formData.credit_limit}
-                      onChange={handleInputChange}
-                      placeholder="0 = unlimited"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label text-dark">Credit Days</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="credit_days"
-                      value={formData.credit_days}
-                      onChange={handleInputChange}
-                      placeholder="Payment due days"
-                      min="0"
+                      placeholder="State Code"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Opening Balance */}
+              {/* Financial Information */}
               <div className="mb-4">
-                <h6 className="fw-bold mb-3">Opening Balance</h6>
+                <h6 className="fw-bold mb-3">Financial Information</h6>
 
                 <div className="row">
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label text-dark">Opening Balance</label>
                     <input
                       type="number"
@@ -539,52 +413,79 @@ const AddCustomer = () => {
                       name="opening_balance"
                       value={formData.opening_balance}
                       onChange={handleInputChange}
-                      placeholder="Enter opening balance"
+                      placeholder="0.00"
                       step="0.01"
                     />
                   </div>
 
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label text-dark">Balance Type</label>
-                    <div className="mt-2">
-                      <div className="form-check form-check-inline">
+                    <div className="d-flex gap-3 mt-2">
+                      <div className="form-check">
                         <input
                           className="form-check-input"
                           type="radio"
-                          name="opening_balance_type"
+                          name="balance_type"
                           id="balance_dr"
                           value="DR"
-                          checked={formData.opening_balance_type === 'DR'}
+                          checked={formData.balance_type === 'DR'}
                           onChange={handleInputChange}
                         />
                         <label className="form-check-label" htmlFor="balance_dr">
-                          Debit (DR)
+                          DR
                         </label>
                       </div>
-                      <div className="form-check form-check-inline">
+                      <div className="form-check">
                         <input
                           className="form-check-input"
                           type="radio"
-                          name="opening_balance_type"
+                          name="balance_type"
                           id="balance_cr"
                           value="CR"
-                          checked={formData.opening_balance_type === 'CR'}
+                          checked={formData.balance_type === 'CR'}
                           onChange={handleInputChange}
                         />
                         <label className="form-check-label" htmlFor="balance_cr">
-                          Credit (CR)
+                          CR
                         </label>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label text-dark">Credit Limit</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="credit_limit"
+                      value={formData.credit_limit}
+                      onChange={handleInputChange}
+                      placeholder="Limit amount"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label text-dark">Payment Terms (Days)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="payment_terms"
+                      value={formData.payment_terms}
+                      onChange={handleInputChange}
+                      placeholder="Days"
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Form Actions */}
-              <div className="d-flex gap-2">
+              <div className="d-flex gap-2 pt-3 border-top">
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn btn-primary px-4"
                   disabled={loading}
                 >
                   {loading ? (
@@ -605,7 +506,7 @@ const AddCustomer = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn btn-outline-secondary px-4"
                   onClick={handleCancel}
                   disabled={loading}
                 >

@@ -14,9 +14,11 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [activeCompany, setActiveCompany] = useState(null);
+  const [user, setUser] = useState(() => authService.getCurrentUser());
+  const [token, setToken] = useState(() => getAccessToken());
+  const [activeCompany, setActiveCompany] = useState(() => getStoredActiveCompany());
+  const [companies, setCompanies] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
 
@@ -76,26 +78,31 @@ export const AuthProvider = ({ children }) => {
   const fetchFullProfile = async (authToken, isInitialLoad = false) => {
     try {
       const response = await authService.getProfile();
-      const profile = response.data || response;
+      const data = response.data || response;
+      
+      const profile = data.user || data;
+      const company = data.company || data.active_company;
+      const companiesList = data.companies || [];
+      const rolesList = data.roles || [];
 
       const fullUserData = {
-        id: profile.id || profile.user?.id,
-        firstName: profile.first_name || profile.user?.first_name,
-        email: profile.email || profile.user?.email,
-        username: profile.username || profile.user?.username,
-        role: profile.role || profile.user?.role,
-        status: profile.status || profile.user?.status,
-        phone: profile.phone || profile.user?.phone,
-        profile_image: profile.profile_image || profile.user?.profile_image,
-        employment_type: profile.employment_type || profile.user?.employment_type,
-        isTempPassword: profile.is_temp_password || profile.user?.is_temp_password
+        id: profile.id || profile.user_id,
+        name: profile.name || profile.first_name,
+        email: profile.email,
+        phone: profile.phone,
+        profile_image: profile.profile_image,
+        role: profile.role,
+        status: profile.status,
+        company_id: profile.company_id || company?.id,
+        isTempPassword: profile.is_temp_password
       };
 
       setUser(fullUserData);
+      setCompanies(companiesList);
+      setRoles(rolesList);
       
-      const profileCompany = profile.company || profile.active_company;
-      if (profileCompany) {
-        setActiveCompany(profileCompany);
+      if (company) {
+        setActiveCompany(company);
       }
 
       if (fullUserData.isTempPassword && !isInitialLoad) {
@@ -154,6 +161,8 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     activeCompany,
+    companies,
+    roles,
     authenticated: isAuthenticated(),
     loading,
     showPasswordChange,

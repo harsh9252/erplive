@@ -236,7 +236,8 @@ const HSNSACMaster = () => {
 
             {/* Add/Edit Modal */}
             {showForm && (
-                <div className="modal-backdrop fade show" style={{ zIndex: 1050 }}>
+                <>
+                    <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} onClick={() => setShowForm(false)}></div>
                     <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1055 }}>
                         <div className="modal-dialog modal-dialog-centered modal-lg">
                             <div className="modal-content border-0 shadow-lg rounded-4">
@@ -257,7 +258,7 @@ const HSNSACMaster = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

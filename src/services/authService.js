@@ -45,6 +45,13 @@ export const registerOwner = async (userData) =>
     data: userData,
   });
 
+export const registerCompany = async (companyData) =>
+  apiRequest({
+    url: '/api/onboarding/company',
+    method: 'POST',
+    data: companyData,
+  });
+
 export const register = async (userData) =>
   apiRequest({
     url: '/api/auth/register',

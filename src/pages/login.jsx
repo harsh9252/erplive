@@ -27,13 +27,20 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password, formData.rememberMe);
-      const data = response?.data || {};
+      const data = response?.data || response;
       const user = data.user || {};
-      const hasActiveCompany =
-        !!user.company_id || data?.companies?.some((company) => company?.is_active);
+      
+      // Check if user has an active company or any companies
+      const hasCompany = !!user.company_id || (Array.isArray(data.companies) && data.companies.length > 0);
 
       toast.success(`Welcome back, ${user?.name || 'User'}!`);
-      navigate(hasActiveCompany ? '/dashboard' : '/companies', { replace: true });
+      
+      if (hasCompany) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        // Redirect to onboarding if no company exists
+        navigate('/add-company?onboarding=true', { replace: true });
+      }
     } catch (error) {
       toast.error(error?.message || 'Login failed. Please check your credentials.');
     } finally {

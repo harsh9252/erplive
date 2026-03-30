@@ -177,12 +177,12 @@ const FinancialYearSettings = () => {
         toast.error(response.message || 'Failed to set active');
       }
     } catch (error) {
-       if (error.message.includes('not support updating')) {
-          toast.warning('Switching active financial years is not supported by the backend via this method');
-        } else {
-          console.error('Error setting financial year as active:', error);
-          toast.error(error.message || 'Failed to set financial year as active');
-        }
+      if (error.message.includes('not support updating')) {
+        toast.warning('Switching active financial years is not supported by the backend via this method');
+      } else {
+        console.error('Error setting financial year as active:', error);
+        toast.error(error.message || 'Failed to set financial year as active');
+      }
     }
   };
 
@@ -382,19 +382,19 @@ const FinancialYearSettings = () => {
                           <th>Start Date</th>
                           <th>End Date</th>
                           <th>Status</th>
-                          <th className="text-end pe-4">Actions</th>
+                          {/* <th className="text-end pe-4">Actions</th> */}
                         </tr>
                       </thead>
                       <tbody>
                         {financialYears.map((year) => (
                           <tr key={year.id}>
                             <td className="ps-4">
-                                <div className="d-flex align-items-center">
-                                    <div className="avatar avatar-xs bg-light-info rounded-circle me-2 d-flex align-items-center justify-content-center">
-                                        <i className="isax isax-calendar-tick text-info fs-14"></i>
-                                    </div>
-                                    <span className="fw-medium">{year.name}</span>
+                              <div className="d-flex align-items-center">
+                                <div className="avatar avatar-xs bg-light-info rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                  <i className="isax isax-calendar-tick text-info fs-14"></i>
                                 </div>
+                                <span className="fw-medium">{year.name}</span>
+                              </div>
                             </td>
                             <td>{formatDate(year.start_date)}</td>
                             <td>{formatDate(year.end_date)}</td>
@@ -416,7 +416,7 @@ const FinancialYearSettings = () => {
                                     <i className="isax isax-tick-circle"></i>
                                   </button>
                                 )}
-                                <button
+                                {/* <button
                                   className="btn btn-sm btn-outline-primary"
                                   onClick={() => handleEdit(year)}
                                   title="Edit"
@@ -429,7 +429,7 @@ const FinancialYearSettings = () => {
                                   title="Delete"
                                 >
                                   <i className="isax isax-trash"></i>
-                                </button>
+                                </button> */}
                               </div>
                             </td>
                           </tr>
@@ -440,9 +440,9 @@ const FinancialYearSettings = () => {
                 )}
               </div>
             )}
-            
+
             <div className="mt-3 text-muted fs-12 ms-2">
-                Manage your financial cycles carefully as transactions are tied to these periods.
+              Manage your financial cycles carefully as transactions are tied to these periods.
             </div>
           </div>
         </div>

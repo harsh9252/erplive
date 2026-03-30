@@ -42,7 +42,7 @@ const FinancialYears = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.start_date || !formData.end_date) {
             toast.warning('Please provide both Start Date and End Date');
             return;
@@ -63,12 +63,12 @@ const FinancialYears = () => {
             setIsSubmitting(true);
             await settingsService.createSettingsFinancialYear(payload);
             toast.success('Financial year created successfully');
-            
+
             // Success: Close modal (if using bootstrap)
             const modalElement = document.getElementById('add_fy_modal');
             const modal = window.bootstrap.Modal.getInstance(modalElement);
             if (modal) modal.hide();
-            
+
             // Reset form and refresh list
             setFormData({ name: '', start_date: '', end_date: '', is_active: false });
             fetchFinancialYears();
@@ -99,9 +99,9 @@ const FinancialYears = () => {
                     </div>
                 </div>
                 <div className="page-btn">
-                    <button 
-                        className="btn btn-primary d-flex align-items-center" 
-                        data-bs-toggle="modal" 
+                    <button
+                        className="btn btn-primary d-flex align-items-center"
+                        data-bs-toggle="modal"
                         data-bs-target="#add_fy_modal"
                     >
                         <i className="isax isax-add-circle me-2"></i>Add Financial Year
@@ -118,7 +118,7 @@ const FinancialYears = () => {
                                     <th>Start Date</th>
                                     <th>End Date</th>
                                     <th>Status</th>
-                                    <th className="no-sort">Action</th>
+                                    {/* <th className="no-sort">Action</th> */}
                                 </tr>
                             </thead>
                             <tbody>
@@ -141,13 +141,7 @@ const FinancialYears = () => {
                                                     {fy.is_active ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>
-                                            <td className="action-table-data">
-                                                <div className="edit-delete-action">
-                                                    <span className="me-2 p-2">
-                                                        <i className="isax isax-edit text-primary"></i>
-                                                    </span>
-                                                </div>
-                                            </td>
+                                            {/*  */}
                                         </tr>
                                     ))
                                 ) : (
@@ -174,10 +168,10 @@ const FinancialYears = () => {
                                     <div className="col-lg-12">
                                         <div className="form-group mb-3">
                                             <label className="form-label">Start Date <span className="text-danger">*</span></label>
-                                            <input 
-                                                type="date" 
-                                                name="start_date" 
-                                                className="form-control" 
+                                            <input
+                                                type="date"
+                                                name="start_date"
+                                                className="form-control"
                                                 value={formData.start_date}
                                                 onChange={handleInputChange}
                                                 required
@@ -187,10 +181,10 @@ const FinancialYears = () => {
                                     <div className="col-lg-12">
                                         <div className="form-group mb-3">
                                             <label className="form-label">End Date <span className="text-danger">*</span></label>
-                                            <input 
-                                                type="date" 
-                                                name="end_date" 
-                                                className="form-control" 
+                                            <input
+                                                type="date"
+                                                name="end_date"
+                                                className="form-control"
                                                 value={formData.end_date}
                                                 onChange={handleInputChange}
                                                 required
@@ -200,11 +194,11 @@ const FinancialYears = () => {
                                     <div className="col-lg-12">
                                         <div className="status-toggle border-0 d-flex justify-content-between align-items-center bg-light p-3 rounded">
                                             <p className="mb-0 fw-medium">Set as Active</p>
-                                            <input 
-                                                type="checkbox" 
-                                                id="fy_active" 
-                                                name="is_active" 
-                                                className="check" 
+                                            <input
+                                                type="checkbox"
+                                                id="fy_active"
+                                                name="is_active"
+                                                className="check"
                                                 checked={formData.is_active}
                                                 onChange={handleInputChange}
                                             />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser } from '../services/authService';
+import { getCurrentUser, getProfile } from '../services/authService';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import SettingsSidebar from '../components/SettingsSidebar';
@@ -28,23 +28,43 @@ const AccountSettings = () => {
   });
 
   useEffect(() => {
-    // Load user data when component mounts
+    // Load cached user data immediately if available
     if (currentUser) {
-      setFormData({
-        name: currentUser.name || '',
-        email: currentUser.email || '',
-        mobile: currentUser.mobile || '',
-        gender: currentUser.gender || '',
-        dateOfBirth: currentUser.dateOfBirth || '',
-        address: currentUser.address || '',
-        country: currentUser.country || 'India',
-        state: currentUser.state || '',
-        city: currentUser.city || '',
-        postalCode: currentUser.postalCode || ''
-      });
+      updateFormData(currentUser);
     }
+    
+    // Fetch latest profile data from API
+    fetchProfile();
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - run only once on mount
+  }, []);
+
+  const updateFormData = (userData) => {
+    setFormData({
+      name: userData.name || userData.user_name || '',
+      email: userData.email || '',
+      mobile: userData.mobile || userData.phone || userData.mobile_number || '',
+      gender: userData.gender || '',
+      dateOfBirth: userData.dateOfBirth || userData.dob || userData.date_of_birth || '',
+      address: userData.address || '',
+      country: userData.country || 'India',
+      state: userData.state || '',
+      city: userData.city || '',
+      postalCode: userData.postalCode || userData.postal_code || userData.zip_code || ''
+    });
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await getProfile();
+      const userData = response.data || response;
+      if (userData) {
+        updateFormData(userData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -169,7 +189,8 @@ const AccountSettings = () => {
                           >
                             <option value="">Select</option>
                             <option value="Male">Male</option>
-                            <option>Female</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
                           </select>
                         </div>
                       </div>
@@ -178,9 +199,11 @@ const AccountSettings = () => {
                           <label className="form-label">DOB</label>
                           <div className="input-group position-relative mb-3">
                             <input
-                              type="text"
-                              className="form-control datetimepicker rounded-end"
-                              placeholder="25 Mar 2025"
+                              type="date"
+                              className="form-control"
+                              name="dateOfBirth"
+                              value={formData.dateOfBirth ? formData.dateOfBirth.split('T')[0] : ''}
+                              onChange={handleInputChange}
                             />
                             <span className="input-icon-addon fs-16 text-gray-9">
                               <i className="isax isax-calendar-2"></i>

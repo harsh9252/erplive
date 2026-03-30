@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import companyService from '../services/companyService';
+import { registerCompany } from '../services/authService';
 import { toast } from 'react-toastify';
 
 const AddCompany = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isOnboarding = queryParams.get('onboarding') === 'true';
+
   const [formData, setFormData] = useState({
     name: '',
     legal_name: '',
     gstin: '',
     pan: '',
-    tan: '',
-    cin: '',
-    business_nature_id: '',
     address: '',
     city: '',
     state: '',
     state_code: '',
     pincode: '',
-    country: 'India',
     phone: '',
     email: '',
-    website: '',
-    currency: 'INR',
-    financial_year_start: '4',
-    logo: null,
   });
 
   const [errors, setErrors] = useState({});
@@ -84,63 +81,9 @@ const AddCompany = () => {
     { id: 2, name: 'Partnership' },
     { id: 3, name: 'Private Limited' },
     { id: 4, name: 'Public Limited' },
-    { id: 5, name: 'LLP' },
-    { id: 6, name: 'HUF' },
-    { id: 7, name: 'Trust' },
-    { id: 8, name: 'NGO' },
   ];
 
-  // Fetch countries from API
-  useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        setLoadingCountries(true);
-        const response = await fetch('https://api.countrystatecity.in/v1/countries', {
-          headers: {
-            'X-CSCAPI-KEY': '61d4bc66877c1ade986501c8148bb445b21eb89022f55e49b94504e5a8e51f65',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch countries');
-        }
-
-        const data = await response.json();
-        setCountries(data);
-        
-        // Set India as default
-        const india = data.find((c) => c.iso2 === 'IN');
-        if (india) {
-          setFormData((prev) => ({
-            ...prev,
-            country: india.name,
-          }));
-          // Set India's currency
-          if (india.currency) {
-            setCurrencies([{ code: india.currency, name: `${india.currency} - Indian Rupee` }]);
-            setFormData((prev) => ({
-              ...prev,
-              currency: india.currency,
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching countries:', error);
-        // Fallback to India
-        setCountries([{ name: 'India', iso2: 'IN' }]);
-        setFormData((prev) => ({
-          ...prev,
-          country: 'India',
-        }));
-      } finally {
-        setLoadingCountries(false);
-      }
-    };
-
-    fetchCountries();
-  }, []);
-
-  // Fetch states from API when country changes
+  // Fetch states from API
   useEffect(() => {
     const fetchStates = async () => {
       if (!selectedCountryIso) {
@@ -277,12 +220,6 @@ const AddCompany = () => {
       newErrors.pan = 'Invalid PAN format (e.g., AAAAA0000A)';
     }
 
-    if (formData.tan && !validateTAN(formData.tan)) {
-      newErrors.tan = 'Invalid TAN format';
-    }
-
-    if (!formData.business_nature_id) newErrors.business_nature_id = 'Business type is required';
-
     if (!formData.address.trim()) newErrors.address = 'Address is required';
 
     if (!formData.city.trim()) newErrors.city = 'City is required';
@@ -306,10 +243,6 @@ const AddCompany = () => {
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-
-    if (!formData.currency) newErrors.currency = 'Currency is required';
-
-    if (!formData.financial_year_start) newErrors.financial_year_start = 'FY start month is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -371,31 +304,7 @@ const AddCompany = () => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setErrors((prev) => ({
-          ...prev,
-          logo: 'File size must be less than 2MB',
-        }));
-      } else if (!['image/png', 'image/jpeg'].includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
-          logo: 'Only PNG and JPG files are allowed',
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          logo: file,
-        }));
-        setErrors((prev) => ({
-          ...prev,
-          logo: '',
-        }));
-      }
-    }
-  };
+  // handleFileChange removed as per simplification
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -405,11 +314,20 @@ const AddCompany = () => {
     }
 
     try {
-      await companyService.createCompany(formData);
-      toast.success('Company created successfully! Default ledgers, vouchers, and warehouse have been seeded.', {
-        autoClose: 5000
-      });
-      navigate('/companies');
+      setLoading(true);
+      if (isOnboarding) {
+        await registerCompany(formData);
+        toast.success('Company created successfully! All master data has been seeded for your new business.', {
+          autoClose: 5000
+        });
+        navigate('/company/profile');
+      } else {
+        await companyService.createCompany(formData);
+        toast.success('Company created successfully! Default ledgers, vouchers, and warehouse have been seeded.', {
+          autoClose: 5000
+        });
+        navigate('/company/profile');
+      }
     } catch (error) {
       console.error('Error creating company:', error);
       toast.error(error.message || 'Error creating company. Please try again.');
@@ -444,14 +362,14 @@ const AddCompany = () => {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Form Section */}
       <div className="row">
         <div className="col-lg-8">
           <form onSubmit={handleSubmit}>
-            {/* Basic Information */}
+            {/* Business Information */}
             <div className="card mb-3">
               <div className="card-header">
-                <h5 className="card-title">Basic Information</h5>
+                <h5 className="card-title">Business Information</h5>
               </div>
               <div className="card-body">
                 <div className="row">
@@ -497,10 +415,9 @@ const AddCompany = () => {
                       name="gstin"
                       value={formData.gstin}
                       onChange={handleInputChange}
-                      placeholder="e.g., 22AAAAA0000A1Z5"
+                      placeholder="e.g., 29AAPFY0939E1ZV"
                     />
                     {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
-                    <small className="text-muted">Format: 15-character GST number</small>
                   </div>
 
                   <div className="col-md-6 mb-3">
@@ -513,85 +430,39 @@ const AddCompany = () => {
                       name="pan"
                       value={formData.pan}
                       onChange={handleInputChange}
-                      placeholder="e.g., AAAAA0000A"
+                      placeholder="e.g., AAPFY0939E"
                     />
                     {errors.pan && <div className="invalid-feedback d-block">{errors.pan}</div>}
-                    <small className="text-muted">10-character PAN</small>
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">TAN Number</label>
-                    <input
-                      type="text"
-                      className={`form-control ${errors.tan ? 'is-invalid' : ''}`}
-                      name="tan"
-                      value={formData.tan}
-                      onChange={handleInputChange}
-                      placeholder="Optional"
-                    />
-                    {errors.tan && <div className="invalid-feedback d-block">{errors.tan}</div>}
-                    <small className="text-muted">10-character TAN (optional)</small>
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">CIN Number</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="cin"
-                      value={formData.cin}
-                      onChange={handleInputChange}
-                      placeholder="Company Identification Number"
-                    />
-                    <small className="text-muted">Optional</small>
                   </div>
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">
-                      Business Type <span className="text-danger">*</span>
+                      Phone <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select ${errors.business_nature_id ? 'is-invalid' : ''}`}
-                      name="business_nature_id"
-                      value={formData.business_nature_id}
+                    <input
+                      type="tel"
+                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                      name="phone"
+                      value={formData.phone}
                       onChange={handleInputChange}
-                    >
-                      <option value="">Select business type</option>
-                      {businessTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.business_nature_id && (
-                      <div className="invalid-feedback d-block">{errors.business_nature_id}</div>
-                    )}
+                      placeholder="10-digit mobile number"
+                    />
+                    {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">
-                      Currency <span className="text-danger">*</span>
+                      Email address <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select ${errors.currency ? 'is-invalid' : ''}`}
-                      name="currency"
-                      value={formData.currency}
+                    <input
+                      type="email"
+                      className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                      name="email"
+                      value={formData.email}
                       onChange={handleInputChange}
-                      disabled={!formData.country}
-                    >
-                      <option value="">
-                        {!formData.country ? 'Select country first' : 'Select currency'}
-                      </option>
-                      {currencies.map((currency) => (
-                        <option key={currency.code} value={currency.code}>
-                          {currency.code} - {currency.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.currency && (
-                      <div className="invalid-feedback d-block">{errors.currency}</div>
-                    )}
-                    <small className="text-muted">Auto-filled based on selected country</small>
+                      placeholder="company@example.com"
+                    />
+                    {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
                   </div>
                 </div>
               </div>
@@ -614,14 +485,37 @@ const AddCompany = () => {
                       value={formData.address}
                       onChange={handleInputChange}
                       placeholder="Full registered address"
-                      rows="3"
+                      rows="2"
                     ></textarea>
                     {errors.address && (
                       <div className="invalid-feedback d-block">{errors.address}</div>
                     )}
                   </div>
 
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label">
+                      State <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      className={`form-select ${errors.state ? 'is-invalid' : ''}`}
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      disabled={loadingStates}
+                    >
+                      <option value="">
+                        {loadingStates ? 'Loading states...' : 'Select state'}
+                      </option>
+                      {states.map((state) => (
+                        <option key={state.name} value={state.name}>
+                          {state.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.state && <div className="invalid-feedback d-block">{errors.state}</div>}
+                  </div>
+
+                  <div className="col-md-4 mb-3">
                     <label className="form-label">
                       City <span className="text-danger">*</span>
                     </label>
@@ -646,48 +540,26 @@ const AddCompany = () => {
                       ))}
                     </select>
                     {errors.city && <div className="invalid-feedback d-block">{errors.city}</div>}
-                    {loadingCities && (
-                      <small className="text-muted">
-                        <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                        Fetching cities from API...
-                      </small>
-                    )}
                   </div>
 
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-4 mb-3">
                     <label className="form-label">
-                      State <span className="text-danger">*</span>
+                      Pincode <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select ${errors.state ? 'is-invalid' : ''}`}
-                      name="state"
-                      value={formData.state}
+                    <input
+                      type="text"
+                      className={`form-control ${errors.pincode ? 'is-invalid' : ''}`}
+                      name="pincode"
+                      value={formData.pincode}
                       onChange={handleInputChange}
-                      disabled={!formData.country || loadingStates}
-                    >
-                      <option value="">
-                        {!formData.country
-                          ? 'Select country first'
-                          : loadingStates
-                          ? 'Loading states...'
-                          : 'Select state'}
-                      </option>
-                      {states.map((state) => (
-                        <option key={state.name} value={state.name}>
-                          {state.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.state && <div className="invalid-feedback d-block">{errors.state}</div>}
-                    {loadingStates && (
-                      <small className="text-muted">
-                        <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                        Fetching states from API...
-                      </small>
+                      placeholder="Pincode"
+                    />
+                    {errors.pincode && (
+                      <div className="invalid-feedback d-block">{errors.pincode}</div>
                     )}
                   </div>
 
-                  <div className="col-md-6 mb-3">
+                  <div className="col-md-12">
                     <label className="form-label">
                       State Code <span className="text-danger">*</span>
                     </label>
@@ -701,160 +573,7 @@ const AddCompany = () => {
                     />
                     <small className="text-muted">Auto-filled based on selected state</small>
                   </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Pincode <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`form-control ${errors.pincode ? 'is-invalid' : ''}`}
-                      name="pincode"
-                      value={formData.pincode}
-                      onChange={handleInputChange}
-                      placeholder="6-digit pincode"
-                    />
-                    {errors.pincode && (
-                      <div className="invalid-feedback d-block">{errors.pincode}</div>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Country <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      className="form-select"
-                      name="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      disabled={loadingCountries}
-                    >
-                      <option value="">
-                        {loadingCountries ? 'Loading countries...' : 'Select country'}
-                      </option>
-                      {countries.map((country) => (
-                        <option key={country.iso2} value={country.name}>
-                          {country.name}
-                        </option>
-                      ))}
-                    </select>
-                    {loadingCountries && (
-                      <small className="text-muted">
-                        <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                        Fetching countries from API...
-                      </small>
-                    )}
-                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="card mb-3">
-              <div className="card-header">
-                <h5 className="card-title">Contact Information</h5>
-              </div>
-              <div className="card-body">
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Phone <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="10-digit mobile number"
-                    />
-                    {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Email <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      className={`form-control ${errors.email ? 'is-invalid' : ''}`}
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="company@example.com"
-                    />
-                    {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Website</label>
-                    <input
-                      type="url"
-                      className="form-control"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleInputChange}
-                      placeholder="https://example.com"
-                    />
-                    <small className="text-muted">Optional</small>
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      FY Start Month <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      className={`form-select ${errors.financial_year_start ? 'is-invalid' : ''}`}
-                      name="financial_year_start"
-                      value={formData.financial_year_start}
-                      onChange={handleInputChange}
-                    >
-                      <option value="1">January</option>
-                      <option value="2">February</option>
-                      <option value="3">March</option>
-                      <option value="4">April (Default)</option>
-                      <option value="5">May</option>
-                      <option value="6">June</option>
-                      <option value="7">July</option>
-                      <option value="8">August</option>
-                      <option value="9">September</option>
-                      <option value="10">October</option>
-                      <option value="11">November</option>
-                      <option value="12">December</option>
-                    </select>
-                    {errors.financial_year_start && (
-                      <div className="invalid-feedback d-block">{errors.financial_year_start}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Logo Upload */}
-            <div className="card mb-3">
-              <div className="card-header">
-                <h5 className="card-title">Company Logo</h5>
-              </div>
-              <div className="card-body">
-                <div className="mb-3">
-                  <label className="form-label">Logo</label>
-                  <input
-                    type="file"
-                    className={`form-control ${errors.logo ? 'is-invalid' : ''}`}
-                    name="logo"
-                    onChange={handleFileChange}
-                    accept="image/png,image/jpeg"
-                  />
-                  {errors.logo && <div className="invalid-feedback d-block">{errors.logo}</div>}
-                  <small className="text-muted">PNG or JPG, max 2MB (optional)</small>
-                </div>
-                {formData.logo && (
-                  <div className="alert alert-info">
-                    <i className="isax isax-info-circle me-2"></i>
-                    File selected: {formData.logo.name}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -888,84 +607,25 @@ const AddCompany = () => {
           </form>
         </div>
 
-        {/* Sidebar - Form Help */}
+        {/* Sidebar Help */}
         <div className="col-lg-4">
           <div className="card sticky-top" style={{ top: '20px' }}>
             <div className="card-header">
-              <h5 className="card-title">Form Help</h5>
+              <h5 className="card-title">Quick Help</h5>
             </div>
             <div className="card-body">
               <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>GSTIN Format
-                </h6>
+                <h6 className="mb-2">GSTIN & PAN</h6>
                 <p className="text-muted small mb-0">
-                  15-character GST number: <code>22AAAAA0000A1Z5</code>
+                  Ensure your GSTIN and PAN match your legal documents. State code is derived automatically.
                 </p>
               </div>
-
               <hr />
-
-              <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>PAN Format
-                </h6>
-                <p className="text-muted small mb-0">
-                  10-character PAN: <code>AAAAA0000A</code>
-                </p>
-              </div>
-
-              <hr />
-
-              <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>Phone Number
-                </h6>
-                <p className="text-muted small mb-0">
-                  10-digit mobile number without country code
-                </p>
-              </div>
-
-              <hr />
-
-              <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>Pincode
-                </h6>
-                <p className="text-muted small mb-0">
-                  6-digit postal code
-                </p>
-              </div>
-
-              <hr />
-
-              <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>State Code
-                </h6>
-                <p className="text-muted small mb-0">
-                  Auto-filled based on selected state. Used in GSTIN.
-                </p>
-              </div>
-
-              <hr />
-
-              <div className="mb-3">
-                <h6 className="mb-2">
-                  <i className="isax isax-info-circle text-info me-2"></i>Financial Year
-                </h6>
-                <p className="text-muted small mb-0">
-                  Default is April. This determines your FY period (e.g., April 2025 - March 2026).
-                </p>
-              </div>
-
-              <hr />
-
-              <div className="alert alert-warning" role="alert">
+              <div className="alert alert-warning mb-0" role="alert">
                 <i className="isax isax-warning-2 me-2"></i>
                 <strong>Required Fields</strong>
                 <p className="mb-0 small mt-2">
-                  All fields marked with <span className="text-danger">*</span> are mandatory.
+                  All fields marked with <span className="text-danger">*</span> are mandatory for legal compliance.
                 </p>
               </div>
             </div>

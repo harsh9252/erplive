@@ -260,7 +260,7 @@ const CompanySettings = () => {
                     </div>
 
                     {/* State */}
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label text-dark">State</label>
                       <input
                         type="text"
@@ -272,8 +272,21 @@ const CompanySettings = () => {
                       />
                     </div>
 
+                    {/* State Code */}
+                    <div className="col-md-2">
+                      <label className="form-label text-dark">State Code</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="state_code"
+                        value={formData.state_code}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 27"
+                      />
+                    </div>
+
                     {/* Zip Code */}
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label text-dark">Pincode</label>
                       <input
                         type="text"

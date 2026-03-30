@@ -143,7 +143,8 @@ const StockVerification = () => {
 
             {/* Simple Create Modal (Overlay) */}
             {showCreateModal && (
-                <div className="modal-backdrop fade show" style={{ zIndex: 1050 }}>
+                <>
+                    <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} onClick={() => setShowCreateModal(false)}></div>
                     <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1055 }}>
                         <div className="modal-dialog modal-dialog-centered">
                             <div className="modal-content border-0 shadow-lg rounded-4">
@@ -179,7 +180,7 @@ const StockVerification = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

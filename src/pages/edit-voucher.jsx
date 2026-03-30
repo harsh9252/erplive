@@ -4,6 +4,8 @@ import VoucherEntryLines from '../components/VoucherEntryLines';
 import { voucherService } from '../services/voucherService';
 import { ledgerService } from '../services/ledgerService';
 import { costCenterService } from '../services/costCenterService';
+import approvalService from '../services/approvalService';
+import { toast } from 'react-toastify';
 
 const EditVoucher = () => {
   const navigate = useNavigate();
@@ -173,6 +175,27 @@ const EditVoucher = () => {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    const remarks = window.prompt('Enter any remarks for approval (optional):');
+    if (remarks === null) return;
+
+    setLoading(true);
+    try {
+      await approvalService.submitForApproval({
+        entity_type: 'VOUCHER',
+        entity_id: id,
+        remarks: remarks,
+      });
+      toast.success('Submitted for approval successfully!');
+      // Reload voucher state if possible or navigate
+      navigate('/vouchers');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit for approval');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -348,6 +371,14 @@ const EditVoucher = () => {
                   disabled={loading}
                 >
                   <i className="isax isax-save-2 me-2"></i>Update Draft
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary px-4"
+                  onClick={handleSubmitForApproval}
+                  disabled={loading}
+                >
+                  Submit for Approval
                 </button>
                 <button
                   type="button"

@@ -1,6 +1,59 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
+import { hasPermission } from "../services/authService";
+
+const QUICK_ACTIONS = [
+  {
+    label: 'Invoice',
+    route: '/invoicing/sales/add',
+    icon: 'isax-document-text-1',
+    module: 'sales_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Expense',
+    route: '/expenses',
+    icon: 'isax-money-send',
+    module: 'accounting',
+    action: 'create'
+  },
+  {
+    label: 'Credit Note',
+    route: '/invoicing/credit-notes/add',
+    icon: 'isax-money-add',
+    module: 'sales_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Debit Note',
+    route: '/invoicing/debit-notes/add',
+    icon: 'isax-money-recive',
+    module: 'purchase_invoice',
+    action: 'create'
+  },
+  {
+    label: 'Purchase Order',
+    route: '/invoicing/purchase-orders/add',
+    icon: 'isax-document',
+    module: 'purchase_invoice',
+    action: 'create'
+  },
+  // { 
+  //   label: 'Quotation', 
+  //   route: '/add-quotation', 
+  //   icon: 'isax-document-download', 
+  //   module: 'sales_invoice', 
+  //   action: 'create' 
+  // },
+  // { 
+  //   label: 'Delivery Challan', 
+  //   route: '/add-delivery-challan', 
+  //   icon: 'isax-document-forward', 
+  //   module: 'sales_invoice', 
+  //   action: 'create' 
+  // },
+];
 
 const Sidebar = () => {
   const location = useLocation();
@@ -96,69 +149,17 @@ const Sidebar = () => {
             </button>
 
             <ul className="dropdown-menu dropdown-menu-start m-5">
-              <li>
-                <Link
-                  to="/invoicing/sales/add"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document-text-1 me-2"></i>Invoice
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/expenses"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-money-send me-2"></i>Expense
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/add-credit-notes"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-money-add me-2"></i>Credit Notes
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/add-debit-notes"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-money-recive me-2"></i>Debit Notes
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/add-purchases-orders"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document me-2"></i>Purchase Order
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/add-quotation"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document-download me-2"></i>Quotation
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/add-delivery-challan"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document-forward me-2"></i>Delivery
-                  Challan
-                </Link>
-              </li>
+              {QUICK_ACTIONS.filter(item => hasPermission(item.module, item.action)).map((item, idx) => (
+                <li key={idx}>
+                  <Link to={item.route} className="dropdown-item d-flex align-items-center">
+                    <i className={`isax ${item.icon} me-2`}></i>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              {QUICK_ACTIONS.filter(item => hasPermission(item.module, item.action)).length === 0 && (
+                <li><span className="dropdown-item disabled text-muted">No actions available</span></li>
+              )}
             </ul>
           </div>
 
@@ -169,12 +170,12 @@ const Sidebar = () => {
               </Link>
             </li>
             <li>
-              <Link to="#" title="Documentation">
+              <Link to="/company/backup" title="Data Backup">
                 <i className="isax isax-document-normal4"></i>
               </Link>
             </li>
             <li>
-              <Link to="/version-control" title="Changelog">
+              <Link to="/version-control" title="Version">
                 <i className="isax isax-cloud-change5"></i>
               </Link>
             </li>
@@ -250,13 +251,13 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["companySetup"] ||
-                      isMenuActive([
-                        "/companies",
-                        "/company/financial-years",
-                        "/company/users",
-                        "/company/roles",
-                        "/company/backup",
-                      ])
+                        isMenuActive([
+                          "/companies",
+                          "/company/financial-years",
+                          "/company/users",
+                          "/company/roles",
+                          "/company/backup",
+                        ])
                         ? "active subdrop"
                         : ""
                     }
@@ -271,13 +272,13 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["companySetup"] ||
-                        isMenuActive([
-                          "/companies",
-                          "/company/financial-years",
-                          "/company/users",
-                          "/company/roles",
-                          "/company/backup",
-                        ])
+                          isMenuActive([
+                            "/companies",
+                            "/company/financial-years",
+                            "/company/users",
+                            "/company/roles",
+                            "/company/backup",
+                          ])
                           ? "block"
                           : "none",
                     }}
@@ -337,14 +338,14 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["accountingFinance"] ||
-                      isMenuActive([
-                        "/accounting/ledger-groups",
-                        "/accounting/ledgers",
-                        "/vouchers",
-                        "/bank-reconciliation",
-                        "/cost-centers",
-                        "/accounting/budgets",
-                      ])
+                        isMenuActive([
+                          "/accounting/ledger-groups",
+                          "/accounting/ledgers",
+                          "/vouchers",
+                          "/bank-reconciliation",
+                          "/cost-centers",
+                          "/accounting/budgets",
+                        ])
                         ? "active subdrop"
                         : ""
                     }
@@ -359,27 +360,48 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["accountingFinance"] ||
-                        isMenuActive([
-                          "/accounting/ledger-groups",
-                          "/accounting/ledgers",
-                          "/vouchers",
-                          "/bank-reconciliation",
-                          "/cost-centers",
-                          "/accounting/budgets",
-                        ])
+                          isMenuActive([
+                            "/accounting/ledger-groups",
+                            "/accounting/ledgers",
+                            "/vouchers",
+                            "/bank-reconciliation",
+                            "/cost-centers",
+                            "/accounting/budgets",
+                          ])
                           ? "block"
                           : "none",
                     }}
                   >
                     <li className="submenu">
-                      <ul
-                        style={{
-                          display:
-                            openMenus["chartOfAccounts"] ||
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleMenu("chartOfAccounts");
+                        }}
+                        className={
+                          openMenus["chartOfAccounts"] ||
                             isMenuActive([
                               "/accounting/ledger-groups",
                               "/accounting/ledgers",
                             ])
+                            ? "active subdrop"
+                            : ""
+                        }
+                      >
+                        <span className="fs-14 fw-medium">
+                          Chart of Accounts
+                        </span>
+                        <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
+                      </a>
+                      <ul
+                        style={{
+                          display:
+                            openMenus["chartOfAccounts"] ||
+                              isMenuActive([
+                                "/accounting/ledger-groups",
+                                "/accounting/ledgers",
+                              ])
                               ? "block"
                               : "none",
                         }}
@@ -469,15 +491,15 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["invoicingBilling"] ||
-                      isMenuActive([
-                        "/invoicing/sales",
-                        "/invoicing/purchases",
-                        "/invoicing/credit-notes",
-                        "/invoicing/debit-notes",
-                        "/invoicing/proforma",
-                        "/sales-orders",
-                        "/purchase-orders",
-                      ])
+                        isMenuActive([
+                          "/invoicing/sales",
+                          "/invoicing/purchases",
+                          "/invoicing/credit-notes",
+                          "/invoicing/debit-notes",
+                          "/invoicing/proforma",
+                          "/sales-orders",
+                          "/purchase-orders",
+                        ])
                         ? "active subdrop"
                         : ""
                     }
@@ -492,15 +514,15 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["invoicingBilling"] ||
-                        isMenuActive([
-                        "/invoicing/sales",
-                        "/invoicing/purchases",
-                        "/invoicing/credit-notes",
-                        "/invoicing/debit-notes",
-                        "/invoicing/proforma",
-                        "/invoicing/sales-orders",
-                        "/purchase-orders",
-                      ])
+                          isMenuActive([
+                            "/invoicing/sales",
+                            "/invoicing/purchases",
+                            "/invoicing/credit-notes",
+                            "/invoicing/debit-notes",
+                            "/invoicing/proforma",
+                            "/invoicing/sales-orders",
+                            "/purchase-orders",
+                          ])
                           ? "block"
                           : "none",
                     }}
@@ -574,14 +596,14 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["inventoryManagement"] ||
-                      isMenuActive([
-                        "/items",
-                        "/products",
-                        "/stock-summary",
-                        "/stock-transfers",
-                        "/wastage",
-                        "/hsn-sac-master",
-                      ])
+                        isMenuActive([
+                          "/items",
+                          "/products",
+                          "/stock-summary",
+                          "/stock-transfers",
+                          "/wastage",
+                          "/hsn-sac-master",
+                        ])
                         ? "active subdrop"
                         : ""
                     }
@@ -596,13 +618,13 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["inventoryManagement"] ||
-                        isMenuActive([
-                          "/inventory/items",
-                          "/inventory/stock-summary",
-                          "/stock-transfers",
-                          "/wastage",
-                          "/hsn-sac-master",
-                        ])
+                          isMenuActive([
+                            "/inventory/items",
+                            "/inventory/stock-summary",
+                            "/stock-transfers",
+                            "/wastage",
+                            "/hsn-sac-master",
+                          ])
                           ? "block"
                           : "none",
                     }}
@@ -667,7 +689,10 @@ const Sidebar = () => {
                       toggleMenu("manufacturing");
                     }}
                     className={
-                      openMenus["manufacturing"] ? "active subdrop" : ""
+                      openMenus["manufacturing"] ||
+                        isMenuActive(["/manufacturing/bom"])
+                        ? "active subdrop"
+                        : ""
                     }
                   >
                     <i className="isax isax-setting-2 fs-18"></i>
@@ -676,17 +701,36 @@ const Sidebar = () => {
                   </a>
                   <ul
                     style={{
-                      display: openMenus["manufacturing"] ? "block" : "none",
+                      display:
+                        openMenus["manufacturing"] ||
+                          isMenuActive(["/manufacturing/bom"])
+                          ? "block"
+                          : "none",
                     }}
                   >
                     <li>
-                      <Link to="#">Bill of Materials (BOM)</Link>
+                      <Link
+                        to="/manufacturing/bom"
+                        className={isActive("/manufacturing/bom") ? "active" : ""}
+                      >
+                        Bill of Materials (BOM)
+                      </Link>
                     </li>
                     <li>
-                      <Link to="#">Production Orders</Link>
+                      <Link
+                        to="/manufacturing/production-orders"
+                        className={isActive("/manufacturing/production-orders") ? "active" : ""}
+                      >
+                        Production Orders
+                      </Link>
                     </li>
                     <li>
-                      <Link to="#">Job Work</Link>
+                      <Link
+                        to="/manufacturing/job-work"
+                        className={isActive("/manufacturing/job-work") ? "active" : ""}
+                      >
+                        Job Work
+                      </Link>
                     </li>
                   </ul>
                 </li>
@@ -700,7 +744,8 @@ const Sidebar = () => {
                       toggleMenu("gstTaxation");
                     }}
                     className={
-                      openMenus["gstTaxation"] || isMenuActive(["/tax-report"])
+                      openMenus["gstTaxation"] ||
+                        isMenuActive(["/tax-report", "/gst/summary"])
                         ? "active subdrop"
                         : ""
                     }
@@ -713,21 +758,34 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["gstTaxation"] ||
-                        isMenuActive(["/tax-report"])
+                          isMenuActive(["/tax-report", "/gst/summary", "/gst/rcm"])
                           ? "block"
                           : "none",
                     }}
                   >
-                    <li>
+                    {/* <li>
                       <Link
                         to="/tax-report"
                         className={isActive("/tax-report") ? "active" : ""}
                       >
-                        GST Reports
+                        GST Report
+                      </Link>
+                    </li> */}
+                    <li>
+                      <Link
+                        to="/gst/summary"
+                        className={isActive("/gst/summary") ? "active" : ""}
+                      >
+                        GST Report
                       </Link>
                     </li>
                     <li>
-                      <Link to="#">Reverse Charge (RCM)</Link>
+                      <Link
+                        to="/gst/rcm"
+                        className={isActive("/gst/rcm") ? "active" : ""}
+                      >
+                        Reverse Charge (RCM)
+                      </Link>
                     </li>
                   </ul>
                 </li>
@@ -748,52 +806,65 @@ const Sidebar = () => {
                   </a>
                   <ul
                     style={{
-                      display: openMenus["payrollHr"] ? "block" : "none",
+                      display:
+                        openMenus["payrollHr"] ||
+                          isMenuActive(["/payroll/employees"])
+                          ? "block"
+                          : "none",
                     }}
                   >
                     <li>
-                      <Link to="#">Employees</Link>
+                      <Link
+                        to="/payroll/employees"
+                        className={isActive("/payroll/employees") ? "active" : ""}
+                      >
+                        Employees
+                      </Link>
                     </li>
-                    <li>
-                      <Link to="#">Attendance</Link>
+                    <li className={isActive("/payroll/attendance") ? "active" : ""}>
+                      <Link
+                        to="/payroll/attendance"
+                        className={isActive("/payroll/attendance") ? "active" : ""}
+                      >
+                        <i className="isax isax-calendar-1"></i>
+                        Attendance
+                      </Link>
                     </li>
-                    <li>
-                      <Link to="#">Salary Structure</Link>
+                    <li className={isActive("/payroll/salary-structure") ? "active" : ""}>
+                      <Link
+                        to="/payroll/salary-structure"
+                        className={isActive("/payroll/salary-structure") ? "active" : ""}
+                      >
+                        <i className="isax isax-money-recive"></i>
+                        Salary Structure
+                      </Link>
                     </li>
-                    <li>
-                      <Link to="#">Payslips</Link>
+                    <li className={isActive("/payroll/payslips") ? "active" : ""}>
+                      <Link
+                        to="/payroll/payslips"
+                        className={isActive("/payroll/payslips") ? "active" : ""}
+                      >
+                        <i className="isax isax-receipt-2"></i>
+                        Payslips
+                      </Link>
                     </li>
                   </ul>
                 </li>
 
-                {/* BANKING & PAYMENTS */}
+                {/* Banking & Payments */}
                 <li className="submenu">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleMenu("bankingPayments");
-                    }}
-                    className={
-                      openMenus["bankingPayments"] ||
-                      isMenuActive(["/bank-reconciliation"])
-                        ? "active subdrop"
-                        : ""
-                    }
+                  <Link
+                    to="#"
+                    onClick={(e) => { e.preventDefault(); toggleMenu("banking"); }}
+                    className={openMenus["banking"] ? "active subdrop" : ""}
                   >
-                    <i className="isax isax-bank5 fs-18"></i>
-                    <span className="fs-14 fw-medium ms-2">
-                      Banking & Payments
-                    </span>
+                    <i className="isax isax-bank fs-18"></i>
+                    <span className="fs-14 fw-medium ms-2">Banking & Payments</span>
                     <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
-                  </a>
+                  </Link>
                   <ul
                     style={{
-                      display:
-                        openMenus["bankingPayments"] ||
-                        isMenuActive(["/bank-reconciliation"])
-                          ? "block"
-                          : "none",
+                      display: openMenus["banking"] || isMenuActive(["/banking/cheques", "/bank-reconciliation"]) ? "block" : "none"
                     }}
                   >
                     <li>
@@ -806,11 +877,16 @@ const Sidebar = () => {
                         Bank Reconciliation
                       </Link>
                     </li>
-                    <li>
-                      <Link to="#">Post-Dated Cheques</Link>
+                    <li className={isActive("/banking/cheques") ? "active" : ""}>
+                      <Link
+                        to="/banking/cheques"
+                        className={isActive("/banking/cheques") ? "active" : ""}
+                      >
+                        <i className="isax isax-wallet"></i>
+                        Post-Dated Cheques
+                      </Link>
                     </li>
-                  </ul>
-                </li>
+                  </ul>                </li>
 
                 {/* REPORTS & MIS */}
                 <li className="submenu">
@@ -822,31 +898,6 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["reportsMis"] ||
-                      isMenuActive([
-                        "/trial-balance",
-                        "/profit-loss-report",
-                        "/balance-sheet",
-                        "/ledger-report",
-                        "/outstanding-reports",
-                        "/stock-summary",
-                        "/sales-report",
-                        "/purchases-report",
-                        "/gstr-1",
-                        "/cash-flow",
-                        "/fund-flow",
-                      ])
-                        ? "active subdrop"
-                        : ""
-                    }
-                  >
-                    <i className="isax isax-chart-215 fs-18"></i>
-                    <span className="fs-14 fw-medium ms-2">Reports & MIS</span>
-                    <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
-                  </a>
-                  <ul
-                    style={{
-                      display:
-                        openMenus["reportsMis"] ||
                         isMenuActive([
                           "/trial-balance",
                           "/profit-loss-report",
@@ -860,6 +911,31 @@ const Sidebar = () => {
                           "/cash-flow",
                           "/fund-flow",
                         ])
+                        ? "active subdrop"
+                        : ""
+                    }
+                  >
+                    <i className="isax isax-chart-215 fs-18"></i>
+                    <span className="fs-14 fw-medium ms-2">Reports & MIS</span>
+                    <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
+                  </a>
+                  <ul
+                    style={{
+                      display:
+                        openMenus["reportsMis"] ||
+                          isMenuActive([
+                            "/trial-balance",
+                            "/profit-loss-report",
+                            "/balance-sheet",
+                            "/ledger-report",
+                            "/outstanding-reports",
+                            "/stock-summary",
+                            "/sales-report",
+                            "/purchases-report",
+                            "/gstr-1",
+                            "/cash-flow",
+                            "/fund-flow",
+                          ])
                           ? "block"
                           : "none",
                     }}
@@ -979,20 +1055,75 @@ const Sidebar = () => {
 
                 {/* MULTI-CURRENCY */}
                 <li>
-                  <Link to="#">
+                  <Link
+
+                    to="/currencies"
+                    className={isActive("/currencies") ? "active" : ""}
+                  >
                     <i className="isax isax-money-send fs-18"></i>
-                    <span className="fs-14 fw-medium ms-2">Multi-Currency</span>
+                    <span className="fs-14 fw-medium ms-2">
+                      Multi-Currency
+                    </span>
                   </Link>
                 </li>
-
                 {/* APPROVAL WORKFLOW */}
-                <li>
-                  <Link to="#">
+                <li className={isActive("/approvals") ? "active" : ""}>
+                  <Link
+                    to="/approvals"
+                    className={isActive("/approvals") ? "active" : ""}
+                  >
                     <i className="isax isax-tick-square fs-18"></i>
                     <span className="fs-14 fw-medium ms-2">
                       Approval Workflow
                     </span>
                   </Link>
+                </li>
+
+                {/* MASTER DATA */}
+                <li className="submenu">
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleMenu("masterData");
+                    }}
+                    className={
+                      openMenus["masterData"] ||
+                        isMenuActive(["/master/customers", "/master/vendors"])
+                        ? "active subdrop"
+                        : ""
+                    }
+                  >
+                    <i className="isax isax-folder-2 fs-18"></i>
+                    <span className="fs-14 fw-medium ms-2">Master Data</span>
+                    <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
+                  </a>
+                  <ul
+                    style={{
+                      display:
+                        openMenus["masterData"] ||
+                          isMenuActive(["/master/customers", "/master/vendors"])
+                          ? "block"
+                          : "none",
+                    }}
+                  >
+                    <li>
+                      <Link
+                        to="/master/customers"
+                        className={isActive("/master/customers") ? "active" : ""}
+                      >
+                        Customers
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/master/vendors"
+                        className={isActive("/master/vendors") ? "active" : ""}
+                      >
+                        Vendors
+                      </Link>
+                    </li>
+                  </ul>
                 </li>
 
                 {/* SETTINGS */}
@@ -1005,11 +1136,11 @@ const Sidebar = () => {
                     }}
                     className={
                       openMenus["settingsNew"] ||
-                      isMenuActive([
-                        "/company-settings",
-                        "/financial-year",
-                        "/warehouses",
-                      ])
+                        isMenuActive([
+                          "/company-settings",
+                          "/financial-year",
+                          "/warehouses",
+                        ])
                         ? "active subdrop"
                         : ""
                     }
@@ -1022,20 +1153,20 @@ const Sidebar = () => {
                     style={{
                       display:
                         openMenus["settingsNew"] ||
-                        isMenuActive([
-                          "/company-settings",
-                          "/financial-year",
-                          "/warehouses",
-                        ])
+                          isMenuActive([
+                            "/company-settings",
+                            "/financial-year",
+                            "/warehouses",
+                          ])
                           ? "block"
                           : "none",
                     }}
                   >
                     <li>
                       <Link
-                        to="/company-settings"
+                        to="/settings/company"
                         className={
-                          isActive("/company-settings") ? "active" : ""
+                          isActive("/settings/company") || isActive("/company-settings") ? "active" : ""
                         }
                       >
                         Company Settings
@@ -1050,7 +1181,12 @@ const Sidebar = () => {
                       </Link>
                     </li>
                     <li>
-                      <Link to="#">Voucher Types</Link>
+                      <Link
+                        to="/settings/voucher-types"
+                        className={isActive("/settings/voucher-types") ? "active" : ""}
+                      >
+                        Voucher Types
+                      </Link>
                     </li>
                     <li>
                       <Link
@@ -1060,6 +1196,7 @@ const Sidebar = () => {
                         Warehouse
                       </Link>
                     </li>
+
                   </ul>
                 </li>
               </ul>
@@ -1069,7 +1206,7 @@ const Sidebar = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div >
       <div className="sidebar-overlay" onClick={closeSidebar}></div>
     </>
   );

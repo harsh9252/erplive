@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getPurchaseInvoiceById, postPurchaseInvoice, cancelPurchaseInvoice, recordPurchasePayment } from '../services/purchaseInvoiceService';
 import { getCompanySettings } from '../services/settingsService';
+import approvalService from '../services/approvalService';
 import { toast } from 'react-toastify';
 import CollectPaymentModal from '../components/CollectPaymentModal';
 
@@ -68,6 +69,27 @@ const PurchaseInvoiceDetails = () => {
     }
   };
 
+  const handleSubmitForApproval = async () => {
+    const remarks = window.prompt('Enter any remarks for approval (optional):');
+    if (remarks === null) return;
+
+    setProcessing(true);
+    try {
+      await approvalService.submitForApproval({
+        entity_type: 'PURCHASE_INVOICE',
+        entity_id: id,
+        remarks: remarks,
+      });
+      toast.success('Submitted for approval successfully!');
+      const updated = await getPurchaseInvoiceById(id);
+      setInvoice(updated.data || updated);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit for approval');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const openPaymentModal = () => {
     if (!bootstrapModal.current) {
       bootstrapModal.current = new window.bootstrap.Modal(document.getElementById('collectPaymentModal'));
@@ -117,6 +139,9 @@ const PurchaseInvoiceDetails = () => {
               <Link to={`/invoicing/purchases/edit/${id}`} className="btn btn-outline-warning rounded-pill px-3">
                 <i className="isax isax-edit me-1"></i>Edit
               </Link>
+              <button className="btn btn-outline-primary rounded-pill px-4" onClick={handleSubmitForApproval} disabled={processing}>
+                {processing ? 'Submitting...' : 'Submit for Approval'}
+              </button>
               <button className="btn btn-primary rounded-pill px-4" onClick={handlePost} disabled={processing}>
                 {processing ? 'Posting...' : 'Post Invoice'}
               </button>

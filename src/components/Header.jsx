@@ -10,7 +10,7 @@ const Header = () => {
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-  
+
   useEffect(() => {
     if (user) {
       fetchCompanies();
@@ -32,7 +32,7 @@ const Header = () => {
 
   const handleSwitchCompany = async (companyId) => {
     if (activeCompany?.id === companyId) return;
-    
+
     try {
       toast.info('Switching company...', { autoClose: 1000 });
       await switchCompany(companyId);
@@ -115,15 +115,15 @@ const Header = () => {
 
             <div className="d-flex align-items-center gap-2">
               {/* Search */}
-              <div className="input-icon-end position-relative">
+              {/* <div className="input-icon-end position-relative">
                 <input type="text" className="form-control" placeholder="Search" style={{ width: '180px' }} />
                 <span className="input-icon-addon">
                   <i className="isax isax-search-normal"></i>
                 </span>
-              </div>
+              </div> */}
 
               {/* Language Dropdown */}
-              <div className="nav-item dropdown has-arrow flag-nav">
+              {/* <div className="nav-item dropdown has-arrow flag-nav">
                 <Link className="btn btn-menubar" data-bs-toggle="dropdown" href="#" role="button">
                   <img src="/assets/img/flags/us.svg" alt="Language" className="img-fluid" />
                 </Link >
@@ -149,10 +149,10 @@ const Header = () => {
                     </Link>
                   </li>
                 </ul>
-              </div>
+              </div> */}
 
               {/* Notifications */}
-              <div className="notification_item">
+              {/* <div className="notification_item">
                 <Link href="#" className="btn btn-menubar position-relative" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                   <i className="isax isax-notification-bing5"></i>
                   <span className="position-absolute badge bg-success border border-white"></span>
@@ -205,18 +205,18 @@ const Header = () => {
                     <Link to="/notifications" className="text-center fw-medium fs-14 mb-0">View All</Link>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Company Switcher Dropdown */}
               <div className="dropdown">
-                <Link 
-                  className="btn btn-menubar bg-primary-transparent d-flex align-items-center" 
-                  data-bs-toggle="dropdown" 
-                  href="#" 
+                <Link
+                  className="btn btn-menubar bg-primary-transparent d-flex align-items-center"
+                  data-bs-toggle="dropdown"
+                  href="#"
                   role="button"
                 >
                   <i className="isax isax-building-3 me-2 text-primary"></i>
-                  <span 
+                  <span
                     className="fs-13 fw-semibold text-primary d-none d-md-inline-block text-truncate"
                     style={{ maxWidth: '120px' }}
                   >
@@ -256,6 +256,9 @@ const Header = () => {
                   <hr className="dropdown-divider my-2" />
                   <Link to="/add-company" className="dropdown-item d-flex align-items-center text-primary fw-medium rounded-1">
                     <i className="isax isax-add-circle me-2"></i>+ Add Company
+                  </Link>
+                  <Link to="/companies" className="dropdown-item d-flex align-items-center text-primary fw-medium rounded-1">
+                    <i className="isax isax-building-3 me-2"></i>View All Companies
                   </Link>
                 </div>
               </div>

@@ -1,10 +1,9 @@
-import axios from 'axios';
-import { API_BASE_URL } from '../config/apiConfig';
+import apiClient from './apiClient';
 
 // Get all GSTR returns
 export const getGSTRReturns = async (type, period, financialYear) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/gstr/returns`, {
+    const response = await apiClient.get('/api/gstr/returns', {
       params: { type, period, financialYear }
     });
     return response.data;
@@ -17,7 +16,7 @@ export const getGSTRReturns = async (type, period, financialYear) => {
 // Get GSTR return by ID
 export const getGSTRReturnById = async (id) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/gstr/returns/${id}`);
+    const response = await apiClient.get(`/api/gstr/returns/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching GSTR return:', error);
@@ -28,7 +27,7 @@ export const getGSTRReturnById = async (id) => {
 // Create new GSTR return
 export const createGSTRReturn = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/gstr/returns`, data);
+    const response = await apiClient.post('/api/gstr/returns', data);
     return response.data;
   } catch (error) {
     console.error('Error creating GSTR return:', error);
@@ -39,7 +38,7 @@ export const createGSTRReturn = async (data) => {
 // Update GSTR return
 export const updateGSTRReturn = async (id, data) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/gstr/returns/${id}`, data);
+    const response = await apiClient.put(`/api/gstr/returns/${id}`, data);
     return response.data;
   } catch (error) {
     console.error('Error updating GSTR return:', error);
@@ -50,7 +49,7 @@ export const updateGSTRReturn = async (id, data) => {
 // Save as draft
 export const saveAsDraft = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/gstr/draft`, data);
+    const response = await apiClient.post('/api/gstr/draft', data);
     return response.data;
   } catch (error) {
     console.error('Error saving draft:', error);
@@ -61,7 +60,7 @@ export const saveAsDraft = async (data) => {
 // Validate GSTR return
 export const validateGSTRReturn = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/gstr/validate`, data);
+    const response = await apiClient.post('/api/gstr/validate', data);
     return response.data;
   } catch (error) {
     console.error('Error validating GSTR return:', error);
@@ -72,7 +71,7 @@ export const validateGSTRReturn = async (data) => {
 // File GSTR return
 export const fileGSTRReturn = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/gstr/file`, data);
+    const response = await apiClient.post('/api/gstr/file', data);
     return response.data;
   } catch (error) {
     console.error('Error filing GSTR return:', error);
@@ -83,7 +82,7 @@ export const fileGSTRReturn = async (data) => {
 // Download JSON
 export const downloadJSON = async (id) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/gstr/download/${id}`, {
+    const response = await apiClient.get(`/api/gstr/download/${id}`, {
       responseType: 'blob'
     });
     return response.data;
@@ -96,7 +95,7 @@ export const downloadJSON = async (id) => {
 // Get section data
 export const getSectionData = async (returnId, sectionCode) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/gstr/section/${returnId}/${sectionCode}`);
+    const response = await apiClient.get(`/api/gstr/section/${returnId}/${sectionCode}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching section data:', error);
@@ -107,7 +106,7 @@ export const getSectionData = async (returnId, sectionCode) => {
 // Update section data
 export const updateSectionData = async (returnId, sectionCode, data) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/gstr/section/${returnId}/${sectionCode}`, data);
+    const response = await apiClient.put(`/api/gstr/section/${returnId}/${sectionCode}`, data);
     return response.data;
   } catch (error) {
     console.error('Error updating section data:', error);
@@ -118,7 +117,7 @@ export const updateSectionData = async (returnId, sectionCode, data) => {
 // Get invoices for GSTR
 export const getInvoicesForGSTR = async (type, period) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/gstr/invoices`, {
+    const response = await apiClient.get('/api/gstr/invoices', {
       params: { type, period }
     });
     return response.data;
