@@ -80,11 +80,28 @@ const LedgerStatement = () => {
                 const normalizedEntries = (Array.isArray(rawEntries) ? rawEntries : []).map(entry => {
                     const vch_no = entry.vch_no || entry.voucher_number || entry.voucherNumber || '';
                     const vch_type = entry.vch_type || entry.voucher_type || entry.type || getTypeFromVchNo(vch_no);
+                    
+                    // Build particulars from every known field name the backend might use
+                    const particulars =
+                        entry.particulars ||
+                        entry.ledger_name ||
+                        entry.contra_ledger_name ||
+                        entry.against_ledger ||
+                        entry.contra_ledger ||
+                        entry.account_name ||
+                        entry.against_account ||
+                        entry.ledger?.name ||
+                        entry.contra?.name ||
+                        entry.account?.name ||
+                        entry.narration ||
+                        entry.description ||
+                        '';
+
                     return {
                         ...entry,
                         vch_no,
                         vch_type,
-                        particulars: entry.particulars || entry.narration || entry.description || '',
+                        particulars,
                         narration: entry.narration || entry.description || '',
                         running_balance: entry.running_balance !== undefined
                             ? entry.running_balance
@@ -95,6 +112,14 @@ const LedgerStatement = () => {
                         credit: Number(entry.credit || 0),
                     };
                 });
+
+                // Debug: log first entry keys to help identify the correct field name
+                if (normalizedEntries.length > 0) {
+                    console.log('First entry keys:', Object.keys(rawEntries[0]));
+                    console.log('First entry sample:', rawEntries[0]);
+                    console.log('Resolved particulars:', normalizedEntries[0].particulars);
+                }
+
                 setEntries(normalizedEntries);
                 
                 // Use opening balance from report's ledger object, or fallback to root properties or generic ledger state

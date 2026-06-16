@@ -83,11 +83,12 @@ export const getVoucherTypes = async () => {
   return fetchVoucherTypesInProgress;
 };
 
-export const getWarehouses = async () =>
+export const getWarehouses = async (customHeaders = {}) =>
   normalizeListResponse(
     await apiRequest({
       url: '/api/settings/warehouses',
       method: 'GET',
+      headers: customHeaders,
     }),
   );
 
@@ -99,11 +100,12 @@ export const createWarehouse = async (payload, customHeaders = {}) =>
     headers: customHeaders,
   });
 
-export const updateWarehouse = async (id, payload) =>
+export const updateWarehouse = async (id, payload, customHeaders = {}) =>
   apiRequest({
     url: `/api/settings/warehouses/${id}`,
     method: 'PUT',
     data: payload,
+    headers: customHeaders,
   });
 
 export const getVoucherSeries = async () =>

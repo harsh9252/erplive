@@ -3,6 +3,7 @@ import * as authService from '../services/authService';
 import { getStoredActiveCompany, getAccessToken, AUTH_STATE_CHANGED_EVENT } from '../services/apiClient';
 import pushNotificationService from '../services/pushNotificationService';
 import roleService from '../services/roleService';
+import { initializeSampleData } from '../utils/initializeData';
 
 const AuthContext = createContext();
 
@@ -125,6 +126,12 @@ export const AuthProvider = ({ children }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (activeCompany?.id) {
+      initializeSampleData();
+    }
+  }, [activeCompany?.id]);
 
   const fetchFullProfile = async (authToken, isInitialLoad = false) => {
     // Deduplicate in-flight requests

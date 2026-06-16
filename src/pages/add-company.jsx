@@ -404,12 +404,30 @@ const AddCompany = () => {
           gstin: formData.gstin,
         }, headers);
 
-        await settingsService.createWarehouse({
-          company_id: newCompanyId,
-          name: formData.name,
-          code: uniqueWarehouseCode,
-          location: `${formData.address}, ${formData.city}`,
-        }, headers);
+        // Rename the backend-seeded warehouse to the company name instead of creating a duplicate
+        try {
+          const warehousesResp = await settingsService.getWarehouses(headers);
+          const existingWarehouses = warehousesResp?.data || warehousesResp || [];
+          if (Array.isArray(existingWarehouses) && existingWarehouses.length > 0) {
+            // Rename the first (auto-created) warehouse to the company name
+            const autoWarehouse = existingWarehouses[0];
+            await settingsService.updateWarehouse(autoWarehouse.id, {
+              name: formData.name,
+              code: uniqueWarehouseCode,
+              location: `${formData.address}, ${formData.city}`,
+            }, headers);
+          } else {
+            // No auto-created warehouse found — create one with the company name
+            await settingsService.createWarehouse({
+              company_id: newCompanyId,
+              name: formData.name,
+              code: uniqueWarehouseCode,
+              location: `${formData.address}, ${formData.city}`,
+            }, headers);
+          }
+        } catch (warehouseError) {
+          console.error('Error setting up warehouse:', warehouseError);
+        }
       } catch (defaultEntityError) {
         console.error('Error creating default branch or warehouse:', defaultEntityError);
       }

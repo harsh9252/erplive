@@ -36,7 +36,6 @@ const Ledgers = () => {
         ledger_group_id: '',
         opening_balance: 0,
         balance_type: 'DR',
-        gstin: '',
         mobile: '',
         address: '',
         bank_name: '',
@@ -136,7 +135,6 @@ const Ledgers = () => {
                 ledger_group_id: ledger.ledger_group_id || '',
                 opening_balance: ledger.opening_balance || 0,
                 balance_type: ledger.balance_type || 'DR',
-                gstin: ledger.gstin || '',
                 mobile: ledger.mobile || '',
                 address: ledger.address || '',
                 bank_name: ledger.bank_name || '',
@@ -150,7 +148,6 @@ const Ledgers = () => {
                 ledger_group_id: '',
                 opening_balance: 0,
                 balance_type: 'DR',
-                gstin: '',
                 mobile: '',
                 address: '',
                 bank_name: '',
@@ -220,7 +217,6 @@ const Ledgers = () => {
         setFormData(prev => ({
             ...prev,
             name: item.name || item.bank_name,
-            gstin: item.gstin || prev.gstin,
             mobile: item.phone || item.mobile || prev.mobile,
             address: item.address || prev.address,
             bank_name: item.bank_name || prev.bank_name,
@@ -236,7 +232,6 @@ const Ledgers = () => {
             ledger_group_id: groupId,
             opening_balance: 0,
             balance_type: 'DR',
-            gstin: '',
             mobile: '',
             address: '',
             bank_name: '',
@@ -253,12 +248,6 @@ const Ledgers = () => {
         let newErrors = {};
         if (!formData.name?.trim()) newErrors.name = 'Ledger Name is required';
         if (!formData.ledger_group_id) newErrors.ledger_group_id = 'Under Group is required';
-        if (formData.gstin) {
-            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/i;
-            if (!gstinRegex.test(formData.gstin)) {
-                newErrors.gstin = 'Invalid GSTIN format (e.g. 27AAAAA0000A1Z5)';
-            }
-        }
         
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -643,22 +632,7 @@ const Ledgers = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label fw-medium text-dark">GSTIN</label>
-                                            <input 
-                                                type="text" 
-                                                className={`form-control ${errors.gstin ? 'is-invalid' : ''}`}
-                                                value={formData.gstin} 
-                                                onChange={(e) => {
-                                                    const val = e.target.value.toUpperCase();
-                                                    setFormData({...formData, gstin: val});
-                                                    if (errors.gstin) setErrors(prev => ({ ...prev, gstin: '' }));
-                                                }}
-                                                placeholder="27AAAAA0000A1Z5"
-                                                maxLength="15"
-                                            />
-                                            {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
-                                        </div>
+
                                     </div>
                                 </div>
                                 <div className="modal-footer border-top">
