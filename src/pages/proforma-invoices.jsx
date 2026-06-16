@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getProformaInvoices } from '../services/proformaInvoiceService';
+import { getProformaInvoices, convertToInvoice } from '../services/proformaInvoiceService';
 import { getCustomers } from '../services/customerService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const ProformaInvoices = () => {
   const [proformas, setProformas] = useState([]);
@@ -16,7 +17,7 @@ const ProformaInvoices = () => {
     customer_id: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
 
   const fetchData = useCallback(async () => {
@@ -26,7 +27,8 @@ const ProformaInvoices = () => {
         getProformaInvoices({
           page: currentPage,
           limit: itemsPerPage,
-          ...filters
+          ...filters,
+          status: filters.status === 'All' ? undefined : filters.status
         }),
         getCustomers(1, 1000)
       ]);
@@ -62,6 +64,29 @@ const ProformaInvoices = () => {
       CONVERTED: 'badge-soft-primary',
     };
     return statusClasses[status] || 'badge-soft-secondary';
+  };
+
+  const handleConvertToInvoice = async (id) => {
+    const result = await Swal.fire({
+      title: 'Convert to Sales Invoice?',
+      text: 'This will create a new Sales Invoice from this proforma. The proforma status will be updated to CONVERTED.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, Convert it!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await convertToInvoice(id);
+        toast.success('Converted to Sales Invoice successfully');
+        fetchData();
+      } catch (error) {
+        console.error('Error converting proforma:', error);
+        toast.error(error.message || 'Failed to convert proforma');
+      }
+    }
   };
 
   return (
@@ -127,7 +152,7 @@ const ProformaInvoices = () => {
                   <th className="py-3 text-center">Valid Until</th>
                   <th className="py-3 text-end">Amount</th>
                   <th className="py-3 text-center">Status</th>
-                  <th className="py-3 text-center px-4">Action</th>
+                  <th className="py-3 text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,9 +180,9 @@ const ProformaInvoices = () => {
                     <td>
                       <div className="d-flex align-items-center">
                         <div className="avatar avatar-sm bg-primary bg-opacity-10 text-primary rounded-circle me-2">
-                          <span className="fs-12 fw-bold">{(p.customer_name || 'C').charAt(0)}</span>
+                          <span className="fs-12 fw-bold">{((p.customer?.name || p.customer_name) || 'C').charAt(0).toUpperCase()}</span>
                         </div>
-                        <span className="fs-14 fw-medium text-dark">{p.customer_name || 'Unknown Customer'}</span>
+                        <span className="fs-14 fw-medium text-dark">{p.customer?.name || p.customer_name || 'Unknown Customer'}</span>
                       </div>
                     </td>
                     <td className="text-center fs-13 text-muted">{p.proforma_date || p.proformaDate}</td>
@@ -166,27 +191,35 @@ const ProformaInvoices = () => {
                     <td className="text-center">
                       <span className={`badge ${getStatusBadge(p.status)} rounded-pill px-3`}>{p.status}</span>
                     </td>
-                    <td className="text-center px-4">
-                      <div className="dropdown">
-                        <button className="btn btn-icon btn-sm rounded-circle border-0 shadow-none hover-lift" data-bs-toggle="dropdown">
-                          <i className="isax isax-more text-muted fs-18"></i>
-                        </button>
-                        <ul className="dropdown-menu dropdown-menu-end border-0 shadow">
-                          <li>
-                            <Link className="dropdown-item d-flex align-items-center px-3 py-2 fs-13" to={`/invoicing/proforma/${p.id}`}>
-                              <i className="isax isax-eye me-2 text-primary"></i>View Details
-                            </Link>
-                          </li>
+                      <td className="text-end pe-4">
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link 
+                            className="btn btn-sm btn-soft-primary border-0" 
+                            to={`/invoicing/proforma/${p.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
                           {p.status === 'DRAFT' && (
-                            <li>
-                              <Link className="dropdown-item d-flex align-items-center px-3 py-2 fs-13" to={`/invoicing/proforma/edit/${p.id}`}>
-                                <i className="isax isax-edit me-2 text-warning"></i>Edit Draft
-                              </Link>
-                            </li>
+                            <Link 
+                              className="btn btn-sm btn-soft-warning border-0" 
+                              to={`/invoicing/proforma/edit/${p.id}`}
+                              title="Edit Proforma"
+                            >
+                              <i className="isax isax-edit fs-16"></i>
+                            </Link>
                           )}
-                        </ul>
-                      </div>
-                    </td>
+                          {p.status === 'ACCEPTED' && (
+                            <button 
+                              className="btn btn-sm btn-soft-success border-0" 
+                              onClick={() => handleConvertToInvoice(p.id)}
+                              title="Convert to Invoice"
+                            >
+                              <i className="isax isax-refresh-circle fs-16"></i>
+                            </button>
+                          )}
+                        </div>
+                      </td>
                   </tr>
                 ))}
               </tbody>

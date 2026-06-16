@@ -9,7 +9,7 @@ const Invoices = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null });
   const [selectedViewInvoice, setSelectedViewInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ const Invoices = () => {
       const response = await getSalesInvoices(currentPage, itemsPerPage, searchTerm, statusFilter);
       // Resilience handling: handle direct array or { rows: [], total: 0 }
       const invoicesData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
-      
+
       const mappedInvoices = invoicesData.map(inv => ({
         id: inv.invoice_number || `INV-${inv.id}`,
         apiId: inv.id, // For delete/view actions
@@ -133,26 +133,7 @@ const Invoices = () => {
           <Link to="/add-invoice" className="btn btn-primary d-flex align-items-center">
             <i className="isax isax-add me-1"></i>Create Invoice
           </Link>
-          <div className="dropdown">
-            <Link href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="#" onClick={() => handleExport('PDF')}>
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="#" onClick={() => handleExport('Excel')}>
-                  Download as Excel
-                </Link>
-              </li>
-            </ul>
-          </div>
+
         </div>
       </div>
 
@@ -269,7 +250,7 @@ const Invoices = () => {
                   <th>Created Date</th>
                   <th>Due Date</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,38 +305,33 @@ const Invoices = () => {
                           <i className={`${getStatusIcon(invoice.status)} ms-1`}></i>
                         </span>
                       </td>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            title="View Invoice"
-                            onClick={() => setSelectedViewInvoice(invoice)}
-                            data-bs-toggle="modal"
-                            data-bs-target="#view_invoice_modal"
-                          >
-                            <i className="isax isax-eye"></i>
+                      <td className="text-end pe-4">
+                        <div className="dropdown">
+                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                            <i className="isax isax-more fs-18"></i>
                           </button>
-                          <Link
-                            to={`/edit-invoice/${invoice.apiId}`}
-                            className="btn btn-sm btn-outline-warning"
-                            title="Edit Invoice"
-                          >
-                            <i className="isax isax-edit"></i>
-                          </Link>
-                          <button
-                            className="btn btn-sm btn-outline-info"
-                            title="Send Invoice"
-                            onClick={() => handleSend(invoice.apiId)}
-                          >
-                            <i className="isax isax-send-1"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(invoice.apiId)}
-                            title="Delete Invoice"
-                          >
-                            <i className="isax isax-trash"></i>
-                          </button>
+                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                            <li>
+                              <button className="dropdown-item py-2" onClick={() => setSelectedViewInvoice(invoice)} data-bs-toggle="modal" data-bs-target="#view_invoice_modal">
+                                <i className="isax isax-eye me-2 text-primary"></i>View Invoice
+                              </button>
+                            </li>
+                            <li>
+                              <Link className="dropdown-item py-2" to={`/edit-invoice/${invoice.apiId}`}>
+                                <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Invoice
+                              </Link>
+                            </li>
+                            <li>
+                              <button className="dropdown-item py-2" onClick={() => handleSend(invoice.apiId)}>
+                                <i className="isax isax-send-1 me-2 text-info"></i>Send Invoice
+                              </button>
+                            </li>
+                            <li>
+                              <button className="dropdown-item py-2 text-danger" onClick={() => handleDelete(invoice.apiId)}>
+                                <i className="isax isax-trash me-2"></i>Delete Invoice
+                              </button>
+                            </li>
+                          </ul>
                         </div>
                       </td>
                     </tr>

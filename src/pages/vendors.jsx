@@ -9,7 +9,7 @@ export const Vendors = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
 
   const fetchVendors = async (page = 1, search = '') => {
     setLoading(true);
@@ -32,20 +32,13 @@ export const Vendors = () => {
 
   const handleDelete = async (id) => {
     Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Delete Vendor?',
+      text: "Are you sure? This will remove all associated records.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!',
-      customClass: {
-        container: 'swal2-custom-container',
-        popup: 'rounded-16 shadow-lg border-0',
-        confirmButton: 'btn btn-danger px-4 rounded-8',
-        cancelButton: 'btn btn-outline-secondary px-4 rounded-8'
-      },
-      buttonsStyling: false
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Delete',
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -55,17 +48,16 @@ export const Vendors = () => {
               title: 'Deleted!',
               text: 'Vendor has been deleted.',
               icon: 'success',
-              timer: 1500,
-              showConfirmButton: false,
+              iconHtml: '<i class="isax isax-tick-circle text-success fs-50"></i>',
               customClass: {
-                popup: 'rounded-16 shadow-lg border-0'
+                  icon: 'border-0'
               }
             });
             fetchVendors(currentPage, searchTerm);
           }
         } catch (error) {
           console.error('Error deleting vendor:', error);
-          toast.error('Failed to delete vendor');
+          toast.error(error.message || 'Failed to delete vendor. They might be in use.');
         }
       }
     });
@@ -135,7 +127,7 @@ export const Vendors = () => {
                   <th>Contact</th>
                   <th>City / State</th>
                   <th className="text-end">Balance</th>
-                  <th className="text-center">Actions</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,21 +184,21 @@ export const Vendors = () => {
                           );
                         })()}
                       </td>
-                      <td className="text-center">
-                        <div className="d-flex align-items-center justify-content-center gap-2">
-                          <Link
+                      <td className="text-end pe-4">
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link 
+                            className="btn btn-sm btn-soft-warning border-0" 
                             to={`/master/vendors/edit/${vendor.id}`}
-                            className="btn btn-sm btn-icon btn-soft-warning"
                             title="Edit"
                           >
-                            <i className="isax isax-edit"></i>
+                            <i className="isax isax-edit-2 fs-16"></i>
                           </Link>
-                          <button
-                            className="btn btn-sm btn-icon btn-soft-danger"
+                          <button 
+                            className="btn btn-sm btn-soft-danger border-0" 
                             onClick={() => handleDelete(vendor.id)}
                             title="Delete"
                           >
-                            <i className="isax isax-trash"></i>
+                            <i className="isax isax-trash fs-16"></i>
                           </button>
                         </div>
                       </td>

@@ -72,19 +72,19 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">200.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">150.00</p>
                         </div>
                       </td>
@@ -97,7 +97,7 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark fw-medium">$</p>
+                          <p className="mb-0 text-dark fw-medium">₹</p>
                           <p className="text-dark fw-medium">150.00</p>
                         </div>
                       </td>
@@ -110,7 +110,7 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-dark p-2">
-                          <p className="mb-0 text-white fw-semibold">$</p>
+                          <p className="mb-0 text-white fw-semibold">₹</p>
                           <p className="text-white fw-semibold">600.00</p>
                         </div>
                       </td>
@@ -142,19 +142,19 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">200.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark">$</p>
+                          <p className="mb-0 text-dark">₹</p>
                           <p className="text-dark">150.00</p>
                         </div>
                       </td>
@@ -167,7 +167,7 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-light p-2">
-                          <p className="mb-0 text-dark fw-medium">$</p>
+                          <p className="mb-0 text-dark fw-medium">₹</p>
                           <p className="text-dark fw-medium">150.00</p>
                         </div>
                       </td>
@@ -180,7 +180,7 @@ export default function DomainHostingInvoice() {
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center bg-dark p-2">
-                          <p className="mb-0 text-white fw-semibold">$</p>
+                          <p className="mb-0 text-white fw-semibold">₹</p>
                           <p className="text-white fw-semibold">600.00</p>
                         </div>
                       </td>
@@ -198,7 +198,7 @@ export default function DomainHostingInvoice() {
                     </div>
                     <div className="col-sm-6 col-md-6">
                       <div className="d-flex justify-content-between align-items-center bg-white p-2">
-                        <p className="mb-0 text-dark">$</p>
+                        <p className="mb-0 text-dark">₹</p>
                         <p className="text-dark">90</p>
                       </div>
                     </div>
@@ -211,7 +211,7 @@ export default function DomainHostingInvoice() {
                     </div>
                     <div className="col-sm-6 col-md-6">
                       <div className="d-flex justify-content-between align-items-center bg-dark p-2">
-                        <p className="mb-0 text-white fw-semibold">$</p>
+                        <p className="mb-0 text-white fw-semibold">₹</p>
                         <p className="text-white fw-semibold">690.00</p>
                       </div>
                     </div>

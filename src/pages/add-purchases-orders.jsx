@@ -105,9 +105,8 @@ const AddPurchasesOrders = () => {
                             <div className="mb-3">
                               <select className="select">
                                 <option>Currency</option>
-                                <option>$</option>
+                                <option selected>₹</option>
                                 <option>€</option>
-                                <option>₹</option>
                               </select>
                             </div>
                           </div>

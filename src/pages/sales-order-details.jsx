@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getSalesOrderById, cancelSalesOrder } from '../services/salesOrderService';
+import Swal from 'sweetalert2';
 
 const SalesOrderDetails = () => {
   const { id } = useParams();
@@ -28,7 +29,23 @@ const SalesOrderDetails = () => {
   }, [fetchOrder]);
 
   const handleCancelOrder = async () => {
-    if (!window.confirm('Are you sure you want to cancel this Sales Order?')) return;
+    const { isConfirmed } = await Swal.fire({
+      title: 'Cancel Sales Order?',
+      text: "Are you sure you want to cancel this Sales Order? This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Cancel It',
+      cancelButtonText: 'No, Keep It',
+      confirmButtonColor: '#dc3545',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0',
+        confirmButton: 'btn btn-danger px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false
+    });
+    
+    if (!isConfirmed) return;
     
     setCancelling(true);
     try {

@@ -2,41 +2,78 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getItems, deleteItem } from '../services/itemService';
+import Swal from 'sweetalert2';
 
 const Items = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    // Fetch categories for the filter dropdown
+    import('../services/categoryService').then(module => {
+      module.getStockCategories({ limit: 100 }).then(res => {
+        const catData = Array.isArray(res.data) ? res.data : (res.data?.rows || res.data?.items || Array.isArray(res) ? res : []);
+        setCategories(catData);
+      }).catch(err => console.error("Error fetching categories:", err));
+    }).catch(err => console.error("Error loading category service:", err));
+  }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getItems(1, 1000, { search: searchTerm, category: categoryFilter });
-      setItems(Array.isArray(response.data) ? response.data : (response.data?.rows || []));
+      // Use category_id for API filtering instead of string name
+      const response = await getItems(currentPage, itemsPerPage, { search: debouncedSearch, category_id: categoryFilter });
+      const itemsData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
+      setItems(itemsData);
+      setTotalItems(response.total || response.data?.total || itemsData.length || 0);
     } catch (error) {
       console.error('Error fetching stock items:', error);
       toast.error('Failed to load stock items');
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, categoryFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, categoryFilter]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
   const handleDeleteItem = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this item? This action is permanent.')) return;
-    
-    try {
-      await deleteItem(id);
-      toast.success('Item deleted successfully');
-      fetchItems();
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      toast.error(error.message || 'Failed to delete item');
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to delete this stock item? This action is permanent.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteItem(id);
+        toast.success('Item deleted successfully');
+        fetchItems();
+      } catch (error) {
+        console.error('Error deleting item:', error);
+        toast.error(error.message || 'Failed to delete item');
+      }
     }
   };
 
@@ -70,9 +107,8 @@ const Items = () => {
             <div className="col-md-3">
               <select className="form-select bg-light border-0 shadow-none" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                 <option value="">All Categories</option>
-                {/* Dynamically extract categories if possible, or static list for now */}
-                {Array.from(new Set(items.map(i => i.category).filter(Boolean))).map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -96,7 +132,7 @@ const Items = () => {
                   <th className="text-end">Purchase Price</th>
                   <th className="text-center">Current Stock</th>
                   <th className="text-center">Status</th>
-                  <th className="text-end pe-4" style={{ minWidth: '120px' }}>Actions</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,12 +152,12 @@ const Items = () => {
                       <td className="ps-4 fw-bold text-nowrap">{item.sku || '-'}</td>
                       <td>
                         <div className="fw-semibold text-dark">{item.name}</div>
-                        <small className="text-muted">HSN: {item.hsn_code || 'N/A'}</small>
+                        <small className="text-muted">HSN: {typeof item.hsn_code === 'object' && item.hsn_code !== null ? item.hsn_code.code : (item.hsn_code || 'N/A')}</small>
                       </td>
-                      <td>{item.category || '-'}</td>
-                      <td className="text-center"><span className="badge bg-soft-info text-info border-info px-2">{item.unit}</span></td>
-                      <td className="text-end">₹{item.sale_price?.toLocaleString() || item.selling_price?.toLocaleString() || '0'}</td>
-                      <td className="text-end">₹{item.purchase_price?.toLocaleString() || '0'}</td>
+                      <td>{typeof item.category === 'object' && item.category !== null ? item.category.name : (item.category || '-')}</td>
+                      <td className="text-center"><span className="badge bg-soft-info text-info border-info px-2">{typeof item.unit === 'object' && item.unit !== null ? item.unit.name || item.unit.code : (item.unit || '-')}</span></td>
+                      <td className="text-end">₹{(item.sale_price || item.selling_price || 0).toLocaleString()}</td>
+                      <td className="text-end">₹{(item.purchase_price || 0).toLocaleString()}</td>
                       <td className="text-center">
                         <div className={`fw-bold ${item.current_stock <= (item.reorder_level || 0) ? 'text-danger' : 'text-success'}`}>
                           {item.current_stock || 0}
@@ -134,16 +170,28 @@ const Items = () => {
                         </span>
                       </td>
                       <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-display="static">
-                            <i className="isax isax-more fs-18 text-primary"></i>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link 
+                            className="btn btn-sm btn-soft-primary border-0" 
+                            to={`/inventory/items/${item.id}`}
+                            title="View Stock"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          <Link 
+                            className="btn btn-sm btn-soft-warning border-0" 
+                            to={`/inventory/items/edit/${item.id}`}
+                            title="Edit Item"
+                          >
+                            <i className="isax isax-edit-2 fs-16"></i>
+                          </Link>
+                          <button 
+                            className="btn btn-sm btn-soft-danger border-0" 
+                            onClick={() => handleDeleteItem(item.id)}
+                            title="Delete Item"
+                          >
+                            <i className="isax isax-trash fs-16"></i>
                           </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
-                            <li><Link className="dropdown-item py-2" to={`/inventory/items/${item.id}`}><i className="isax isax-eye me-2 text-primary"></i>View Stock</Link></li>
-                            <li><Link className="dropdown-item py-2" to={`/inventory/items/edit/${item.id}`}><i className="isax isax-edit-2 me-2 text-warning"></i>Edit Item</Link></li>
-                            <li className="dropdown-divider"></li>
-                            <li><button className="dropdown-item py-2 text-danger" onClick={() => handleDeleteItem(item.id)}><i className="isax isax-trash me-2"></i>Delete Item</button></li>
-                          </ul>
                         </div>
                       </td>
                     </tr>
@@ -153,6 +201,34 @@ const Items = () => {
             </table>
           </div>
         </div>
+        {totalItems > itemsPerPage && (
+          <div className="card-footer bg-white py-3">
+            <div className="d-flex align-items-center justify-content-between">
+              <span className="text-muted fs-13">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+              </span>
+              <nav>
+                <ul className="pagination pagination-rounded mb-0">
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+                      <i className="isax isax-arrow-left-2"></i>
+                    </button>
+                  </li>
+                  {[...Array(Math.ceil(totalItems / itemsPerPage))].map((_, index) => (
+                    <li key={index + 1} className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}>
+                      <button className="page-link" onClick={() => setCurrentPage(index + 1)}>{index + 1}</button>
+                    </li>
+                  )).slice(Math.max(0, currentPage - 3), Math.min(Math.ceil(totalItems / itemsPerPage), currentPage + 2))}
+                  <li className={`page-item ${currentPage === Math.ceil(totalItems / itemsPerPage) ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === Math.ceil(totalItems / itemsPerPage)}>
+                      <i className="isax isax-arrow-right-3"></i>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ const Quotations = () => {
               <th>Customer</th>
               <th>Created On</th>
               <th className="no-sort">Status</th>
-              <th className="no-sort"></th>
+              <th className="no-sort text-end pe-4">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -176,56 +176,46 @@ const Quotations = () => {
                   Accepted <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown" className="custom-elipse">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -263,56 +253,37 @@ const Quotations = () => {
                   Declined<i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -350,56 +321,46 @@ const Quotations = () => {
                   Sent<i className="isax isax-arrow-right-2 ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -438,56 +399,46 @@ const Quotations = () => {
                   <i className="isax isax-timer-pause ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -525,56 +476,46 @@ const Quotations = () => {
                   Accepted <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -612,56 +553,46 @@ const Quotations = () => {
                   Declined<i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -699,56 +630,46 @@ const Quotations = () => {
                   Sent<i className="isax isax-arrow-right-2 ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -787,56 +708,46 @@ const Quotations = () => {
                   <i className="isax isax-timer-pause ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -874,56 +785,46 @@ const Quotations = () => {
                   Accepted <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -961,56 +862,46 @@ const Quotations = () => {
                   Declined<i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -1048,56 +939,46 @@ const Quotations = () => {
                   Sent<i className="isax isax-arrow-right-2 ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -1136,56 +1017,46 @@ const Quotations = () => {
                   <i className="isax isax-timer-pause ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -1223,56 +1094,46 @@ const Quotations = () => {
                   Accepted <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
             <tr>
@@ -1310,56 +1171,46 @@ const Quotations = () => {
                   Declined<i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-eye me-2"></i>View
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/edit-quotation" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-text-1 me-2"></i>Convert to Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-arrow-right-2 me-2"></i>Mark as Sent
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-send-2 me-2"></i>Send
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-copy me-2"></i>Clone as Invoice
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item d-flex align-items-center">
-                      <i className="isax isax-document-download me-2"></i>Download
-                    </Link>
-                  </li>
-                </ul>
+               <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-primary border-0"
+                    title="View"
+                  >
+                    <i className="isax isax-eye fs-16"></i>
+                  </Link>
+                  <Link 
+                    to="/edit-quotation" 
+                    className="btn btn-sm btn-soft-warning border-0"
+                    title="Edit"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#"
+                    className="btn btn-sm btn-soft-danger border-0"
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-info border-0"
+                    title="Convert to Invoice"
+                  >
+                    <i className="isax isax-document-text-1 fs-16"></i>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="btn btn-sm btn-soft-success border-0"
+                    title="Send"
+                  >
+                    <i className="isax isax-send-2 fs-16"></i>
+                  </Link>
+                </div>
               </td>
             </tr>
           </tbody>

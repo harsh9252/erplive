@@ -1,0 +1,1377 @@
+[
+  {
+    "file": "apiClient.js",
+    "path": "/api/auth/login",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "apiClient.js",
+    "path": "/api/auth/refresh",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "apiClient.js",
+    "path": "/api/auth/logout",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals/pending",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals",
+    "method": "GET"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals/pending",
+    "method": "GET"
+  },
+  {
+    "file": "approvalService.js",
+    "path": "/api/approvals",
+    "method": "POST"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance/bulk",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance",
+    "method": "POST"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance/bulk",
+    "method": "POST"
+  },
+  {
+    "file": "attendanceService.js",
+    "path": "/api/payroll/attendance",
+    "method": "GET"
+  },
+  {
+    "file": "auditLogService.js",
+    "path": "/api/audit-logs",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "auditLogService.js",
+    "path": "/api/audit-logs",
+    "method": "GET"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/onboarding/register-owner",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/onboarding/company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/register",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/login",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/logout",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/refresh",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/request-password-reset",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/reset-password",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/profile",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/switch-company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/onboarding/register-owner",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/onboarding/company",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/register",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/login",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/logout",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/refresh",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/request-password-reset",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/reset-password",
+    "method": "POST"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/profile",
+    "method": "GET"
+  },
+  {
+    "file": "authService.js",
+    "path": "/api/auth/switch-company",
+    "method": "POST"
+  },
+  {
+    "file": "backupService.js",
+    "path": "/api/settings/backups",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "backupService.js",
+    "path": "/api/settings/backups",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "backupService.js",
+    "path": "/api/settings/backups",
+    "method": "GET"
+  },
+  {
+    "file": "backupService.js",
+    "path": "/api/settings/backups",
+    "method": "POST"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations/match-transaction",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations/unmatch-transaction",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations",
+    "method": "GET"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations",
+    "method": "POST"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations/match-transaction",
+    "method": "POST"
+  },
+  {
+    "file": "bankReconciliationService.js",
+    "path": "/api/bank-reconciliations/unmatch-transaction",
+    "method": "POST"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "GET"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "POST"
+  },
+  {
+    "file": "batchService.js",
+    "path": "/api/batches",
+    "method": "GET"
+  },
+  {
+    "file": "bomService.js",
+    "path": "/api/manufacturing/bom",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bomService.js",
+    "path": "/api/manufacturing/bom",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "bomService.js",
+    "path": "/api/manufacturing/bom",
+    "method": "GET"
+  },
+  {
+    "file": "bomService.js",
+    "path": "/api/manufacturing/bom",
+    "method": "POST"
+  },
+  {
+    "file": "budgetService.js",
+    "path": "/api/budgets",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "budgetService.js",
+    "path": "/api/budgets",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "budgetService.js",
+    "path": "/api/budgets",
+    "method": "GET"
+  },
+  {
+    "file": "budgetService.js",
+    "path": "/api/budgets",
+    "method": "POST"
+  },
+  {
+    "file": "categoryService.js",
+    "path": "/api/stock-categories",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "categoryService.js",
+    "path": "/api/stock-categories",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "categoryService.js",
+    "path": "/api/stock-categories",
+    "method": "GET"
+  },
+  {
+    "file": "categoryService.js",
+    "path": "/api/stock-categories",
+    "method": "POST"
+  },
+  {
+    "file": "chequeService.js",
+    "path": "/api/cheques",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "chequeService.js",
+    "path": "/api/cheques",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "chequeService.js",
+    "path": "/api/cheques",
+    "method": "GET"
+  },
+  {
+    "file": "chequeService.js",
+    "path": "/api/cheques",
+    "method": "POST"
+  },
+  {
+    "file": "companyService.js",
+    "path": "/api/company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "companyService.js",
+    "path": "/api/company/my-companies",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "companyService.js",
+    "path": "/api/auth/switch-company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "companyService.js",
+    "path": "/api/company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "complianceService.js",
+    "path": "/api/compliance/tds-master",
+    "method": "GET"
+  },
+  {
+    "file": "complianceService.js",
+    "path": "/api/compliance/tds-master",
+    "method": "GET"
+  },
+  {
+    "file": "complianceService.js",
+    "path": "/api/compliance/tcs-master",
+    "method": "GET"
+  },
+  {
+    "file": "complianceService.js",
+    "path": "/api/compliance/tcs-master",
+    "method": "GET"
+  },
+  {
+    "file": "costCategoryService.js",
+    "path": "/api/cost-centres/categories",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "costCategoryService.js",
+    "path": "/api/cost-centres/categories",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "costCategoryService.js",
+    "path": "/api/cost-centres/categories",
+    "method": "GET"
+  },
+  {
+    "file": "costCategoryService.js",
+    "path": "/api/cost-centres/categories",
+    "method": "POST"
+  },
+  {
+    "file": "costCenterService.js",
+    "path": "/api/cost-centres",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "costCenterService.js",
+    "path": "/api/cost-centres",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "costCenterService.js",
+    "path": "/api/cost-centres",
+    "method": "GET"
+  },
+  {
+    "file": "costCenterService.js",
+    "path": "/api/cost-centres",
+    "method": "POST"
+  },
+  {
+    "file": "creditNoteService.js",
+    "path": "/api/credit-notes",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "creditNoteService.js",
+    "path": "/api/credit-notes",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "creditNoteService.js",
+    "path": "/api/credit-notes",
+    "method": "GET"
+  },
+  {
+    "file": "creditNoteService.js",
+    "path": "/api/credit-notes",
+    "method": "POST"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies/convert",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies",
+    "method": "GET"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies",
+    "method": "POST"
+  },
+  {
+    "file": "currencyService.js",
+    "path": "/api/currencies/convert",
+    "method": "GET"
+  },
+  {
+    "file": "customerService.js",
+    "path": "/api/customers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "customerService.js",
+    "path": "/api/customers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "customerService.js",
+    "path": "/api/customers",
+    "method": "GET"
+  },
+  {
+    "file": "customerService.js",
+    "path": "/api/customers",
+    "method": "POST"
+  },
+  {
+    "file": "dashboardService.js",
+    "path": "/api/dashboard/summary",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "dashboardService.js",
+    "path": "/api/dashboard/summary",
+    "method": "GET"
+  },
+  {
+    "file": "debitNoteService.js",
+    "path": "/api/debit-notes",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "debitNoteService.js",
+    "path": "/api/debit-notes",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "debitNoteService.js",
+    "path": "/api/debit-notes",
+    "method": "GET"
+  },
+  {
+    "file": "debitNoteService.js",
+    "path": "/api/debit-notes",
+    "method": "POST"
+  },
+  {
+    "file": "employeeApi.js",
+    "path": "/api/employees",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "employeeService.js",
+    "path": "/api/payroll/employees",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "employeeService.js",
+    "path": "/api/payroll/employees",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "employeeService.js",
+    "path": "/api/payroll/employees",
+    "method": "GET"
+  },
+  {
+    "file": "employeeService.js",
+    "path": "/api/payroll/employees",
+    "method": "POST"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/returns",
+    "method": "GET"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/returns",
+    "method": "GET"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/draft",
+    "method": "POST"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/validate",
+    "method": "POST"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/file",
+    "method": "POST"
+  },
+  {
+    "file": "gstrService.js",
+    "path": "/api/gstr/invoices",
+    "method": "GET"
+  },
+  {
+    "file": "hsnSacService.js",
+    "path": "/api/hsn-sac",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "hsnSacService.js",
+    "path": "/api/hsn-sac",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "hsnSacService.js",
+    "path": "/api/hsn-sac",
+    "method": "GET"
+  },
+  {
+    "file": "hsnSacService.js",
+    "path": "/api/hsn-sac",
+    "method": "POST"
+  },
+  {
+    "file": "interestService.js",
+    "path": "/api/interest/receivables",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "interestService.js",
+    "path": "/api/interest/payables",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "interestService.js",
+    "path": "/api/interest/receivables",
+    "method": "GET"
+  },
+  {
+    "file": "interestService.js",
+    "path": "/api/interest/payables",
+    "method": "GET"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/stock-summary",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/current-stock",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/transfer-stock",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory",
+    "method": "GET"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/stock-summary",
+    "method": "GET"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory",
+    "method": "GET"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/current-stock",
+    "method": "GET"
+  },
+  {
+    "file": "inventoryService.js",
+    "path": "/api/inventory/transfer-stock",
+    "method": "POST"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/items",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/items",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/hsn-sac",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/items",
+    "method": "GET"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/items",
+    "method": "POST"
+  },
+  {
+    "file": "itemService.js",
+    "path": "/api/hsn-sac",
+    "method": "GET"
+  },
+  {
+    "file": "jobWorkService.js",
+    "path": "/api/manufacturing/job-work",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "jobWorkService.js",
+    "path": "/api/manufacturing/job-work",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "jobWorkService.js",
+    "path": "/api/manufacturing/job-work",
+    "method": "GET"
+  },
+  {
+    "file": "jobWorkService.js",
+    "path": "/api/manufacturing/job-work",
+    "method": "POST"
+  },
+  {
+    "file": "ledgerGroupService.js",
+    "path": "/api/ledger-groups",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "ledgerGroupService.js",
+    "path": "/api/ledger-groups",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "ledgerGroupService.js",
+    "path": "/api/ledger-groups",
+    "method": "GET"
+  },
+  {
+    "file": "ledgerGroupService.js",
+    "path": "/api/ledger-groups",
+    "method": "POST"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledgers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledgers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledger-groups",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledgers",
+    "method": "GET"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledgers",
+    "method": "POST"
+  },
+  {
+    "file": "ledgerService.js",
+    "path": "/api/ledger-groups",
+    "method": "POST"
+  },
+  {
+    "file": "payslipService.js",
+    "path": "/api/payroll/payslips",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "payslipService.js",
+    "path": "/api/payroll/payslips/generate",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "payslipService.js",
+    "path": "/api/payroll/payslips",
+    "method": "GET"
+  },
+  {
+    "file": "payslipService.js",
+    "path": "/api/payroll/payslips/generate",
+    "method": "POST"
+  },
+  {
+    "file": "productionOrderService.js",
+    "path": "/api/manufacturing/production-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "productionOrderService.js",
+    "path": "/api/manufacturing/production-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "productionOrderService.js",
+    "path": "/api/manufacturing/production-orders",
+    "method": "GET"
+  },
+  {
+    "file": "productionOrderService.js",
+    "path": "/api/manufacturing/production-orders",
+    "method": "POST"
+  },
+  {
+    "file": "productService.js",
+    "path": "/api/items",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "productService.js",
+    "path": "/api/items",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "productService.js",
+    "path": "/api/items",
+    "method": "GET"
+  },
+  {
+    "file": "productService.js",
+    "path": "/api/items",
+    "method": "POST"
+  },
+  {
+    "file": "proformaInvoiceService.js",
+    "path": "/api/proforma-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "proformaInvoiceService.js",
+    "path": "/api/proforma-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "proformaInvoiceService.js",
+    "path": "/api/proforma-invoices",
+    "method": "GET"
+  },
+  {
+    "file": "proformaInvoiceService.js",
+    "path": "/api/proforma-invoices",
+    "method": "POST"
+  },
+  {
+    "file": "purchaseInvoiceService.js",
+    "path": "/api/purchase-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "purchaseInvoiceService.js",
+    "path": "/api/purchase-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "purchaseInvoiceService.js",
+    "path": "/api/purchase-invoices",
+    "method": "GET"
+  },
+  {
+    "file": "purchaseInvoiceService.js",
+    "path": "/api/purchase-invoices",
+    "method": "POST"
+  },
+  {
+    "file": "purchaseOrderService.js",
+    "path": "/api/purchase-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "purchaseOrderService.js",
+    "path": "/api/purchase-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "purchaseOrderService.js",
+    "path": "/api/purchase-orders",
+    "method": "GET"
+  },
+  {
+    "file": "purchaseOrderService.js",
+    "path": "/api/purchase-orders",
+    "method": "POST"
+  },
+  {
+    "file": "rcmService.js",
+    "path": "/api/rcm/transactions",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "rcmService.js",
+    "path": "/api/rcm/liability",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "rcmService.js",
+    "path": "/api/rcm/transactions",
+    "method": "GET"
+  },
+  {
+    "file": "rcmService.js",
+    "path": "/api/rcm/liability",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/trial-balance",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/profit-loss",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/balance-sheet",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/outstanding-receivables",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/outstanding-payables",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/stock-summary",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/gst-summary",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/sales-analysis",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/purchase-analysis",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/cash-flow",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/fund-flow",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/cash-bank-book",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/day-book",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/trial-balance",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/profit-loss",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/balance-sheet",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/outstanding-receivables",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/outstanding-payables",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/stock-summary",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/gst-summary",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/sales-analysis",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/purchase-analysis",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/cash-flow",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/fund-flow",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/cash-bank-book",
+    "method": "GET"
+  },
+  {
+    "file": "reportService.js",
+    "path": "/api/reports/day-book",
+    "method": "GET"
+  },
+  {
+    "file": "roleService.js",
+    "path": "/api/roles",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "roleService.js",
+    "path": "/api/roles",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "roleService.js",
+    "path": "/api/roles",
+    "method": "GET"
+  },
+  {
+    "file": "roleService.js",
+    "path": "/api/roles",
+    "method": "POST"
+  },
+  {
+    "file": "salaryStructureService.js",
+    "path": "/api/payroll/salary-structure",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "salaryStructureService.js",
+    "path": "/api/payroll/salary-structure",
+    "method": "POST"
+  },
+  {
+    "file": "salesInvoiceService.js",
+    "path": "/api/sales-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "salesInvoiceService.js",
+    "path": "/api/sales-invoices",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "salesInvoiceService.js",
+    "path": "/api/sales-invoices",
+    "method": "GET"
+  },
+  {
+    "file": "salesInvoiceService.js",
+    "path": "/api/sales-invoices",
+    "method": "POST"
+  },
+  {
+    "file": "salesOrderService.js",
+    "path": "/api/sales-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "salesOrderService.js",
+    "path": "/api/sales-orders",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "salesOrderService.js",
+    "path": "/api/sales-orders",
+    "method": "GET"
+  },
+  {
+    "file": "salesOrderService.js",
+    "path": "/api/sales-orders",
+    "method": "POST"
+  },
+  {
+    "file": "serialService.js",
+    "path": "/api/serial-numbers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "serialService.js",
+    "path": "/api/serial-numbers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "serialService.js",
+    "path": "/api/serial-numbers",
+    "method": "GET"
+  },
+  {
+    "file": "serialService.js",
+    "path": "/api/serial-numbers",
+    "method": "POST"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/system",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/company",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/financial-years",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/financial-years",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/voucher-types",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/warehouses",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/warehouses",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/system",
+    "method": "GET"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/company",
+    "method": "GET"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/company",
+    "method": "PUT"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/financial-years",
+    "method": "GET"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/financial-years",
+    "method": "POST"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/voucher-types",
+    "method": "GET"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/warehouses",
+    "method": "GET"
+  },
+  {
+    "file": "settingsService.js",
+    "path": "/api/settings/warehouses",
+    "method": "POST"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts/check",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts",
+    "method": "GET"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts",
+    "method": "POST"
+  },
+  {
+    "file": "stockAlertService.js",
+    "path": "/api/stock-alerts/check",
+    "method": "GET"
+  },
+  {
+    "file": "stockVerificationService.js",
+    "path": "/api/stock-verification",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "stockVerificationService.js",
+    "path": "/api/stock-verification",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "stockVerificationService.js",
+    "path": "/api/stock-verification",
+    "method": "GET"
+  },
+  {
+    "file": "stockVerificationService.js",
+    "path": "/api/stock-verification",
+    "method": "POST"
+  },
+  {
+    "file": "userApi.js",
+    "path": "/api/users",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/users",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/users",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/roles",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/users",
+    "method": "GET"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/users",
+    "method": "POST"
+  },
+  {
+    "file": "userService.js",
+    "path": "/api/roles",
+    "method": "GET"
+  },
+  {
+    "file": "vendorService.js",
+    "path": "/api/vendors",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "vendorService.js",
+    "path": "/api/vendors",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "vendorService.js",
+    "path": "/api/vendors",
+    "method": "GET"
+  },
+  {
+    "file": "vendorService.js",
+    "path": "/api/vendors",
+    "method": "POST"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/vouchers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/vouchers",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/settings/voucher-types",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/vouchers",
+    "method": "GET"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/vouchers",
+    "method": "POST"
+  },
+  {
+    "file": "voucherService.js",
+    "path": "/api/settings/voucher-types",
+    "method": "GET"
+  },
+  {
+    "file": "wastageService.js",
+    "path": "/api/wastage",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "wastageService.js",
+    "path": "/api/wastage",
+    "method": "UNKNOWN"
+  },
+  {
+    "file": "wastageService.js",
+    "path": "/api/wastage",
+    "method": "GET"
+  },
+  {
+    "file": "wastageService.js",
+    "path": "/api/wastage",
+    "method": "POST"
+  }
+]

@@ -1,5 +1,19 @@
 import { apiRequest } from './apiClient';
-import { cleanParams, normalizeListResponse } from './apiUtils';
+import { cleanParams, normalizeListResponse, toDecimal, toNumberOrValue } from './apiUtils';
+
+const normalizeBOMPayload = (data = {}) => ({
+  name: data.name || '',
+  finished_item_id: toNumberOrValue(data.finished_item_id),
+  version: data.version || '1.0',
+  qty_produced: toDecimal(data.qty_produced, 1),
+  status: data.status || 'ACTIVE',
+  items: (data.items || []).map(item => ({
+    item_id: toNumberOrValue(item.item_id),
+    qty: toDecimal(item.qty),
+    wastage_pct: toDecimal(item.wastage_pct || 0),
+    sub_bom_id: toNumberOrValue(item.sub_bom_id) || undefined
+  }))
+});
 
 export const getBOMs = async (params = {}) =>
   normalizeListResponse(
@@ -20,14 +34,20 @@ export const createBOM = async (payload) =>
   apiRequest({
     url: '/api/manufacturing/bom',
     method: 'POST',
-    data: payload,
+    data: normalizeBOMPayload(payload),
   });
 
 export const updateBOM = async (id, payload) =>
   apiRequest({
     url: `/api/manufacturing/bom/${id}`,
     method: 'PUT',
-    data: payload,
+    data: normalizeBOMPayload(payload),
+  });
+
+export const deleteBOM = async (id) =>
+  apiRequest({
+    url: `/api/manufacturing/bom/${id}`,
+    method: 'DELETE',
   });
 
 export const explodeBOM = async (id, qty) =>
@@ -42,6 +62,7 @@ const bomService = {
   getBOM,
   createBOM,
   updateBOM,
+  deleteBOM,
   explodeBOM,
 };
 

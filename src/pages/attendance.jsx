@@ -14,8 +14,36 @@ const Attendance = () => {
     const [bulkRecords, setBulkRecords] = useState([]);
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const [isCalendarLoaded, setIsCalendarLoaded] = useState(!!window.FullCalendar);
     const calendarRef = useRef(null);
     const fullCalendarInstance = useRef(null);
+
+    // Dynamic Script Loading & Polling for FullCalendar
+    useEffect(() => {
+        if (window.FullCalendar) {
+            setIsCalendarLoaded(true);
+            return;
+        }
+
+        const checkInterval = setInterval(() => {
+            if (window.FullCalendar) {
+                setIsCalendarLoaded(true);
+                clearInterval(checkInterval);
+            }
+        }, 300);
+
+        const scriptId = 'fullcalendar-cdn-script';
+        if (!document.getElementById(scriptId) && !window.FullCalendar) {
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js';
+            script.async = true;
+            script.onload = () => setIsCalendarLoaded(true);
+            document.head.appendChild(script);
+        }
+
+        return () => clearInterval(checkInterval);
+    }, []);
 
     // Initial Fetch: Employees
     useEffect(() => {
@@ -45,8 +73,9 @@ const Attendance = () => {
             const m = month || currentMonth;
             const y = year || currentYear;
             const response = await getEmployeeAttendance(selectedEmployee, m, y);
-            const data = response.data || response || [];
-            setAttendanceData(Array.isArray(data) ? data : []);
+            const resData = response.data || response;
+            const records = resData?.records || (Array.isArray(resData) ? resData : []);
+            setAttendanceData(records);
         } catch (error) {
             console.error('Error fetching attendance:', error);
             setAttendanceData([]);
@@ -63,14 +92,19 @@ const Attendance = () => {
 
     // Initialize FullCalendar
     useEffect(() => {
-        if (activeTab === 'calendar' && window.FullCalendar && calendarRef.current) {
+        if (activeTab === 'calendar' && isCalendarLoaded && window.FullCalendar && calendarRef.current) {
             const calendarEl = calendarRef.current;
             
             // Map attendance to FullCalendar events
             const events = attendanceData.map(record => ({
                 title: record.status.replace('_', ' '),
                 start: record.attendance_date || record.date,
+                backgroundColor: getStatusColor(record.status),
+                borderColor: getStatusColor(record.status),
+                textColor: record.status === 'HALF_DAY' ? '#000' : '#fff',
                 className: getStatusClass(record.status),
+                allDay: true,
+                display: 'block',
                 extendedProps: { ...record }
             }));
 
@@ -85,7 +119,9 @@ const Attendance = () => {
                     right: 'dayGridMonth,listMonth'
                 },
                 initialView: 'dayGridMonth',
+                initialDate: new Date(currentYear, currentMonth - 1, 1),
                 events: events,
+                dayMaxEvents: true,
                 height: 'auto',
                 dateClick: (info) => {
                     handleDateClick(info.dateStr);
@@ -112,7 +148,7 @@ const Attendance = () => {
                 fullCalendarInstance.current = null;
             }
         };
-    }, [activeTab, attendanceData]);
+    }, [activeTab, attendanceData, currentMonth, currentYear, isCalendarLoaded]);
 
     // Bulk Tab Logic
     const fetchBulkRecords = useCallback(async () => {
@@ -120,30 +156,65 @@ const Attendance = () => {
         try {
             // 1. Fetch all active employees
             const empResponse = await getEmployees({ status: 'ACTIVE' });
-            const empResData = empResponse.data || empResponse;
-            const empList = Array.isArray(empResData) ? empResData : (empResData.items || empResData.rows || []);
+            const employees = empResponse.data?.items || empResponse.data || (Array.isArray(empResponse) ? empResponse : []);
+
+            if (employees.length === 0) {
+                setBulkRecords([]);
+                return;
+            }
+
+            // 2. Fetch attendance for all employees for the current month in one go
+            const [year, month] = bulkDate.split('-').map(Number);
             
-            // 2. We'll initialize with defaults for now as the current Payroll API
-            // strictly requires employee_id for fetching (Individual only).
-            // Users should verify saves via the Individual Calendar tab.
+            const attResponse = await getAllAttendance({ month, year }).catch(err => {
+                console.warn(`Failed to fetch bulk attendance`, err);
+                return { success: false, data: [] };
+            });
             
-            const records = empList.map(emp => {
-                const empId = emp.id || emp._id;
+            let allExistingRecords = [];
+            const resData = attResponse?.data || attResponse;
+            allExistingRecords = resData?.records || (Array.isArray(resData) ? resData : []);
+
+
+            // 3. Map employees to bulk records, merging with existing data if found
+            const records = employees.map(emp => {
+                // Find existing record for this specific employee and date
+                const existing = allExistingRecords.find(a => 
+                    Number(a.employee_id) === Number(emp.id) && 
+                    a.attendance_date === bulkDate
+                );
+
+                if (existing) {
+                    return {
+                        employee_id: emp.id,
+                        name: emp.name || emp.first_name || 'N/A',
+                        employee_code: emp.employee_id || emp.code || 'N/A',
+                        status: existing.status || 'PRESENT',
+                        check_in: existing.check_in || '09:00',
+                        check_out: existing.check_out || '18:00',
+                        remarks: existing.remarks || '',
+                        is_existing: true,
+                        existing_id: existing.id
+                    };
+                }
+
+                // Default record if none exists
                 return {
-                    employee_id: empId,
-                    name: emp.name,
-                    code: emp.employee_code,
+                    employee_id: emp.id,
+                    name: emp.name || emp.first_name || 'N/A',
+                    employee_code: emp.employee_id || emp.code || 'N/A',
                     status: 'PRESENT',
                     check_in: '09:00',
                     check_out: '18:00',
-                    hours: ''
+                    remarks: '',
+                    is_existing: false
                 };
             });
-            
+
             setBulkRecords(records);
         } catch (error) {
+            console.error('Error in fetchBulkRecords:', error);
             toast.error('Failed to load employee list for bulk marking');
-            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -206,9 +277,22 @@ const Attendance = () => {
         }
     };
 
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'PRESENT': return '#198754'; // success
+            case 'ABSENT': return '#dc3545'; // danger
+            case 'HALF_DAY': return '#ffc107'; // warning
+            case 'LEAVE': return '#0dcaf0'; // info
+            case 'HOLIDAY': return '#6c757d'; // secondary
+            case 'WEEK_OFF': return '#212529'; // dark
+            default: return '#f8f9fa'; // light
+        }
+    };
+
     const handleDateClick = (dateStr) => {
-        // Here we could open a modal for single entry marking
-        console.log('Date clicked:', dateStr);
+        setBulkDate(dateStr);
+        setActiveTab('bulk');
+        // Automatically fetch for the new date
     };
 
     return (
@@ -272,8 +356,22 @@ const Attendance = () => {
                                 </div>
                             </div>
                             <div className="col-md-8">
-                                <div className="calendar-container border rounded p-2 bg-white shadow-sm">
+                                <div className="calendar-container border rounded p-2 bg-white shadow-sm position-relative" style={{ minHeight: '500px' }}>
+                                    {loading && (
+                                        <div className="position-absolute top-50 start-50 translate-middle z-3">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div ref={calendarRef}></div>
+                                    {!isCalendarLoaded && !loading && (
+                                        <div className="text-center py-5 text-muted">
+                                            <div className="spinner-border text-primary mb-3" role="status"></div>
+                                            <h5>Loading Calendar...</h5>
+                                            <p className="small">Please wait while the calendar library is initialized.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -331,7 +429,7 @@ const Attendance = () => {
                                                 <tr key={record.employee_id}>
                                                     <td className="ps-4">
                                                         <div className="fw-bold text-dark">{record.name}</div>
-                                                        <div className="fs-11 text-muted">{record.code}</div>
+                                                        <div className="fs-11 text-muted">{record.employee_code}</div>
                                                     </td>
                                                     <td>
                                                         <select 
@@ -368,7 +466,9 @@ const Attendance = () => {
                                                             disabled={record.status !== 'PRESENT' && record.status !== 'HALF_DAY'}
                                                         />
                                                     </td>
-                                                    <td className="text-center fw-bold text-muted">8h 00m</td>
+                                                    <td className="text-center fw-bold text-muted">
+                                                        {record.status === 'PRESENT' || record.status === 'HALF_DAY' ? '9h 00m' : '-'}
+                                                    </td>
                                                 </tr>
                                             ))
                                         )}

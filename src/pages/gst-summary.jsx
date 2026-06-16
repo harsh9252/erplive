@@ -33,14 +33,14 @@ const GstSummaryReport = () => {
       
       // Standardizing response structure
       setData({
-        gstr1: reportData.gstr1 || reportData.sales_hsn || [],
+        gstr1: reportData.breakdown || reportData.gstr1 || reportData.sales_hsn || [],
         gstr2: reportData.gstr2 || reportData.purchases || [],
-        totals: reportData.totals || {
-          sales: reportData.total_sales || 0,
-          purchases: reportData.total_purchases || 0,
-          igst: reportData.total_igst || 0,
-          cgst: reportData.total_cgst || 0,
-          sgst: reportData.total_sgst || 0
+        totals: {
+          sales: reportData.totals?.taxable_amount || reportData.total_sales || 0,
+          purchases: reportData.totals?.purchases_amount || reportData.total_purchases || 0,
+          igst: reportData.totals?.igst || reportData.total_igst || 0,
+          cgst: reportData.totals?.cgst || reportData.total_cgst || 0,
+          sgst: reportData.totals?.sgst || reportData.total_sgst || 0
         }
       });
     } catch (error) {
@@ -127,17 +127,16 @@ const GstSummaryReport = () => {
       {/* GSTR-1 Section */}
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-header bg-white border-0 py-3">
-          <h6 className="fw-bold mb-0">GSTR-1 Outward Supplies (HSN Summary)</h6>
+          <h6 className="fw-bold mb-0">GSTR-1 Outward Supplies (Overview)</h6>
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light fs-12 text-uppercase">
                 <tr>
-                  <th className="ps-4">HSN Code</th>
-                  <th>Description</th>
-                  <th>UOM</th>
-                  <th className="text-end">Qty</th>
+                  <th className="ps-4">Invoice Type</th>
+                  <th>Place of Supply</th>
+                  <th className="text-center">Invoice Count</th>
                   <th className="text-end">Taxable Value</th>
                   <th className="text-end">IGST</th>
                   <th className="text-end">CGST</th>
@@ -146,20 +145,19 @@ const GstSummaryReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                    <tr><td colSpan="8" className="text-center py-4">Loading GSTR-1 data...</td></tr>
+                    <tr><td colSpan="7" className="text-center py-4">Loading GSTR-1 data...</td></tr>
                 ) : data.gstr1.length === 0 ? (
-                    <tr><td colSpan="8" className="text-center py-4 text-muted">No outward supplies found for this period.</td></tr>
+                    <tr><td colSpan="7" className="text-center py-4 text-muted">No outward supplies found for this period.</td></tr>
                 ) : (
                   data.gstr1.map((item, idx) => (
                     <tr key={idx}>
-                      <td className="ps-4 fw-medium">{item.hsn_code}</td>
-                      <td>{item.description}</td>
-                      <td><span className="badge bg-light text-dark fw-normal">{item.uom || 'Nos'}</span></td>
-                      <td className="text-end">{item.qty}</td>
-                      <td className="text-end fw-medium">₹{Number(item.taxable_value).toLocaleString()}</td>
-                      <td className="text-end">₹{Number(item.igst_amount || 0).toLocaleString()}</td>
-                      <td className="text-end">₹{Number(item.cgst_amount || 0).toLocaleString()}</td>
-                      <td className="text-end pe-4">₹{Number(item.sgst_amount || 0).toLocaleString()}</td>
+                      <td className="ps-4 fw-medium"><span className="badge bg-soft-primary text-primary px-2">{item.invoice_type || item.hsn_code}</span></td>
+                      <td>{item.place_of_supply || item.description}</td>
+                      <td className="text-center"><span className="badge bg-light text-dark fw-normal">{item.invoice_count || item.qty || 1}</span></td>
+                      <td className="text-end fw-medium">₹{Number(item.taxable_amount || item.taxable_value || 0).toLocaleString()}</td>
+                      <td className="text-end">₹{Number(item.igst || item.igst_amount || 0).toLocaleString()}</td>
+                      <td className="text-end">₹{Number(item.cgst || item.cgst_amount || 0).toLocaleString()}</td>
+                      <td className="text-end pe-4">₹{Number(item.sgst || item.sgst_amount || 0).toLocaleString()}</td>
                     </tr>
                   ))
                 )}
@@ -167,11 +165,11 @@ const GstSummaryReport = () => {
               {!loading && data.gstr1.length > 0 && (
                 <tfoot className="bg-light fw-bold border-top">
                   <tr>
-                    <td colSpan="4" className="ps-4 text-center text-uppercase">Totals</td>
-                    <td className="text-end text-primary">₹{data.gstr1.reduce((s, i) => s + Number(i.taxable_value || 0), 0).toLocaleString()}</td>
-                    <td className="text-end">₹{data.gstr1.reduce((s, i) => s + Number(i.igst_amount || 0), 0).toLocaleString()}</td>
-                    <td className="text-end">₹{data.gstr1.reduce((s, i) => s + Number(i.cgst_amount || 0), 0).toLocaleString()}</td>
-                    <td className="text-end pe-4">₹{data.gstr1.reduce((s, i) => s + Number(i.sgst_amount || 0), 0).toLocaleString()}</td>
+                    <td colSpan="3" className="ps-4 text-center text-uppercase">Totals</td>
+                    <td className="text-end text-primary">₹{data.gstr1.reduce((s, i) => s + Number(i.taxable_amount || i.taxable_value || 0), 0).toLocaleString()}</td>
+                    <td className="text-end">₹{data.gstr1.reduce((s, i) => s + Number(i.igst || i.igst_amount || 0), 0).toLocaleString()}</td>
+                    <td className="text-end">₹{data.gstr1.reduce((s, i) => s + Number(i.cgst || i.cgst_amount || 0), 0).toLocaleString()}</td>
+                    <td className="text-end pe-4">₹{data.gstr1.reduce((s, i) => s + Number(i.sgst || i.sgst_amount || 0), 0).toLocaleString()}</td>
                   </tr>
                 </tfoot>
               )}

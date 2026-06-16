@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getBOM, explodeBOM } from '../services/bomService';
+import { getBOM, explodeBOM, deleteBOM } from '../services/bomService';
 
 const BOMDetails = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [bom, setBom] = useState(null);
     const [loading, setLoading] = useState(true);
     const [explosionQty, setExplosionQty] = useState(1);
     const [explosionResults, setExplosionResults] = useState([]);
     const [exploding, setExploding] = useState(false);
+
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to delete this Bill of Materials?')) return;
+        try {
+            await deleteBOM(id);
+            toast.success('BOM deleted successfully');
+            navigate('/manufacturing/bom');
+        } catch (error) {
+            console.error('Error deleting BOM:', error);
+            toast.error(error.message || 'Failed to delete BOM');
+        }
+    };
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -35,10 +48,25 @@ const BOMDetails = () => {
         setExploding(true);
         try {
             const res = await explodeBOM(id, explosionQty);
-            setExplosionResults(res.data || res || []);
+            const data = res.data || res;
+            
+            // Robustly extract array to prevent React .map crash (blank screen)
+            let resultsArray = [];
+            if (Array.isArray(data)) {
+                resultsArray = data;
+            } else if (data && Array.isArray(data.data)) {
+                resultsArray = data.data;
+            } else if (data && Array.isArray(data.components)) {
+                resultsArray = data.components;
+            } else if (data && Array.isArray(data.results)) {
+                resultsArray = data.results;
+            }
+            
+            setExplosionResults(resultsArray);
         } catch (error) {
             console.error('Explosion error:', error);
             toast.error('Failed to calculate material requirements');
+            setExplosionResults([]);
         } finally {
             setExploding(false);
         }
@@ -63,7 +91,7 @@ const BOMDetails = () => {
         <div className="container-fluid py-4">
             <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                    <h4 className="fw-bold mb-1">BOM Details</h4>
+                    <h4 className="fw-bold mb-1">{bom.name || 'BOM Details'}</h4>
                     <nav aria-label="breadcrumb">
                         <ol className="breadcrumb mb-0 fs-13">
                             <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
@@ -76,6 +104,13 @@ const BOMDetails = () => {
                     <Link to={`/manufacturing/bom/edit/${id}`} className="btn btn-soft-info border-0 shadow-none">
                         <i className="isax isax-edit me-2"></i>Edit BOM
                     </Link>
+                    <button 
+                        type="button" 
+                        className="btn btn-soft-danger border-0 shadow-none"
+                        onClick={handleDelete}
+                    >
+                        <i className="isax isax-trash me-2"></i>Delete BOM
+                    </button>
                 </div>
             </div>
 
@@ -88,9 +123,13 @@ const BOMDetails = () => {
                         </div>
                         <div className="card-body">
                             <div className="mb-3">
+                                <label className="text-muted small text-uppercase fw-bold d-block mb-1">BOM Title</label>
+                                <h6 className="fw-bold text-primary mb-0">{bom.name || 'N/A'}</h6>
+                            </div>
+                            <div className="mb-3">
                                 <label className="text-muted small text-uppercase fw-bold d-block mb-1">Finished Item</label>
-                                <h6 className="fw-bold mb-0">{bom.finished_item?.name || bom.finished_item_name || 'N/A'}</h6>
-                                <small className="text-muted">{bom.finished_item?.sku || ''}</small>
+                                <h6 className="fw-bold mb-0">{bom.finishedItem?.name || bom.finished_item?.name || bom.item?.name || bom.finished_item_name || bom.item_name || 'N/A'}</h6>
+                                <small className="text-muted">{bom.finishedItem?.sku || bom.finished_item?.sku || bom.item?.sku || ''}</small>
                             </div>
                             <div className="row g-3">
                                 <div className="col-6">

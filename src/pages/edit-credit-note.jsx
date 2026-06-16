@@ -6,7 +6,8 @@ import { getItems } from '../services/productService';
 import { getCompanySettings } from '../services/settingsService';
 import { getSalesInvoices } from '../services/salesInvoiceService';
 import { getCreditNoteById, updateCreditNote } from '../services/creditNoteService';
-import { INDIAN_STATES } from '../utils/constants';
+import { getUoms } from '../services/uomService';
+import { INDIAN_STATES, CREDIT_NOTE_REASONS } from '../utils/constants';
 
 const EditCreditNote = () => {
   const { id } = useParams();
@@ -15,13 +16,16 @@ const EditCreditNote = () => {
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
+  const [uoms, setUoms] = useState([]);
   const [customerInvoices, setCustomerInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
+  const [errors, setErrors] = useState({});
   
   const [formData, setFormData] = useState({
     customer_id: '',
     credit_date: '',
     original_invoice_id: '',
+    reason: 'SALES_RETURN',
     place_of_supply: '',
     remarks: '',
     items: []
@@ -29,32 +33,61 @@ const EditCreditNote = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [customersRes, itemsRes, settingsRes, cnRes] = await Promise.all([
+      const [customersRes, itemsRes, settingsRes, uomsRes, cnRes] = await Promise.all([
         customerService.getCustomers(1, 1000),
         getItems(1, 1000),
         getCompanySettings(),
+        getUoms(1, 1000),
         getCreditNoteById(id)
       ]);
+      setUoms(Array.isArray(uomsRes.data) ? uomsRes.data : (uomsRes.data?.rows || []));
       
       const cnData = cnRes.data || cnRes;
-      setCustomers(Array.isArray(customersRes.data) ? customersRes.data : (customersRes.data?.rows || []));
-      setItems(Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []));
+      const customerList = Array.isArray(customersRes.data) ? customersRes.data : (customersRes.data?.rows || []);
+      const itemList = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []);
       setCompanySettings(settingsRes.data || settingsRes);
       
+      // Virtual Injection
+      const augmentedCustomers = [...customerList];
+      const invCustId = String(cnData.customer_id || cnData.customerId || '').trim();
+      if (cnData.customer && !augmentedCustomers.some(c => String(c.id).trim() === invCustId)) {
+        augmentedCustomers.push(cnData.customer);
+      }
+      setCustomers(augmentedCustomers);
+
+      const augmentedItems = [...itemList];
+      (cnData.items || []).forEach(oi => {
+        const oiId = String(oi.item_id || oi.itemId || '').trim();
+        if (oi.item && !augmentedItems.some(i => String(i.id).trim() === oiId)) {
+          augmentedItems.push(oi.item);
+        }
+      });
+      setItems(augmentedItems);
+
       setFormData({
-        customer_id: cnData.customer_id,
-        credit_date: cnData.credit_date || cnData.date,
-        original_invoice_id: cnData.original_invoice_id || '',
-        place_of_supply: cnData.place_of_supply || '',
+        customer_id: invCustId,
+        credit_date: (cnData.credit_note_date || cnData.credit_date || cnData.date || '').split('T')[0],
+        original_invoice_id: cnData.sales_invoice_id ? String(cnData.sales_invoice_id).trim() : String(cnData.original_invoice_id || '').trim(),
+        reason: cnData.reason || 'SALES_RETURN',
+        place_of_supply: String(cnData.place_of_supply || cnData.customer?.state_code || '').trim(),
         remarks: cnData.remarks || '',
-        items: (cnData.items || []).map(i => ({
-          item_id: i.item_id,
-          description: i.description || i.item?.name || '',
-          qty: i.qty,
-          rate: i.rate,
-          gst_rate: i.gst_rate || 18,
-          hsn_code: i.hsn_code || i.item?.hsn_code || ''
-        }))
+        items: (cnData.items || []).map(i => {
+          const itemId = String(i.item_id || i.itemId || '').trim();
+          const fetchedItem = itemList.find(it => String(it.id) === itemId);
+          let itemUomId = i.uom_id || i.item?.uom_id || i.item?.unit_id;
+          if (!itemUomId && fetchedItem) {
+            itemUomId = fetchedItem.uom_id || fetchedItem.unit_id;
+          }
+          return {
+            item_id: itemId,
+            description: i.description || i.item?.name || '',
+            qty: !isNaN(parseFloat(i.qty)) ? parseFloat(i.qty) : 1,
+            rate: parseFloat(i.rate) || 0,
+            gst_rate: parseFloat(i.gst_rate) || 18,
+            uom_id: String(itemUomId || '').trim(),
+            hsn_code: i.hsn_code || i.item?.hsn_code || (fetchedItem && fetchedItem.hsn_code) || ''
+          };
+        })
       });
 
       if (cnData.customer_id) {
@@ -75,17 +108,24 @@ const EditCreditNote = () => {
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCustomerChange = async (e) => {
     const customerId = e.target.value;
+    setErrors(prev => {
+      const newErr = { ...prev };
+      if (newErr.customer_id) newErr.customer_id = null;
+      if (newErr.place_of_supply) newErr.place_of_supply = null;
+      return newErr;
+    });
     const customer = customers.find(c => String(c.id) === String(customerId));
     setFormData(prev => ({ 
       ...prev, 
       customer_id: customerId,
       original_invoice_id: '',
-      place_of_supply: customer?.state_code || prev.place_of_supply
+      place_of_supply: customer?.state_code || companySettings?.state_code || companySettings?.data?.state_code || ''
     }));
 
     if (customerId) {
@@ -110,6 +150,7 @@ const EditCreditNote = () => {
         newItems[index].description = selectedItem.name;
         newItems[index].rate = selectedItem.price || 0;
         newItems[index].gst_rate = selectedItem.gst_rate || 18;
+        newItems[index].uom_id = selectedItem.uom_id || '';
         newItems[index].hsn_code = selectedItem.hsn_code || '';
       }
     }
@@ -128,6 +169,7 @@ const EditCreditNote = () => {
           qty: 1, 
           rate: 0, 
           gst_rate: 18, 
+          uom_id: '',
           hsn_code: '' 
         }
       ]
@@ -170,11 +212,33 @@ const EditCreditNote = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const newErrors = {};
+    if (!formData.customer_id) newErrors.customer_id = 'Please select a customer';
+    if (!formData.credit_date) newErrors.credit_date = 'Return Date is required';
+    if (!formData.original_invoice_id) newErrors.original_invoice_id = 'Please select a sales invoice';
+    if (!formData.reason) newErrors.reason = 'Reason for Return is required';
+    if (!formData.place_of_supply) newErrors.place_of_supply = 'Place of Supply is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setSaving(true);
     try {
-      await updateCreditNote(id, formData);
+      const payload = {
+        ...formData,
+        sales_invoice_id: formData.original_invoice_id || null,
+        credit_note_date: formData.credit_date,
+        items: formData.items.map(item => ({
+          ...item,
+          amount: parseFloat(item.qty || 0) * parseFloat(item.rate || 0)
+        }))
+      };
+      await updateCreditNote(id, payload);
       toast.success('Credit note updated successfully');
-      navigate(`/invoicing/credit-notes/${id}`);
+      navigate('/invoicing/credit-notes');
     } catch (error) {
       console.error('Error updating credit note:', error);
       toast.error(error.message || 'Failed to update credit note');
@@ -199,40 +263,53 @@ const EditCreditNote = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-3">
               <div className="col-md-4">
                 <label className="form-label fw-600">Customer <span className="text-danger">*</span></label>
-                <select className="form-select shadow-none" name="customer_id" value={formData.customer_id} onChange={handleCustomerChange} required>
+                <select key={`cust-${customers.length}`} className={`form-select shadow-none ${errors.customer_id ? 'is-invalid' : ''}`} name="customer_id" value={String(formData.customer_id)} onChange={handleCustomerChange}>
                   <option value="">Select Customer</option>
                   {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={String(c.id)}>{c.name}</option>
                   ))}
                 </select>
+                {errors.customer_id && <div className="invalid-feedback">{errors.customer_id}</div>}
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Return Date <span className="text-danger">*</span></label>
-                <input type="date" className="form-control shadow-none" name="credit_date" value={formData.credit_date} onChange={handleHeaderChange} required />
+                <input type="date" className={`form-control shadow-none ${errors.credit_date ? 'is-invalid' : ''}`} name="credit_date" value={formData.credit_date} onChange={handleHeaderChange} />
+                {errors.credit_date && <div className="invalid-feedback">{errors.credit_date}</div>}
               </div>
               <div className="col-md-3">
-                <label className="form-label fw-600">Against Sales Invoice</label>
-                <select className="form-select shadow-none border" name="original_invoice_id" value={formData.original_invoice_id} onChange={handleHeaderChange} disabled={!formData.customer_id}>
-                  <option value="">-- Optional Link --</option>
+                <label className="form-label fw-600">Against Sales Invoice <span className="text-danger">*</span></label>
+                <select className={`form-select shadow-none border ${errors.original_invoice_id ? 'is-invalid' : ''}`} name="original_invoice_id" value={String(formData.original_invoice_id)} onChange={handleHeaderChange} disabled={!formData.customer_id}>
+                  <option value="">Select Invoice</option>
                   {customerInvoices.map(inv => (
-                    <option key={inv.id} value={inv.id}>{inv.invoice_number}</option>
+                    <option key={inv.id} value={String(inv.id)}>{inv.invoice_number}</option>
                   ))}
                 </select>
+                {errors.original_invoice_id && <div className="invalid-feedback">{errors.original_invoice_id}</div>}
+              </div>
+              <div className="col-md-3">
+                <label className="form-label fw-600">Reason for Return <span className="text-danger">*</span></label>
+                <select className={`form-select shadow-none ${errors.reason ? 'is-invalid' : ''}`} name="reason" value={formData.reason} onChange={handleHeaderChange}>
+                  {CREDIT_NOTE_REASONS.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                {errors.reason && <div className="invalid-feedback">{errors.reason}</div>}
               </div>
               <div className="col-md-3">
                 <label className="form-label fw-600">Place of Supply <span className="text-danger">*</span></label>
-                <select className="form-select shadow-none" name="place_of_supply" value={formData.place_of_supply} onChange={handleHeaderChange} required>
+                <select className={`form-select shadow-none ${errors.place_of_supply ? 'is-invalid' : ''}`} name="place_of_supply" value={String(formData.place_of_supply)} onChange={handleHeaderChange}>
                    <option value="">Select State</option>
                    {INDIAN_STATES.map(state => (
-                     <option key={state.code} value={state.code}>{state.name} ({state.code})</option>
+                     <option key={state.code} value={String(state.code)}>{state.name} ({state.code})</option>
                    ))}
                 </select>
+                {errors.place_of_supply && <div className="invalid-feedback">{errors.place_of_supply}</div>}
               </div>
             </div>
           </div>
@@ -250,38 +327,66 @@ const EditCreditNote = () => {
               <table className="table table-nowrap align-middle mb-0">
                 <thead className="bg-light">
                   <tr>
-                    <th style={{ width: '40%' }}>Item / Description</th>
-                    <th style={{ width: '10%' }}>Qty</th>
-                    <th style={{ width: '15%' }}>Rate</th>
-                    <th style={{ width: '15%' }}>GST %</th>
-                    <th style={{ width: '15%' }}>Amount</th>
-                    <th className="text-center"></th>
+                    <th style={{ width: '30%' }}>Item / Description</th>
+                    <th style={{ width: '8%' }}>Qty</th>
+                    <th style={{ width: '10%' }}>Rate</th>
+                    <th style={{ width: '8%' }}>GST %</th>
+                    {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
+                      <th style={{ width: '10%' }}>IGST</th>
+                    ) : (
+                      <>
+                        <th style={{ width: '10%' }}>CGST</th>
+                        <th style={{ width: '10%' }}>SGST</th>
+                      </>
+                    )}
+                    <th style={{ width: '12%' }}>Total</th>
+                    <th className="text-center" style={{ width: '50px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {formData.items.map((item, index) => (
                     <tr key={index}>
                       <td>
-                        <select className="form-select shadow-none border-0 bg-transparent" value={item.item_id} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
+                        <select key={`item-${index}-${items.length}`} className="form-select shadow-none border-0 bg-transparent mb-1" value={String(item.item_id)} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
                           <option value="">Select Item</option>
                           {items.map(i => (
-                            <option key={i.id} value={i.id}>{i.name}</option>
+                            <option key={i.id} value={String(i.id)}>{i.name}</option>
                           ))}
                         </select>
+                        {item.hsn_code && (
+                          <div className="fs-10 text-primary fw-bold ms-2 mb-1">
+                            HSN: {item.hsn_code}
+                          </div>
+                        )}
+                        <input type="text" className="form-control shadow-none border-0 bg-transparent fs-12 text-muted mt-n2" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Note for return..." />
                       </td>
                       <td>
-                        <input type="number" className="form-control shadow-none border-0 bg-transparent text-center" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="1" required />
+                        <input type="number" className="form-control shadow-none border-0 bg-transparent text-center" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="0.1" step="any" required />
                       </td>
                       <td>
-                        <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} required />
+                        <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
                       </td>
                       <td>
                         <select className="form-select shadow-none border-0 bg-transparent" value={item.gst_rate} onChange={(e) => handleItemChange(index, 'gst_rate', e.target.value)}>
                           {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
                         </select>
                       </td>
-                      <td className="fw-bold text-dark">
-                        ₹{(item.qty * item.rate * (1 + item.gst_rate / 100)).toLocaleString()}
+                      {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
+                        <td className="text-end fs-12 text-muted">
+                          ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 100).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        </td>
+                      ) : (
+                        <>
+                          <td className="text-end fs-12 text-muted">
+                            ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 200).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                          </td>
+                          <td className="text-end fs-12 text-muted">
+                            ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 200).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                          </td>
+                        </>
+                      )}
+                      <td className="fw-bold text-dark text-end fs-12">
+                        ₹{(item.qty * item.rate * (1 + item.gst_rate / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="text-center">
                         <button type="button" className="btn btn-icon-sm text-danger border-0 h-100" onClick={() => removeItemRow(index)}>

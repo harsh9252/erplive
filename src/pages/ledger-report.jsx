@@ -4,71 +4,83 @@ import { Link } from "react-router-dom";
 import DataTable from "../components/common/DataTable";
 import { ledgerService } from "../services/ledgerService";
 import * as companyService from "../services/companyService";
+import branchService from "../services/branchService";
 import { toast } from "react-toastify";
+import { useAuth } from "../components/AuthContext";
 
 const LedgerReport = () => {
+  const { activeCompany } = useAuth();
   const [ledgers, setLedgers] = useState([]);
   const [ledgersGrp, setLedgersGrp] = useState([]);
   const [company, setCompany] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const todayStr = today.toISOString().split('T')[0];
+  const [fromDate, setFromDate] = useState(firstDayOfMonth);
+  const [toDate, setToDate] = useState(todayStr);
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
     ledger_group_id: "",
     opening_balance: "",
     balance_type: "DR",
   });
+  const [errors, setErrors] = useState({});
   const [visibleColumns, setVisibleColumns] = useState({
     name: true,
     opening_balance: true,
     balance_type: true,
-    tin: true,
+    debit: true,
+    credit: true,
+    closing_balance: true,
   });
 
-  useEffect(() => {
-    const fetchLedgers = async () => {
-      try {
-        const response = await ledgerService.getLedgers();
-
-        console.log("List of ledgers:", response);
-        setLedgers(response.data || response);
-      } catch (error) {
-        console.error("Error fetching ledgers:", error);
-      }
-    };
-
-    fetchLedgers();
-  }, []);
-
-  useEffect(() => {
-    const fetchCompany = async () => {
+  const fetchLedgers = async (params = {}) => {
     try {
-      const response = await companyService.getCurrentCompany();
- 
-      console.log("Current company:", response);
-      setCompany(response.data || response);
+      setLoading(true);
+      const finalParams = {
+        from_date: fromDate,
+        to_date: toDate,
+        branch_id: selectedBranch,
+        branchId: selectedBranch,
+        ...params
+      };
+      const response = await ledgerService.getLedgers(finalParams);
+      setLedgers(response.data || response);
     } catch (error) {
-      console.error("Error fetching companies:", error);
+      console.error("Error fetching ledgers:", error);
+      toast.error("Failed to load ledgers");
+    } finally {
+      setLoading(false);
     }
   };
 
-  fetchCompany();
-  }, []);
-
   useEffect(() => {
-    const fetchLedgers = async () => {
+    const init = async () => {
       try {
-        const response = await ledgerService.getGroupLedger();
-        console.log("List of ledgers Group:", response);
-        setLedgersGrp(response.data || response);
-      } catch (error) {
-        console.error("Error fetching ledgers:", error);
+        const [branchRes, compRes, groupsRes] = await Promise.all([
+          branchService.getBranches(),
+          companyService.getCurrentCompany(),
+          ledgerService.getGroupLedger()
+        ]);
+        setBranches(branchRes.data || []);
+        setCompany(compRes.data || compRes);
+        setLedgersGrp(groupsRes.data || groupsRes);
+        setSelectedBranch('');
+      } catch (err) {
+        console.error("Init failed", err);
       }
     };
-
+    init();
+  }, [activeCompany?.id]);
+  
+  useEffect(() => {
     fetchLedgers();
-  }, []);
+  }, [fromDate, toDate, selectedBranch, activeCompany?.id]);
 
   // Simple search filter logic
   const filteredData = ledgers.filter((item) => {
@@ -82,81 +94,63 @@ const LedgerReport = () => {
     );
   });
 
-  // Form handlers
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "opening_balance" || name === "ledger_group_id"
-          ? parseFloat(value)
-          : value,
-    }));
+  const exportToExcel = async () => {
+    try {
+      const { utils, writeFile } = await import('xlsx');
+      const dataToExport = filteredData.map(item => ({
+        'Ledger Name': item.name,
+        'Opening Balance': item.opening_balance,
+        'Type': item.balance_type,
+        'Debit': item.debit || 0,
+        'Credit': item.credit || 0,
+        'Closing Balance': item.closing_balance || (Number(item.opening_balance) + Number(item.debit || 0) - Number(item.credit || 0))
+      }));
+
+      const ws = utils.json_to_sheet(dataToExport);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Ledgers");
+      writeFile(wb, "Ledger_Report.xlsx");
+      toast.success("Excel exported successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export Excel");
+    }
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validation
-    const newErrors = {};
-    if (!formData.name || formData.name.trim() === "") {
-      newErrors.name = "Ledger name is required";
-    }
-    if (!formData.ledger_group_id || formData.ledger_group_id === "") {
-      newErrors.ledger_group_id = "Ledger Group ID is required";
-    }
-    if (formData.ledger_group_id && formData.ledger_group_id <= 0) {
-      newErrors.ledger_group_id = "Ledger Group ID must be greater than 0";
-    }
-    if (!formData.opening_balance && formData.opening_balance !== 0) {
-      newErrors.opening_balance = "Opening Balance is required";
-    }
-    if (formData.opening_balance && formData.opening_balance < 0) {
-      newErrors.opening_balance = "Opening Balance cannot be negative";
-    }
-    if (!formData.balance_type) {
-      newErrors.balance_type = "Balance Type is required";
-    }
-
-    // If there are errors, display them
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      toast.error(" Please fill all required fields correctly");
-      return;
-    }
-
+  const exportToPDF = async () => {
     try {
-      const newLedger = {
-        name: formData.name,
-        ledger_group_id: formData.ledger_group_id,
-        opening_balance: formData.opening_balance,
-        balance_type: formData.balance_type,
-      };
+      const jspdfModule = await import('jspdf');
+      const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
+      const autotableModule = await import('jspdf-autotable');
+      const autoTable = autotableModule.default || autotableModule;
 
-      // Call API to create new ledger
-      const response = await ledgerService.createLedger(newLedger);
-      console.log("Ledger created:", response);
+      const doc = new jsPDF();
+      doc.text("Ledger Report", 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Period: ${fromDate} to ${toDate}`, 14, 22);
 
-      // Add to list
-      setLedgers([...ledgers, response.data || newLedger]);
+      const tableColumn = ["Ledger Name", "Opening", "Type", "Debit", "Credit", "Closing"];
+      const tableRows = filteredData.map(item => [
+        item.name,
+        `Rs. ${Number(item.opening_balance).toLocaleString('en-IN')}`,
+        item.balance_type,
+        `Rs. ${Number(item.debit || 0).toLocaleString('en-IN')}`,
+        `Rs. ${Number(item.credit || 0).toLocaleString('en-IN')}`,
+        `Rs. ${Number(item.closing_balance || (Number(item.opening_balance) + Number(item.debit || 0) - Number(item.credit || 0))).toLocaleString('en-IN')}`
+      ]);
 
-      // Reset form and errors
-      setFormData({
-        name: "",
-        ledger_group_id: "",
-        opening_balance: "",
-        balance_type: "DR",
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'grid'
       });
-      setErrors({});
-      setShowForm(false);
 
-      toast.success("✓ Ledger created successfully!");
+      doc.save("Ledger_Report.pdf");
+      toast.success("PDF exported successfully");
     } catch (error) {
-      console.error("Error creating ledger:", error);
-      toast.error(
-        "✗ Error creating ledger: " +
-          (error.response?.data?.message || error.message),
-      );
+      console.error(error);
+      toast.error("Failed to export PDF");
     }
   };
 
@@ -172,168 +166,127 @@ const LedgerReport = () => {
   };
 
   const columns = [
-    { id: "name", label: "Bank Name" },
-    { id: "opening_balance", label: "Opening Balance" },
-    { id: "balance_type", label: "Balance Type" },
+    { id: "name", label: "Ledger Name" },
+    { id: "opening_balance", label: "Opening" },
+    { id: "balance_type", label: "Type" },
+    { id: "debit", label: "Debit", render: (v, row) => <span className="text-success">₹{(v || row.total_dr || 0).toLocaleString()}</span> },
+    { id: "credit", label: "Credit", render: (v, row) => <span className="text-danger">₹{(v || row.total_cr || 0).toLocaleString()}</span> },
+    { 
+      id: "closing_balance", 
+      label: "Closing", 
+      render: (v, row) => {
+        const opening = Number(row.opening_balance || 0);
+        const debit = Number(row.total_dr || row.debit || 0);
+        const credit = Number(row.total_cr || row.credit || 0);
+        const type = row.balance_type || 'DR';
+        
+        // If v is provided by API, use it (even if it's 0)
+        if (v !== undefined && v !== null) {
+          return <strong>₹{Number(v).toLocaleString()}</strong>;
+        }
+        
+        // Fallback calculation: (DR balance is positive, CR is negative)
+        const signedOpening = type === 'DR' ? opening : -opening;
+        const signedClosing = signedOpening + debit - credit;
+        const absClosing = Math.abs(signedClosing);
+        const closingType = signedClosing >= 0 ? 'DR' : 'CR';
+        
+        return (
+          <strong>
+            ₹{absClosing.toLocaleString()} 
+            <span className={closingType === 'DR' ? 'text-primary ms-1 fs-11' : 'text-danger ms-1 fs-11'}>
+              {closingType}
+            </span>
+          </strong>
+        );
+      }
+    },
+    { 
+      id: "action", 
+      label: "Action",
+      render: (value, row) => (
+        <Link 
+          to={`/reports/ledger-statement/${row.id}`} 
+          className="btn btn-sm btn-soft-primary"
+          title="View Statement"
+        >
+          <i className="isax isax-document-text me-1"></i>View Statement
+        </Link>
+      )
+    },
   ];
 
   return (
     <>
-      <PageHeader title="Ledger Report" actions={[{ type: "export" }]} />
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+          <h4 className="fw-bold mb-1">Ledger Summary Report</h4>
+          <p className="text-muted small mb-0">Overview of all ledger account balances and movements.</p>
+        </div>
+        <div className="d-flex gap-2">
+          <button className="btn btn-soft-danger d-flex align-items-center" onClick={exportToPDF}>
+            <i className="isax isax-document-download me-1"></i>PDF
+          </button>
+          <button className="btn btn-soft-success d-flex align-items-center" onClick={exportToExcel}>
+            <i className="isax isax-export-1 me-1"></i>Excel
+          </button>
+          <button className="btn btn-primary d-flex align-items-center" onClick={() => fetchLedgers()} disabled={loading}>
+            {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="isax isax-refresh me-2"></i>}
+            Refresh
+          </button>
+        </div>
+      </div>
 
-      {/* Simple Search Box */}
-      <div className="table-search d-flex align-items-center mb-3 ">
-        <div className="search-input flex-grow-1 d-flex align-items-center gap-2">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search by name, TIN, or balance type..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          {/* <button className="btn btn-success" onClick={() => setShowForm(true)}>
-            <i className="fa-solid fa-plus me-2"></i>New
-          </button> */}
-          <div onClick={() => setShowForm(true)}>
-            <Link
-              to="#"
-              className="btn btn-primary d-flex align-items-center"
-              data-bs-toggle="modal"
-              data-bs-target="#add_companies"
-            >
-              <i className="isax isax-add-circle5 me-1"></i>New Ledger
-            </Link>
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-3">
+          <div className="row g-3 align-items-end">
+            <div className="col-md-3">
+              <label className="form-label small fw-bold text-muted">BRANCH</label>
+              <select 
+                className="form-select text-truncate pe-4" 
+                value={selectedBranch} 
+                onChange={(e) => setSelectedBranch(e.target.value)}
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label small fw-bold text-muted">FROM DATE</label>
+              <input type="date" className="form-control" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label small fw-bold text-muted">TO DATE</label>
+              <input type="date" className="form-control" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
+            <div className="col-md-3">
+              <div className="input-group">
+                <span className="input-group-text bg-white"><i className="isax isax-search-normal fs-14"></i></span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search ledgers..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <DataTable
-        showSelection={false}
-        columns={columns}
-        data={filteredData}
-        visibleColumns={visibleColumns}
-      />
-
-      {/* Add Ledger Form Modal */}
-      {showForm && (
-        <div
-          className="modal d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          role="dialog"
-        >
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add New Ledger</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={handleCloseForm}
-                ></button>
-              </div>
-              <form onSubmit={handleFormSubmit}>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label">Ledger Name *</label>
-                    <input
-                      type="text"
-                      className={`form-control ${errors.name ? "is-invalid" : ""}`}
-                      name="name"
-                      value={formData.name}
-                      onChange={handleFormChange}
-                      placeholder="e.g., HDFC Bank"
-                    />
-                    {errors.name && (
-                      <div className="invalid-feedback d-block">
-                        {errors.name}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Parent Group (Optional)
-                    </label>
-                    <select
-                      className="form-select"
-                      name="ledger_group_id"
-                      value={formData.parent_group_id}
-                      onChange={handleFormChange}
-                    >
-                      <option value="">Select Parent Group (Optional)</option>
-                      {ledgersGrp.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name} ({group.nature})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Opening Balance *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className={`form-control ${errors.opening_balance ? "is-invalid" : ""}`}
-                      name="opening_balance"
-                      value={formData.opening_balance}
-                      onChange={handleFormChange}
-                      placeholder="e.g., 100000"
-                    />
-                    {errors.opening_balance && (
-                      <div className="invalid-feedback d-block">
-                        {errors.opening_balance}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Balance Type *</label>
-                    <select
-                      className={`form-select ${errors.balance_type ? "is-invalid" : ""}`}
-                      name="balance_type"
-                      value={formData.balance_type}
-                      onChange={handleFormChange}
-                    >
-                      <option value="DR">DR (Debit)</option>
-                      <option value="CR">CR (Credit)</option>
-                    </select>
-                    {errors.balance_type && (
-                      <div className="invalid-feedback d-block">
-                        {errors.balance_type}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    data-bs-dismiss="modal"
-                    onClick={handleCloseForm}
-                  >
-                    <span
-                      className="d-inline-flex align-items-center justify-content-center bg-danger text-white rounded-circle me-2"
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        fontSize: "12px",
-                      }}
-                    >
-                      ✕
-                    </span>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    <i className="isax isax-save me-2"></i>Save Ledger
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+      <div className="card border-0 shadow-sm">
+        <div className="card-body p-0">
+          <DataTable
+            showSelection={false}
+            columns={columns}
+            data={filteredData}
+            visibleColumns={visibleColumns}
+            loading={loading}
+          />
         </div>
-      )}
+      </div>
+
     </>
   );
 };

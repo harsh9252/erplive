@@ -14,6 +14,7 @@ const Warehouses = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, onConfirm: null, message: '', title: '' });
+  const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -73,13 +74,16 @@ const Warehouses = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error('Warehouse Name is required');
+      setErrors({ name: 'Warehouse Name is required' });
       return;
     }
 
@@ -117,6 +121,7 @@ const Warehouses = () => {
       name: '',
       location: '',
     });
+    setErrors({});
     setEditingId(null);
     setShowForm(false);
   };
@@ -126,6 +131,7 @@ const Warehouses = () => {
       name: warehouse.name || '',
       location: warehouse.location || '',
     });
+    setErrors({});
     setEditingId(warehouse.id);
     setShowForm(true);
   };
@@ -172,20 +178,21 @@ const Warehouses = () => {
         <div className="card mb-3 shadow-sm border-0">
           <div className="card-body">
             <h6 className="mb-3 fw-bold">{editingId ? 'Edit Warehouse' : 'Add New Warehouse'}</h6>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="row">
                 <div className="col-md-6">
                   <div className="mb-3">
                     <label className="form-label text-dark">Warehouse Name *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="e.g., Main Warehouse"
                       required
                     />
+                    {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
                   </div>
                 </div>
                 <div className="col-md-6">
@@ -298,7 +305,7 @@ const Warehouses = () => {
           </div>
         </div>
       ) : (
-        <div className="card shadow-sm border-0 overflow-hidden">
+        <div className="card shadow-sm border-0">
           <div className="table-responsive">
             <table className="table table-hover table-nowrap align-middle mb-0">
               <thead className="table-light">
@@ -329,20 +336,20 @@ const Warehouses = () => {
                       </span>
                     </td>
                     <td className="text-end pe-4">
-                      <div className="d-flex justify-content-end gap-2">
-                        <button
-                          className="btn btn-sm btn-outline-primary"
+                      <div className="d-flex justify-content-end align-items-center gap-2">
+                        <button 
+                          className="btn btn-sm btn-soft-warning border-0" 
                           onClick={() => handleEdit(warehouse)}
-                          title="Edit"
+                          title="Edit Warehouse"
                         >
-                          <i className="isax isax-edit"></i>
+                          <i className="isax isax-edit-2 fs-16"></i>
                         </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
+                        <button 
+                          className="btn btn-sm btn-soft-danger border-0" 
                           onClick={() => handleDelete(warehouse.id)}
-                          title="Delete"
+                          title="Delete Warehouse"
                         >
-                          <i className="isax isax-trash"></i>
+                          <i className="isax isax-trash fs-16"></i>
                         </button>
                       </div>
                     </td>

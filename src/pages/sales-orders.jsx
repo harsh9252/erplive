@@ -7,20 +7,34 @@ const SalesOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalOrders, setTotalOrders] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getSalesOrders(1, 1000, { search: searchTerm });
-      setOrders(Array.isArray(response.data) ? response.data : (response.data?.rows || []));
+      const response = await getSalesOrders(currentPage, itemsPerPage, { search: debouncedSearch });
+      const ordersData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
+      setOrders(ordersData);
+      setTotalOrders(response.total || response.data?.total || ordersData.length || 0);
     } catch (error) {
       console.error('Error fetching sales orders:', error);
       toast.error('Failed to load sales orders');
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [currentPage, itemsPerPage, debouncedSearch]);
 
   useEffect(() => {
     fetchOrders();
@@ -57,10 +71,10 @@ const SalesOrders = () => {
             <div className="col-md-4">
               <div className="input-group">
                 <span className="input-group-text bg-light border-0"><i className="isax isax-search-normal-1"></i></span>
-                <input 
-                  type="text" 
-                  className="form-control bg-light border-0 shadow-none" 
-                  placeholder="Search by Order ID or Customer..." 
+                <input
+                  type="text"
+                  className="form-control bg-light border-0 shadow-none"
+                  placeholder="Search by Order ID or Customer..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -76,7 +90,7 @@ const SalesOrders = () => {
                   <th className="ps-4">Order ID</th>
                   <th>Date</th>
                   <th>Customer</th>
-                  <th>Delivery By</th>
+                  {/* <th>Delivery By</th> */}
                   <th className="text-end">Amount</th>
                   <th className="text-center">Status</th>
                   <th className="text-end pe-4" style={{ minWidth: '120px' }}>Actions</th>
@@ -102,20 +116,27 @@ const SalesOrders = () => {
                         <div className="fw-semibold text-dark">{order.customer?.name}</div>
                         <small className="text-muted">{order.place_of_supply_name || 'Domestic'}</small>
                       </td>
-                      <td>{order.expected_delivery || order.delivery_date || '-'}</td>
+                      {/* <td>{order.expected_delivery || order.delivery_date || '-'}</td> */}
                       <td className="text-end fw-bold text-dark">₹{order.net_amount?.toLocaleString() || order.total_amount?.toLocaleString() || '0'}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-display="static">
-                            <i className="isax isax-more fs-18"></i>
-                          </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
-                            <li><Link className="dropdown-item py-2" to={`/invoicing/sales-orders/${order.id}`}><i className="isax isax-eye me-2 text-primary"></i>View Details</Link></li>
-                            {(order.status === 'OPEN' || order.status === 'DRAFT' || order.status === 'CONFIRMED') && (
-                              <li><Link className="dropdown-item py-2" to={`/invoicing/sales-orders/edit/${order.id}`}><i className="isax isax-edit-2 me-2 text-warning"></i>Edit Order</Link></li>
-                            )}
-                          </ul>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link 
+                            className="btn btn-sm btn-soft-primary border-0" 
+                            to={`/invoicing/sales-orders/${order.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          {(order.status === 'OPEN' || order.status === 'DRAFT' || order.status === 'CONFIRMED') && (
+                            <Link 
+                              className="btn btn-sm btn-soft-warning border-0" 
+                              to={`/invoicing/sales-orders/edit/${order.id}`}
+                              title="Edit Order"
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </Link>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -125,6 +146,34 @@ const SalesOrders = () => {
             </table>
           </div>
         </div>
+        {totalOrders > itemsPerPage && (
+          <div className="card-footer bg-white py-3">
+            <div className="d-flex align-items-center justify-content-between">
+              <span className="text-muted fs-13">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalOrders)} of {totalOrders} entries
+              </span>
+              <nav>
+                <ul className="pagination pagination-rounded mb-0">
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+                      <i className="isax isax-arrow-left-2"></i>
+                    </button>
+                  </li>
+                  {[...Array(Math.ceil(totalOrders / itemsPerPage))].map((_, index) => (
+                    <li key={index + 1} className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}>
+                      <button className="page-link" onClick={() => setCurrentPage(index + 1)}>{index + 1}</button>
+                    </li>
+                  )).slice(Math.max(0, currentPage - 3), Math.min(Math.ceil(totalOrders / itemsPerPage), currentPage + 2))}
+                  <li className={`page-item ${currentPage === Math.ceil(totalOrders / itemsPerPage) ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === Math.ceil(totalOrders / itemsPerPage)}>
+                      <i className="isax isax-arrow-right-3"></i>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -23,8 +23,11 @@ const GstRcm = () => {
     const [filters, setFilters] = useState({
         from_date: firstDayOfYear,
         to_date: today,
-        vendor_id: ''
+        vendor_id: '',
+        page: 1,
+        limit: 20
     });
+    const [totalItems, setTotalItems] = useState(0);
 
     const fetchVendors = async () => {
         try {
@@ -47,17 +50,28 @@ const GstRcm = () => {
             if (activeTab === 'transactions') {
                 const response = await getRcmTransactions(filters);
                 const resData = response.data || response;
-                // Robust array extraction
-                const transactionsList = Array.isArray(resData) ? resData : (resData.transactions || resData.data || []);
+                // API returns { invoices: [...], summary: {...} }
+                const transactionsList = resData.invoices || resData.transactions || (Array.isArray(resData) ? resData : []);
                 setTransactions(transactionsList);
+                setTotalItems(resData.summary?.invoice_count || transactionsList.length || 0);
             } else {
                 const response = await getRcmLiabilitySummary(filters);
                 const summary = response.data || response;
-                // Standardize liability object
+                // API returns { rcm_liability: { igst_payable, cgst_payable, sgst_payable, total_payable }, itc_claim: {...}, net_cost, note }
+                const rcm = summary.rcm_liability || summary;
+                const itc = summary.itc_claim || {};
                 setLiability({
-                    total_igst: summary.total_igst || summary.igst || 0,
-                    total_cgst: summary.total_cgst || summary.cgst || 0,
-                    total_sgst: summary.total_sgst || summary.sgst || 0,
+                    total_igst: rcm.igst_payable ?? rcm.total_igst ?? summary.total_igst ?? 0,
+                    total_cgst: rcm.cgst_payable ?? rcm.total_cgst ?? summary.total_cgst ?? 0,
+                    total_sgst: rcm.sgst_payable ?? rcm.total_sgst ?? summary.total_sgst ?? 0,
+                    total_payable: rcm.total_payable ?? 0,
+                    itc_igst: itc.igst_payable ?? 0,
+                    itc_cgst: itc.cgst_payable ?? 0,
+                    itc_sgst: itc.sgst_payable ?? 0,
+                    itc_total: itc.total_payable ?? 0,
+                    net_cost: summary.net_cost ?? 0,
+                    transactions: summary.transactions ?? 0,
+                    note: summary.note || '',
                     itc_eligible: summary.itc_eligible !== undefined ? summary.itc_eligible : true
                 });
             }
@@ -194,13 +208,13 @@ const GstRcm = () => {
                                         ) : (
                                             transactions.map((item, idx) => (
                                                 <tr key={idx}>
-                                                    <td className="ps-4">{item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
-                                                    <td className="fw-medium text-dark">{item.vendor_name || item.party_name}</td>
-                                                    <td>{item.invoice_no}</td>
-                                                    <td className="text-end fw-medium">₹{Number(item.taxable_amount).toLocaleString()}</td>
-                                                    <td className="text-end">₹{Number(item.igst_payable || 0).toLocaleString()}</td>
-                                                    <td className="text-end">₹{Number(item.cgst_payable || 0).toLocaleString()}</td>
-                                                    <td className="text-end pe-4">₹{Number(item.sgst_payable || 0).toLocaleString()}</td>
+                                                    <td className="ps-4">{item.invoice_date ? new Date(item.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
+                                                    <td className="fw-medium text-dark">{item.vendor?.name || item.vendor_name || item.party_name || '—'}</td>
+                                                    <td>{item.invoice_number || item.invoice_no || '—'}</td>
+                                                    <td className="text-end fw-medium">₹{Number(item.taxable_amount || 0).toLocaleString()}</td>
+                                                    <td className="text-end">₹{Number(item.igst || item.igst_payable || 0).toLocaleString()}</td>
+                                                    <td className="text-end">₹{Number(item.cgst || item.cgst_payable || 0).toLocaleString()}</td>
+                                                    <td className="text-end pe-4">₹{Number(item.sgst || item.sgst_payable || 0).toLocaleString()}</td>
                                                 </tr>
                                             ))
                                         )}
@@ -210,25 +224,44 @@ const GstRcm = () => {
                                             <tr>
                                                 <td colSpan="3" className="ps-4 text-center text-uppercase fs-12">Totals</td>
                                                 <td className="text-end text-primary">₹{transactions.reduce((s, i) => s + Number(i.taxable_amount || 0), 0).toLocaleString()}</td>
-                                                <td className="text-end">₹{transactions.reduce((s, i) => s + Number(i.igst_payable || 0), 0).toLocaleString()}</td>
-                                                <td className="text-end">₹{transactions.reduce((s, i) => s + Number(i.cgst_payable || 0), 0).toLocaleString()}</td>
-                                                <td className="text-end pe-4">₹{transactions.reduce((s, i) => s + Number(i.sgst_payable || 0), 0).toLocaleString()}</td>
+                                                <td className="text-end">₹{transactions.reduce((s, i) => s + Number(i.igst || i.igst_payable || 0), 0).toLocaleString()}</td>
+                                                <td className="text-end">₹{transactions.reduce((s, i) => s + Number(i.cgst || i.cgst_payable || 0), 0).toLocaleString()}</td>
+                                                <td className="text-end pe-4">₹{transactions.reduce((s, i) => s + Number(i.sgst || i.sgst_payable || 0), 0).toLocaleString()}</td>
                                             </tr>
                                         </tfoot>
                                     )}
                                 </table>
                             </div>
                         </div>
+                        {filters.limit && totalItems > filters.limit && (
+                            <div className="card-footer bg-white border-top-light py-3 d-flex justify-content-between align-items-center">
+                                <div className="fs-13 text-muted">
+                                    Showing {(filters.page - 1) * filters.limit + 1} to {Math.min(filters.page * filters.limit, totalItems)} of {totalItems}
+                                </div>
+                                <nav>
+                                    <ul className="pagination pagination-sm mb-0">
+                                        <li className={`page-item ${filters.page === 1 ? 'disabled' : ''}`}>
+                                            <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))} disabled={filters.page === 1}>Previous</button>
+                                        </li>
+                                        <li className="page-item active"><span className="page-link">{filters.page}</span></li>
+                                        <li className={`page-item ${transactions.length < filters.limit ? 'disabled' : ''}`}>
+                                            <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={transactions.length < filters.limit}>Next</button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        )}
                     </div>
                 </>
             ) : (
                 <div className="row g-4">
                     <div className="col-md-9">
+                        {/* RCM Liability Cards */}
                         <div className="row g-4 mb-4">
                             {[
                                 { label: 'IGST Payable (RCM)', value: liability.total_igst, color: 'info', icon: 'receipt-item' },
                                 { label: 'CGST Payable (RCM)', value: liability.total_cgst, color: 'warning', icon: 'receipt-2' },
-                                { label: 'SGST Payable (RCM)', value: liability.total_sgst, color: 'success', icon: 'receipt-search' }
+                                { label: 'SGST Payable (RCM)', value: liability.total_sgst, color: 'success', icon: 'receipt-search' },
                             ].map((stat, idx) => (
                                 <div className="col-md-4" key={idx}>
                                     <div className="card border-0 shadow-sm">
@@ -236,13 +269,40 @@ const GstRcm = () => {
                                             <span className={`badge badge-soft-${stat.color} p-3 rounded-circle mb-3`}>
                                                 <i className={`isax isax-${stat.icon} fs-24`}></i>
                                             </span>
-                                            <h4 className="fw-bold mb-1">₹{Number(stat.value).toLocaleString()}</h4>
+                                            <h4 className="fw-bold mb-1">₹{Number(stat.value).toFixed(2)}</h4>
                                             <p className="text-muted small mb-0 font-monospace">{stat.label}</p>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
+
+                        {/* ITC Claim Summary */}
+                        {(liability.itc_total > 0 || liability.itc_cgst > 0) && (
+                            <div className="card border-0 shadow-sm mb-4">
+                                <div className="card-body p-4">
+                                    <h6 className="fw-bold mb-3 d-flex align-items-center">
+                                        <i className="isax isax-tick-circle me-2 text-success fs-20"></i>
+                                        ITC Claimable Against RCM Payment
+                                    </h6>
+                                    <div className="row g-3 text-center">
+                                        {[
+                                            { label: 'IGST ITC', value: liability.itc_igst },
+                                            { label: 'CGST ITC', value: liability.itc_cgst },
+                                            { label: 'SGST ITC', value: liability.itc_sgst },
+                                            { label: 'Total ITC', value: liability.itc_total },
+                                        ].map((itc, i) => (
+                                            <div className="col-md-3" key={i}>
+                                                <div className="bg-success bg-opacity-10 rounded p-3">
+                                                    <div className="fw-bold text-success">₹{Number(itc.value).toFixed(2)}</div>
+                                                    <div className="small text-muted">{itc.label}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="card border-0 shadow-sm">
                             <div className="card-body p-4">
@@ -253,6 +313,7 @@ const GstRcm = () => {
                                 <div className={`alert ${liability.itc_eligible ? 'alert-soft-success' : 'alert-soft-warning'} border-0 mb-0 ps-4 position-relative`}>
                                     <div className="position-absolute start-0 top-0 bottom-0 bg-primary opacity-25" style={{ width: '4px' }}></div>
                                     <p className="mb-2 fw-medium">{liability.itc_eligible ? 'You are eligible to claim ITC on these RCM payments.' : 'ITC claim might be restricted for these RCM payments.'}</p>
+                                    {liability.note && <p className="mb-2 small text-muted fst-italic">{liability.note}</p>}
                                     <ul className="small text-muted mb-0 ps-3">
                                         <li>The tax paid under RCM is eligible for ITC if the goods/services are used for business purposes.</li>
                                         <li>ITC can be claimed in the same month in which the RCM liability is paid.</li>
@@ -272,10 +333,22 @@ const GstRcm = () => {
                                 <p className="small opacity-75 mb-0">RCM liabilities must be paid in cash/bank, not through ITC balance adjustment.</p>
                                 <hr className="my-4 border-white opacity-25" />
                                 <div className="text-start">
-                                    <p className="small mb-2 fw-bold">Current Period Totals:</p>
-                                    <div className="d-flex justify-content-between small opacity-75 mb-1">
+                                    <p className="small mb-3 fw-bold">Current Period Totals:</p>
+                                    <div className="d-flex justify-content-between small opacity-75 mb-2">
+                                        <span>Transactions:</span>
+                                        <span className="fw-bold">{liability.transactions ?? 0}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between small opacity-75 mb-2">
                                         <span>Total RCM Payable:</span>
-                                        <span>₹{(Number(liability.total_igst) + Number(liability.total_cgst) + Number(liability.total_sgst)).toLocaleString()}</span>
+                                        <span className="fw-bold">₹{Number(liability.total_payable ?? (Number(liability.total_igst) + Number(liability.total_cgst) + Number(liability.total_sgst))).toFixed(2)}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between small opacity-75 mb-2">
+                                        <span>Total ITC Claimable:</span>
+                                        <span className="fw-bold text-warning">₹{Number(liability.itc_total ?? 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between small opacity-75">
+                                        <span>Net Cost:</span>
+                                        <span className="fw-bold">₹{Number(liability.net_cost ?? 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>

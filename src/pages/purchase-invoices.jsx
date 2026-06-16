@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getPurchaseInvoices, cancelPurchaseInvoice, recordPurchasePayment } from '../services/purchaseInvoiceService';
 import vendorService from '../services/vendorService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import CollectPaymentModal from '../components/CollectPaymentModal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const PurchaseInvoices = () => {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState([]);
@@ -18,7 +23,7 @@ const PurchaseInvoices = () => {
   });
   const [totalInvoices, setTotalInvoices] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   
   const modalRef = useRef(null);
@@ -30,7 +35,10 @@ const PurchaseInvoices = () => {
         currentPage, 
         itemsPerPage, 
         filters.search, 
-        filters.status
+        filters.status,
+        filters.vendor_id,
+        filters.from_date,
+        filters.to_date
       );
       
       const invoicesData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
@@ -42,14 +50,15 @@ const PurchaseInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, filters.search, filters.status]);
+  }, [currentPage, itemsPerPage, filters.search, filters.status, filters.vendor_id, filters.from_date, filters.to_date]);
 
   const fetchVendors = async () => {
     try {
-      const res = await vendorService.getVendors(1, 1000);
+      const res = await vendorService.getVendors({ page: 1, limit: 1000 });
       setVendors(Array.isArray(res.data) ? res.data : (res.data?.rows || []));
     } catch (error) {
       console.error('Error fetching vendors:', error);
+      toast.error('Failed to load vendors');
     }
   };
 
@@ -90,7 +99,17 @@ const PurchaseInvoices = () => {
   };
 
   const handleCancelClick = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this purchase invoice?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to cancel this purchase invoice?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, cancel it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await cancelPurchaseInvoice(id);
         toast.success('Invoice cancelled successfully');
@@ -103,10 +122,11 @@ const PurchaseInvoices = () => {
 
   const handleRecordPayment = (invoice) => {
     setSelectedInvoice(invoice);
-    if (!modalRef.current) {
-      modalRef.current = new window.bootstrap.Modal(document.getElementById('collectPaymentModal'));
+    const modalEl = document.getElementById('collectPaymentModal');
+    if (modalEl) {
+      modalRef.current = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      modalRef.current.show();
     }
-    modalRef.current.show();
   };
 
   const onSavePayment = async (paymentData) => {
@@ -118,6 +138,64 @@ const PurchaseInvoices = () => {
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
+    }
+  };
+
+  const handleExport = (type) => {
+    if (!invoices || invoices.length === 0) {
+      toast.warning('No data to export');
+      return;
+    }
+
+    if (type === 'Excel') {
+      const exportData = invoices.map(inv => ({
+        'Invoice No': inv.invoice_number || `PINV-${inv.id}`,
+        'Date': (inv.invoice_date || inv.invoiceDate || '').split('T')[0],
+        'Vendor': inv.vendor_name || inv.vendor?.name || 'Unknown',
+        'Net Total': inv.net_total || inv.net_amount || 0,
+        'Status': inv.status || 'DRAFT',
+        'Payment Status': inv.payment_status || inv.paymentStatus || 'UNPAID'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Purchase Invoices");
+      XLSX.writeFile(workbook, `purchase_invoices_${new Date().toISOString().slice(0,10)}.xlsx`);
+      toast.success('Excel file downloaded successfully');
+    } else if (type === 'PDF') {
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text('Purchase Invoices Report', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+      const tableColumn = ["Invoice No", "Date", "Vendor", "Net Total", "Status", "Payment Status"];
+      const tableRows = [];
+
+      invoices.forEach(inv => {
+        const invoiceData = [
+          inv.invoice_number || `PINV-${inv.id}`,
+          (inv.invoice_date || inv.invoiceDate || '').split('T')[0],
+          inv.vendor_name || inv.vendor?.name || 'Unknown',
+          `Rs. ${Number(inv.net_total || inv.net_amount || 0).toFixed(2)}`,
+          inv.status || 'DRAFT',
+          inv.payment_status || inv.paymentStatus || 'UNPAID'
+        ];
+        tableRows.push(invoiceData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'striped',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [65, 84, 241] }
+      });
+
+      doc.save(`purchase_invoices_${new Date().toISOString().slice(0,10)}.pdf`);
+      toast.success('PDF file downloaded successfully');
     }
   };
 
@@ -136,9 +214,29 @@ const PurchaseInvoices = () => {
             </ol>
           </nav>
         </div>
-        <div className="d-flex gap-2">
-          <Link to="/invoicing/purchases/add" className="btn btn-primary rounded-pill px-4 shadow-none">
-            <i className="isax isax-add me-2"></i>New Purchase
+        <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
+          <div className="dropdown">
+            <button
+              className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none border"
+              data-bs-toggle="dropdown"
+            >
+              <i className="isax isax-export-1 me-1"></i>Export
+            </button>
+            <ul className="dropdown-menu border-0 shadow-sm rounded-12">
+              <li>
+                <button className="dropdown-item py-2" onClick={() => handleExport('PDF')}>
+                  <i className="isax isax-document-text me-2 text-danger"></i>Download as PDF
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item py-2" onClick={() => handleExport('Excel')}>
+                  <i className="isax isax-document-code me-2 text-success"></i>Download as Excel
+                </button>
+              </li>
+            </ul>
+          </div>
+          <Link to="/invoicing/purchases/add" className="btn btn-primary d-flex align-items-center rounded-pill px-3 shadow-none">
+            <i className="isax isax-add-circle me-1"></i>New Purchase
           </Link>
         </div>
       </div>
@@ -242,7 +340,7 @@ const PurchaseInvoices = () => {
                   </tr>
                 ) : invoices.length > 0 ? (
                   invoices.map((invoice) => (
-                    <tr key={invoice.id}>
+                    <tr key={invoice.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoicing/purchases/${invoice.id}`)}>
                       <td className="ps-4">
                         <Link to={`/invoicing/purchases/${invoice.id}`} className="fw-bold text-dark text-nowrap">
                           {invoice.invoice_number}
@@ -254,7 +352,7 @@ const PurchaseInvoices = () => {
                           <span className="fw-semibold text-dark">{invoice.vendor?.name}</span>
                         </div>
                       </td>
-                      <td className="fw-bold text-dark">₹{Number(invoice.net_amount || 0).toLocaleString()}</td>
+                      <td className="fw-bold text-dark">₹{Number(invoice.net_total || invoice.net_amount || 0).toLocaleString()}</td>
                       <td>
                         <span className={`badge badge-sm rounded-pill ${getStatusBadge(invoice.status)}`}>
                           {invoice.status}
@@ -264,42 +362,45 @@ const PurchaseInvoices = () => {
                         <span className={`badge badge-sm rounded-pill ${invoice.payment_status === 'PAID' ? 'badge-soft-success' : 'badge-soft-warning'}`}>
                           {invoice.payment_status || 'UNPAID'}
                         </span>
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown">
-                            <i className="isax isax-more fs-18"></i>
-                          </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-12">
-                            <li>
-                              <Link className="dropdown-item py-2" to={`/invoicing/purchases/${invoice.id}`}>
-                                <i className="isax isax-eye me-2 text-primary"></i>View Details
-                              </Link>
-                            </li>
-                            {invoice.status === 'DRAFT' && (
-                              <li>
-                                <Link className="dropdown-item py-2" to={`/invoicing/purchases/edit/${invoice.id}`}>
-                                  <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Invoice
-                                </Link>
-                              </li>
-                            )}
-                            {invoice.status === 'POSTED' && invoice.payment_status !== 'PAID' && (
-                              <li>
-                                <button className="dropdown-item py-2" onClick={() => handleRecordPayment(invoice)}>
-                                  <i className="isax isax-wallet me-2 text-success"></i>Record Payment
-                                </button>
-                              </li>
-                            )}
-                            {(invoice.status === 'DRAFT' || invoice.status === 'POSTED') && (
-                              <li>
-                                <button className="dropdown-item py-2 text-danger" onClick={() => handleCancelClick(invoice.id)}>
-                                  <i className="isax isax-trash me-2"></i>Cancel Invoice
-                                </button>
-                              </li>
-                            )}
-                          </ul>
+                      </td>                      <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link 
+                            className="btn btn-sm btn-soft-primary border-0" 
+                            to={`/invoicing/purchases/${invoice.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          {invoice.status === 'POSTED' && invoice.payment_status !== 'PAID' && (
+                            <button 
+                              className="btn btn-sm btn-soft-success border-0" 
+                              onClick={() => handleRecordPayment(invoice)}
+                              title="Record Payment"
+                            >
+                              <i className="isax isax-wallet fs-16"></i>
+                            </button>
+                          )}
+                          {invoice.status === 'DRAFT' && (
+                            <Link 
+                              className="btn btn-sm btn-soft-warning border-0" 
+                              to={`/invoicing/purchases/edit/${invoice.id}`}
+                              title="Edit Invoice"
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </Link>
+                          )}
+                          {(invoice.status === 'DRAFT' || invoice.status === 'POSTED') && (
+                            <button 
+                              className="btn btn-sm btn-soft-danger border-0" 
+                              onClick={() => handleCancelClick(invoice.id)}
+                              title="Cancel Invoice"
+                            >
+                              <i className="isax isax-trash fs-16"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
+
                     </tr>
                   ))
                 ) : (
@@ -348,7 +449,7 @@ const PurchaseInvoices = () => {
 
       <CollectPaymentModal 
         invoice={selectedInvoice} 
-        onSave={onSavePayment} 
+        onSuccess={onSavePayment} 
       />
     </div>
   );

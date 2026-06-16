@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getCompanyById } from '../services/companyService';
+import { getCompanyById, getBusinessNatures, getCompanies } from '../services/companyService';
 import { toast } from 'react-toastify';
 
 const CompanyDetails = () => {
     const { id } = useParams();
     const [company, setCompany] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isCompanyActive, setIsCompanyActive] = useState(false);
+    const [businessTypes, setBusinessTypes] = useState([
+        { id: 1, name: 'Sole Proprietorship' },
+        { id: 2, name: 'Partnership' },
+        { id: 3, name: 'Private Limited' },
+        { id: 4, name: 'Public Limited' },
+        { id: 5, name: 'LLP' },
+        { id: 6, name: 'HUF' },
+        { id: 7, name: 'Trust' },
+        { id: 8, name: 'NGO' },
+    ]);
 
     useEffect(() => {
         if (id) {
@@ -14,12 +25,48 @@ const CompanyDetails = () => {
         }
     }, [id]);
 
+    useEffect(() => {
+        const fetchNatures = async () => {
+            try {
+                const response = await getBusinessNatures();
+                if (response && response.success && Array.isArray(response.data)) {
+                    setBusinessTypes(response.data);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchNatures();
+    }, []);
+
     const fetchCompanyDetails = async () => {
         try {
             setLoading(true);
             const response = await getCompanyById(id);
             if (response && response.data) {
                 setCompany(response.data);
+
+                // Fetch accessible companies list to get the real is_active status
+                try {
+                    const listResponse = await getCompanies();
+                    if (listResponse && Array.isArray(listResponse.data)) {
+                        const matched = listResponse.data.find(c => String(c.id) === String(id));
+                        if (matched) {
+                            setIsCompanyActive(matched.is_active === true || matched.is_active === 1 || String(matched.is_active).toLowerCase() === 'true');
+                        } else {
+                            // Fallback to response status if not found in list
+                            const statusActive = response.data.status === 'ACTIVE' || response.data.status === 'Active';
+                            setIsCompanyActive(statusActive);
+                        }
+                    } else {
+                        const statusActive = response.data.status === 'ACTIVE' || response.data.status === 'Active';
+                        setIsCompanyActive(statusActive);
+                    }
+                } catch (listErr) {
+                    console.error('Error fetching companies list:', listErr);
+                    const statusActive = response.data.status === 'ACTIVE' || response.data.status === 'Active';
+                    setIsCompanyActive(statusActive);
+                }
             } else {
                 toast.error('Company not found');
             }
@@ -50,6 +97,8 @@ const CompanyDetails = () => {
         );
     }
 
+    const isActive = isCompanyActive;
+
     return (
         <>
             <div className="d-flex d-block align-items-center justify-content-between flex-wrap gap-3 mb-3">
@@ -68,7 +117,7 @@ const CompanyDetails = () => {
             </div>
 
             <div className="row">
-                <div className="col-xl-8">
+                <div className="col-xl-12">
                     <div className="card bg-light customer-details-info position-relative overflow-hidden">
                         <div className="card-body position-relative z-1">
                             <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
@@ -81,11 +130,10 @@ const CompanyDetails = () => {
                                             style={{ backgroundColor: '#fff', padding: '5px' }}
                                         />
                                     </div>
-                                    <div className="">
-                                        <p className="text-primary fs-14 fw-medium mb-1">CO-{company.id}</p>
-                                        <h6 className="mb-2">
+                                    <div className="" style={{ minWidth: '150px', maxWidth: '100%', whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                                        <h6 className="mb-2" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
                                             {company.name}
-                                            {company.is_active && (
+                                            {isActive && (
                                                 <img src="/assets/img/icons/confirme.svg" alt="confirmed" className="ms-1" />
                                             )}
                                         </h6>
@@ -104,7 +152,7 @@ const CompanyDetails = () => {
                                             <h6 className="mb-1 fs-14 fw-semibold">
                                                 <i className="isax isax-sms fs-14 me-2"></i>Email Address
                                             </h6>
-                                            <p>{company.email || 'N/A'}</p>
+                                            <p style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}>{company.email || 'N/A'}</p>
                                         </li>
                                         <li>
                                             <h6 className="mb-1 fs-14 fw-semibold">
@@ -114,20 +162,11 @@ const CompanyDetails = () => {
                                         </li>
                                         <li>
                                             <h6 className="mb-1 fs-14 fw-semibold">
-                                                <i className="isax isax-global fs-14 me-2"></i>Website
-                                            </h6>
-                                            <p className="d-flex align-items-center">
-                                                {company.website || 'N/A'}
-                                                {company.website && <i className="isax isax-link fs-14 ms-1 text-primary"></i>}
-                                            </p>
-                                        </li>
-                                        <li>
-                                            <h6 className="mb-1 fs-14 fw-semibold">
                                                 <i className="isax isax-status fs-14 me-2"></i>Status
                                             </h6>
                                             <p>
-                                                <span className={`badge ${company.is_active ? 'badge-soft-success' : 'badge-soft-danger'}`}>
-                                                    {company.is_active ? 'Active' : 'Inactive'}
+                                                <span className={`badge ${isActive ? 'badge-soft-success' : 'badge-soft-danger'}`}>
+                                                    {isActive ? 'Active' : 'Inactive'}
                                                 </span>
                                             </p>
                                         </li>
@@ -162,7 +201,15 @@ const CompanyDetails = () => {
                                 </div>
                                 <div className="col-md-6 mb-3">
                                     <h6 className="fs-14 fw-semibold mb-1">Business Nature</h6>
-                                    <p>{company.business_nature || 'N/A'}</p>
+                                    <p>{businessTypes.find(t => t.id === Number(company.business_nature_id))?.name || company.business_nature || 'N/A'}</p>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <h6 className="fs-14 fw-semibold mb-1">TAN</h6>
+                                    <p>{company.tan || 'N/A'}</p>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <h6 className="fs-14 fw-semibold mb-1">CIN</h6>
+                                    <p>{company.cin || 'N/A'}</p>
                                 </div>
                                 <div className="col-md-6 mb-3">
                                     <h6 className="fs-14 fw-semibold mb-1">Currency</h6>
@@ -171,56 +218,6 @@ const CompanyDetails = () => {
                                 <div className="col-md-6 mb-3">
                                     <h6 className="fs-14 fw-semibold mb-1">Financial Year Start</h6>
                                     <p>{company.financial_year_start ? `Month ${company.financial_year_start}` : 'April'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-xl-4">
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="card-title">Account Summary</h5>
-                        </div>
-                        <div className="card-body">
-                            <ul className="list-group list-group-flush">
-                                <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>Plan</span>
-                                    <span className="badge bg-primary">Basic (Monthly)</span>
-                                </li>
-                                <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>Registered On</span>
-                                    <span>{(company.createdAt && !isNaN(new Date(company.createdAt))) ? new Date(company.createdAt).toLocaleDateString() : 'N/A'}</span>
-                                </li>
-                                <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>Last Updated</span>
-                                    <span>{(company.updatedAt && !isNaN(new Date(company.updatedAt))) ? new Date(company.updatedAt).toLocaleDateString() : 'N/A'}</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="card-title">Registration Documents</h5>
-                        </div>
-                        <div className="card-body">
-                            <div className="d-flex align-items-center mb-3">
-                                <div className="avatar avatar-md bg-soft-info me-2">
-                                    <i className="isax isax-document-text text-info"></i>
-                                </div>
-                                <div>
-                                    <h6 className="fs-14 fw-semibold mb-0">GST Certificate</h6>
-                                    <span className="fs-12 text-muted">Not uploaded</span>
-                                </div>
-                            </div>
-                            <div className="d-flex align-items-center mb-3">
-                                <div className="avatar avatar-md bg-soft-warning me-2">
-                                    <i className="isax isax-document-text text-warning"></i>
-                                </div>
-                                <div>
-                                    <h6 className="fs-14 fw-semibold mb-0">PAN Card</h6>
-                                    <span className="fs-12 text-muted">Not uploaded</span>
                                 </div>
                             </div>
                         </div>

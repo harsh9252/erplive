@@ -28,11 +28,13 @@ export const updateEmployee = async (id, employeeData) =>
     data: employeeData,
   });
 
-export const deleteEmployee = async (id) =>
-  apiRequest({
+export const deleteEmployee = async (id) => {
+  console.log(`🗑️ Deleting employee with ID: ${id}`);
+  return apiRequest({
     url: `/api/payroll/employees/${id}`,
     method: 'DELETE',
   });
+};
 
 export const employeeService = {
   getEmployees,

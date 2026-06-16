@@ -74,6 +74,21 @@ export default function EmployeePage({ searchTerm = '' }) {
     }
   };
 
+  // Handle delete employee
+  const handleDeleteEmployee = async (id) => {
+    if (window.confirm('Are you sure you want to delete this employee?')) {
+      try {
+        await api.deleteEmployee(id);
+        showToast('Employee deleted successfully!', 'success');
+        fetchEmployees();
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        showToast(error.message || 'Failed to delete employee', 'error');
+      }
+    }
+  };
+
+
   // Filter employees based on search term and status
   const filteredEmployees = employees.filter(employee => {
     const fullName = `${employee.first_name || ''}`;
@@ -205,6 +220,13 @@ export default function EmployeePage({ searchTerm = '' }) {
                 setSelectedEmployee(rowEmployee);
                 setIsEmployeeFormOpen(true);
               }}
+              extraSmall={true}
+            />
+            <TableActionButton
+              icon={FiTrash2}
+              type="delete"
+              title="Delete Employee"
+              onClick={() => handleDeleteEmployee(rowEmployee.id)}
               mobileSize={false}
               extraSmall={true}
             />
@@ -438,6 +460,13 @@ export default function EmployeePage({ searchTerm = '' }) {
                                     setSelectedEmployee(rowEmployee);
                                     setIsEmployeeFormOpen(true);
                                   }}
+                                  mobileSize={true}
+                                />
+                                <TableActionButton
+                                  icon={FiTrash2}
+                                  type="delete"
+                                  title="Delete Employee"
+                                  onClick={() => handleDeleteEmployee(rowEmployee.id)}
                                   mobileSize={true}
                                 />
                               </div>

@@ -6,8 +6,13 @@ import { ledgerService } from '../services/ledgerService';
 import { toast } from 'react-toastify';
  
 
+import { useAuth } from '../components/AuthContext';
+ 
+
 const GroupLedgerReport = () => { 
+  const { activeCompany } = useAuth();
   const [ledgers, setLedgersGroups] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState({});
@@ -17,20 +22,23 @@ const GroupLedgerReport = () => {
     parent_group_id: ""
   });
 
-   useEffect(() => {
-      const fetchLedgers = async () => {
-        try {
-          const response = await ledgerService.getGroupLedger();
+    const fetchLedgers = async () => {
+      try {
+        setLoading(true);
+        const response = await ledgerService.getGroupLedger();
 
-          console.log('List of ledgers:', response);
-          setLedgersGroups(response.data || response);
-        } catch (error) {
-          console.error('Error fetching ledgers:', error);
-        }
-      };
+        console.log('List of ledgers:', response);
+        setLedgersGroups(response.data || response);
+      } catch (error) {
+        console.error('Error fetching ledgers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    useEffect(() => {
       fetchLedgers();
-    }, []);
+    }, [activeCompany?.id]);
 
   // Simple search filter logic
   const filteredData = ledgers.filter(item => {
@@ -121,18 +129,24 @@ const GroupLedgerReport = () => {
       <PageHeader title="Ledger Report" actions={[{ type: 'export' }]} />
       
       {/* Simple Search Box */}
-      <div className="table-search d-flex align-items-center mb-3 " >
+    <div className="table-search d-flex align-items-center mb-3 gap-3" >
         <div className="search-input flex-grow-1 d-flex align-items-center gap-2">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search by name, TIN, or balance type..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          {/* <button className="btn btn-success" onClick={() => setShowForm(true)}>
-            <i className="fa-solid fa-plus me-2"></i>New
-          </button> */}
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="isax isax-search-normal-1 fs-14"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0"
+              placeholder="Search by name, nature..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          <button className="btn btn-outline-secondary" onClick={() => fetchLedgers()} disabled={loading}>
+            {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="isax isax-refresh me-1"></i>}
+            Refresh
+          </button>
            <div onClick={() => setShowForm(true)}>
             <Link
               to="#"
@@ -147,9 +161,10 @@ const GroupLedgerReport = () => {
       </div>
 
       <DataTable
-      showSelection={false}
+        showSelection={false}
         columns={columns}
         data={filteredData}
+        loading={loading}
       /> 
 
       {/* Add Group Form Modal */}

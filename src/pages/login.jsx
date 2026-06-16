@@ -5,20 +5,37 @@ import { toast } from 'react-toastify';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false,
+  const [formData, setFormData] = useState(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail') || '';
+    return {
+      email: rememberedEmail,
+      password: '',
+      rememberMe: !!rememberedEmail,
+    };
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let nextValue = type === 'checkbox' ? checked : value;
+
+    if (name === 'email' && typeof nextValue === 'string') {
+      if (/[^a-zA-Z0-9@._-]/.test(nextValue)) {
+        setErrors((prev) => ({ ...prev, email: 'Special symbols are not allowed in email.' }));
+        return;
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: nextValue,
     }));
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -29,18 +46,17 @@ const Login = () => {
       const response = await login(formData.email, formData.password, formData.rememberMe);
       const data = response?.data || response;
       const user = data.user || {};
-      
-      // Check if user has an active company or any companies
-      const hasCompany = !!user.company_id || (Array.isArray(data.companies) && data.companies.length > 0);
+
+      if (formData.rememberMe) {
+        localStorage.setItem('rememberedEmail', formData.email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
 
       toast.success(`Welcome back, ${user?.name || 'User'}!`);
       
-      if (hasCompany) {
-        navigate('/dashboard', { replace: true });
-      } else {
-        // Redirect to onboarding if no company exists
-        navigate('/add-company?onboarding=true', { replace: true });
-      }
+      // Redirect to dashboard
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       toast.error(error?.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -57,7 +73,7 @@ const Login = () => {
         <div className="container">
           <div className="row justify-content-center align-items-center m-0">
             <div className="col-lg-4 col-md-6 col-sm-10 mx-auto">
-              <form onSubmit={handleSubmit} className="d-flex justify-content-center align-items-center">
+              <form onSubmit={handleSubmit} noValidate className="d-flex justify-content-center align-items-center">
                 <div className="d-flex flex-column justify-content-center p-4 p-lg-0 pb-0 flex-fill w-100">
 
                   <div className="card border-0 p-lg-3 shadow-lg rounded-2 mt-4">
@@ -81,11 +97,12 @@ const Login = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            className="form-control border-start-0 ps-0"
+                            className={`form-control border-start-0 ps-0 ${errors.email ? 'is-invalid' : ''}`}
                             placeholder="Enter Email Address"
                             required
                           />
                         </div>
+                        {errors.email ? <div className="invalid-feedback d-block">{errors.email}</div> : null}
                       </div>
 
                       <div className="mb-3">

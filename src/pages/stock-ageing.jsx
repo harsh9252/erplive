@@ -1,40 +1,118 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-const stockData = [
-  { id: 1, name: 'Apple iPhone 15', unit: 'Piece', price: 49, quantity: 2, totalPrice: 98, img: '/assets/img/products/product-01.jpg' },
-  { id: 2, name: 'Dell XPS 13 9310', unit: 'Piece', price: 25, quantity: 12, totalPrice: 24, img: '/assets/img/products/product-02.jpg' },
-  { id: 3, name: 'Bose QuietComfort 45', unit: 'Piece', price: 34, quantity: 2, totalPrice: 58, img: '/assets/img/products/product-03.jpg' },
-  { id: 4, name: 'Nike Dri-FIT T-shirt', unit: 'Piece', price: 75, quantity: 24, totalPrice: 72, img: '/assets/img/products/product-04.jpg' },
-  { id: 5, name: 'Adidas Ultraboost 22 Running Shoe', unit: 'Piece', price: 9, quantity: 13, totalPrice: 89, img: '/assets/img/products/product-05.jpg' },
-  { id: 6, name: 'Samsung French Door Refrigerator', unit: 'Pack', price: 120, quantity: 67, totalPrice: 115, img: '/assets/img/products/product-06.jpg' },
-  { id: 7, name: 'Dyson V15 Detect Vacuum Cleaner', unit: 'Pack', price: 250, quantity: 13, totalPrice: 240, img: '/assets/img/products/product-07.jpg' },
-  { id: 8, name: 'HP Spectre x360 14', unit: 'Piece', price: 541, quantity: 25, totalPrice: 525, img: '/assets/img/products/product-08.jpg' },
-  { id: 9, name: 'Dyson Supersonic Hair Dryer', unit: 'Litre', price: 741, quantity: 24, totalPrice: 750, img: '/assets/img/products/product-09.jpg' },
-  { id: 10, name: 'Apple AirPods Pro', unit: 'Piece', price: 89, quantity: 65, totalPrice: 49, img: '/assets/img/products/product-10.jpg' },
-  { id: 11, name: 'Levi’s 501 Original Fit Jeans', unit: 'Piece', price: 34, quantity: 23, totalPrice: 36, img: '/assets/img/products/product-11.jpg' },
-  { id: 12, name: 'CeraVe Hydrating Facial Cleanser', unit: 'Liter', price: 45, quantity: 12, totalPrice: 47, img: '/assets/img/products/product-12.jpg' },
-  { id: 13, name: 'Giro Synthe MIPS Helmet', unit: 'Piece', price: 74, quantity: 43, totalPrice: 70, img: '/assets/img/products/product-13.jpg' },
-  { id: 14, name: 'OnePlus 11 5G', unit: 'Piece', price: 80, quantity: 20, totalPrice: 74, img: '/assets/img/products/product-14.jpg' },
-];
+import { getStockAgeingReport } from '../services/itemService';
+import { toast } from 'react-toastify';
 
 const StockAgeing = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [summary, setSummary] = useState({
+    totalValue: 0,
+    lowStockCount: 0,
+    outOfStockCount: 0,
+    pendingReorderValue: 0
+  });
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [productSearchText, setProductSearchText] = useState("");
+
+  const handleProductToggle = (id) => {
+    setSelectedProducts(prev => 
+      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    );
+  };
+  
+  const handleSelectAllProducts = (e) => {
+    if (e.target.checked) {
+      setSelectedProducts(data.map(item => item.id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await getStockAgeingReport();
+      const rawRows = Array.isArray(res.data) ? res.data : (res.data?.rows || []);
+      
+      const aggregated = {};
+      rawRows.forEach(row => {
+        const id = row.item_id;
+        if (!aggregated[id]) {
+          aggregated[id] = {
+            id,
+            item_name: row.item_name,
+            sku: row.sku,
+            category_name: row.warehouse_name || '',
+            total_qty: 0,
+            valuation: 0,
+            ageing_buckets: {
+              '0-30': 0,
+              '31-60': 0,
+              '61-90': 0,
+              '91-180': 0,
+              '>180': 0
+            }
+          };
+        }
+        
+        const qty = Number(row.received_qty) || 0;
+        aggregated[id].total_qty += qty;
+        
+        let bucketKey = '>180';
+        if (row.age_days <= 30) bucketKey = '0-30';
+        else if (row.age_days <= 60) bucketKey = '31-60';
+        else if (row.age_days <= 90) bucketKey = '61-90';
+        else if (row.age_days <= 180) bucketKey = '91-180';
+        
+        aggregated[id].ageing_buckets[bucketKey] += qty;
+      });
+
+      const reportData = Object.values(aggregated);
+      setData(reportData);
+
+      const total = reportData.reduce((sum, item) => sum + (Number(item.valuation) || 0), 0);
+      const lowStock = reportData.filter(item => Number(item.total_qty) > 0 && Number(item.total_qty) <= (item.min_stock || 10)).length;
+      const outOfStock = reportData.filter(item => Number(item.total_qty) <= 0).length;
+
+      setSummary({
+        totalValue: total,
+        lowStockCount: lowStock,
+        outOfStockCount: outOfStock,
+        pendingReorderValue: 0
+      });
+    } catch (error) {
+      toast.error('Failed to load ageing report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const [columns, setColumns] = useState({
     product: true,
-    unit: true,
-    price: true,
-    quantity: true,
-    totalPrice: true
+    qty: true,
+    valuation: true,
+    bucket1: true,
+    bucket2: true,
+    bucket3: true,
+    bucket4: true,
+    bucket5: true
   });
 
   const handleColumnToggle = (column) => {
     setColumns(prev => ({ ...prev, [column]: !prev[column] }));
   };
 
-  const filteredData = stockData.filter(item =>
-    item.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const filteredData = (Array.isArray(data) ? data : []).filter(item => {
+    const matchesSearch = (item.item_name || "").toLowerCase().includes(searchText.toLowerCase());
+    const matchesProduct = selectedProducts.length === 0 || selectedProducts.includes(item.id);
+    return matchesSearch && matchesProduct;
+  });
 
   return (
     <>
@@ -42,28 +120,7 @@ const StockAgeing = () => {
         <div>
           <h6 className="mb-0">Stock Ageing Report</h6>
         </div>
-        <div className="my-xl-auto">
-          <div className="dropdown">
-            <Link href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as Excel
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
+
       </div>
       <div className="row">
         <div className="col-xl-3 col-lg-4 col-md-6">
@@ -72,7 +129,7 @@ const StockAgeing = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Total Stock Value</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$8,500,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹{summary.totalValue.toLocaleString()}</h6>
                 </div>
                 <div>
                   <span className="avatar bg-primary rounded-circle">
@@ -100,7 +157,7 @@ const StockAgeing = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Low Stock Items</p>
-                  <h6 className="fs-16 fw-semibold mb-0">25 Products</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">{summary.lowStockCount} Products</h6>
                 </div>
                 <div>
                   <span className="avatar bg-success rounded-circle">
@@ -111,9 +168,9 @@ const StockAgeing = () => {
               <div className="bg-dark py-2 px-3 rounded">
                 <p className="fs-13 mb-0 text-white text-truncate">
                   <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>11.4%
+                    <i className="isax isax-send text-success me-1"></i>Dynamic
                   </span>{' '}
-                  from last month
+                  live data
                 </p>
               </div>
               <span className="position-absolute start-0 top-0">
@@ -128,7 +185,7 @@ const StockAgeing = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Pending Reorders</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$750,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹{summary.pendingReorderValue.toLocaleString()}</h6>
                 </div>
                 <div>
                   <span className="avatar bg-danger rounded-circle">
@@ -139,9 +196,9 @@ const StockAgeing = () => {
               <div className="bg-dark py-2 px-3 rounded">
                 <p className="fs-13 mb-0 text-white text-truncate">
                   <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>8.52%
+                    <i className="isax isax-send text-success me-1"></i>0%
                   </span>{' '}
-                  from last month
+                  pending
                 </p>
               </div>
               <span className="position-absolute start-0 top-0">
@@ -156,7 +213,7 @@ const StockAgeing = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Out of Stock Items</p>
-                  <h6 className="fs-16 fw-semibold mb-0">10 Products</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">{summary.outOfStockCount} Products</h6>
                 </div>
                 <div>
                   <span className="avatar bg-info rounded-circle">
@@ -167,9 +224,9 @@ const StockAgeing = () => {
               <div className="bg-dark py-2 px-3 rounded">
                 <p className="fs-13 mb-0 text-white text-truncate">
                   <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>8.52%
+                    <i className="isax isax-send text-success me-1"></i>Active
                   </span>{' '}
-                  from last month
+                  stock tracking
                 </p>
               </div>
               <span className="position-absolute start-0 top-0">
@@ -206,54 +263,7 @@ const StockAgeing = () => {
               <i className="isax isax-filter me-1"></i>Filter
             </Link>
           </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown">
-              <Link href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.product} onChange={() => handleColumnToggle('product')} />
-                    <span>Product</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.unit} onChange={() => handleColumnToggle('unit')} />
-                    <span>Unit</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.price} onChange={() => handleColumnToggle('price')} />
-                    <span>Price</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.quantity} onChange={() => handleColumnToggle('quantity')} />
-                    <span>Quantity</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.totalPrice} onChange={() => handleColumnToggle('totalPrice')} />
-                    <span>Total Price</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
-          </div>
+
         </div>
         <div className="align-items-center gap-2 flex-wrap filter-info mt-3">
           <h6 className="fs-13 fw-semibold">Filters</h6>
@@ -293,50 +303,56 @@ const StockAgeing = () => {
         <table className="table table-nowrap datatable">
           <thead>
             <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input className="form-check-input" type="checkbox" id="select-all" />
-                </div>
-              </th>
-              {columns.product && <th className="no-sort">Product</th>}
-              {columns.unit && <th className="no-sort">Unit</th>}
-              {columns.price && <th>Price</th>}
-              {columns.quantity && <th>Quantity</th>}
-              {columns.totalPrice && <th>Total Price</th>}
+
+              {columns.product && <th className="no-sort">Product / Item</th>}
+              {columns.qty && <th className="text-center">Total Qty</th>}
+              {columns.valuation && <th className="text-end">Valuation</th>}
+              {columns.bucket1 && <th className="text-center">0-30</th>}
+              {columns.bucket2 && <th className="text-center">31-60</th>}
+              {columns.bucket3 && <th className="text-center">61-90</th>}
+              {columns.bucket4 && <th className="text-center">91-180</th>}
+              {columns.bucket5 && <th className="text-center">180 Day</th>}
             </tr>
           </thead>
           <tbody>
             {filteredData.map(item => (
               <tr key={item.id}>
-                <td>
-                  <div className="form-check form-check-md">
-                    <input className="form-check-input" type="checkbox" />
-                  </div>
-                </td>
+
                 {columns.product && (
                   <td>
                     <div className="d-flex align-items-center">
-                      <Link href="#" className="avatar avatar-sm rounded-circle me-2 flex-shrink-0">
-                        <img
-                          src={item.img}
-                          className="rounded-circle"
-                          alt="img"
-                        />
-                      </Link>
+                      <div className="avatar avatar-sm rounded-circle me-2 flex-shrink-0 bg-soft-primary text-primary d-flex align-items-center justify-content-center">
+                        <i className="isax isax-box fs-14"></i>
+                      </div>
                       <div>
-                        <h6 className="fs-14 fw-medium mb-0">
-                          <Link href="#">{item.name}</Link>
-                        </h6>
+                        <h6 className="fs-14 fw-medium mb-0">{item.item_name}</h6>
+                        <span className="fs-12 text-muted truncate-1" style={{ maxWidth: '180px' }}>{item.category_name}</span>
                       </div>
                     </div>
                   </td>
                 )}
-                {columns.unit && <td className="text-dark">{item.unit}</td>}
-                {columns.price && <td className="text-dark">${item.price}</td>}
-                {columns.quantity && <td>{item.quantity}</td>}
-                {columns.totalPrice && <td className="text-dark">${item.totalPrice}</td>}
+                {columns.qty && <td className="text-center fw-600">{item.total_qty} {item.uom_id}</td>}
+                {columns.valuation && <td className="text-end fw-bold text-dark">₹{item.valuation?.toLocaleString()}</td>}
+                {columns.bucket1 && <td className="text-center text-muted">{item.ageing_buckets?.['0-30'] || 0}</td>}
+                {columns.bucket2 && <td className="text-center text-muted">{item.ageing_buckets?.['31-60'] || 0}</td>}
+                {columns.bucket3 && <td className="text-center text-muted">{item.ageing_buckets?.['61-90'] || 0}</td>}
+                {columns.bucket4 && <td className="text-center text-muted">{item.ageing_buckets?.['91-180'] || 0}</td>}
+                {columns.bucket5 && <td className="text-center text-muted">{item.ageing_buckets?.['>180'] || 0}</td>}
               </tr>
             ))}
+            {loading && (
+              <tr>
+                <td colSpan="10" className="text-center py-5">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+                  <span className="ms-2">Loading ageing data...</span>
+                </td>
+              </tr>
+            )}
+            {!loading && filteredData.length === 0 && (
+              <tr>
+                <td colSpan="10" className="text-center py-5 text-muted">No stock data found matching your filters.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -355,7 +371,7 @@ const StockAgeing = () => {
           </div>
         </div>
         <div className="offcanvas-body pt-3">
-          <form action="#">
+          <form action="#" onSubmit={(e) => e.preventDefault()}>
             <div className="mb-3">
               <label className="form-label">Product</label>
               <div className="dropdown">
@@ -378,148 +394,53 @@ const StockAgeing = () => {
                         type="text"
                         className="form-control form-control-sm"
                         placeholder="Search"
+                        value={productSearchText}
+                        onChange={(e) => setProductSearchText(e.target.value)}
                       />
                     </div>
                   </div>
                   <ul className="mb-3">
                     <li className="d-flex align-items-center justify-content-between mb-3">
                       <label className="d-inline-flex align-items-center text-gray-9">
-                        <input className="form-check-input select-all m-0 me-2" type="checkbox" />{' '}
+                        <input className="form-check-input select-all m-0 me-2" type="checkbox" onChange={handleSelectAllProducts} checked={data.length > 0 && selectedProducts.length === data.length} />{' '}
                         Select All
                       </label>
-                      <Link href="#" className="link-danger fw-medium text-decoration-underline">
+                      <Link href="#" className="link-danger fw-medium text-decoration-underline" onClick={(e) => { e.preventDefault(); setSelectedProducts([]); }}>
                         Reset
                       </Link>
                     </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-01.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Apple iPhone 15
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-02.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Dell XPS 13 9310
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-03.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Bose QuietComfort 45
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-04.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Nike Dri-FIT T-shirt
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-05.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Adidas Ultraboost 22 Running Shoe
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/products/product-06.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Samsung French Door Refrigerator
-                      </label>
-                    </li>
+                    {data.filter(item => (item.item_name || "").toLowerCase().includes(productSearchText.toLowerCase())).map(item => (
+                      <li key={item.id}>
+                        <label className="dropdown-item px-2 d-flex align-items-center text-dark">
+                          <input className="form-check-input m-0 me-2" type="checkbox" checked={selectedProducts.includes(item.id)} onChange={() => handleProductToggle(item.id)} />
+                          <span className="avatar avatar-sm rounded-circle me-2 bg-soft-primary text-primary d-flex align-items-center justify-content-center">
+                            <i className="isax isax-box fs-14"></i>
+                          </span>
+                          {item.item_name}
+                        </label>
+                      </li>
+                    ))}
                   </ul>
                   <div className="row g-2">
                     <div className="col-6">
-                      <Link href="#" className="btn btn-outline-white w-100 close-filter">
+                      <button className="btn btn-outline-white w-100 close-filter" onClick={(e) => { e.preventDefault(); document.body.click(); }}>
                         Cancel
-                      </Link>
+                      </button>
                     </div>
                     <div className="col-6">
-                      <Link href="#" className="btn btn-primary w-100">
+                      <button className="btn btn-primary w-100" onClick={(e) => { e.preventDefault(); document.body.click(); }}>
                         Select
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mb-3">
-              <label className="form-label">Units</label>
-              <select className="select">
-                <option>Select</option>
-                <option>Piece</option>
-                <option>Pack</option>
-                <option>Liter</option>
-              </select>
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Price</label>
-              <div className="dropdown">
-                <Link
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
-                  data-bs-toggle="dropdown"
-                  data-bs-auto-close="outside"
-                  aria-expanded="true"
-                >
-                  Select
-                </Link>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <div className="filter-range">
-                    <input type="text" id="range_03" />
-                    <p>
-                      Range : <span className="text-gray-9">Range : $200 - $5695</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+
             <div className="offcanvas-footer">
               <div className="row g-2">
                 <div className="col-6">
-                  <Link href="#" className="btn btn-outline-white w-100">
+                  <Link href="#" className="btn btn-outline-white w-100" onClick={(e) => { e.preventDefault(); setSelectedProducts([]); }}>
                     Reset
                   </Link>
                 </div>

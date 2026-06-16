@@ -91,6 +91,27 @@ class EmployeeApi {
     }
   }
 
+  // Delete employee
+  async deleteEmployee(employeeId) {
+    try {
+      const response = await fetch(`${this.apiBase}/${employeeId}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API: Error deleting employee:', error);
+      throw error;
+    }
+  }
+
+
   // Get employee by ID
   async getEmployeeById(employeeId) {
     try {

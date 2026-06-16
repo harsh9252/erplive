@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getPurchaseOrderById, confirmPurchaseOrder, cancelPurchaseOrder } from '../services/purchaseOrderService';
+import Swal from 'sweetalert2';
 
 const PurchaseOrderDetails = () => {
   const { id } = useParams();
@@ -28,12 +29,30 @@ const PurchaseOrderDetails = () => {
   }, [fetchOrder]);
 
   const handleAction = async (action) => {
-    const actionName = action === 'confirm' ? 'confirm' : 'cancel';
-    if (!window.confirm(`Are you sure you want to ${actionName} this Purchase Order?`)) return;
+    const isConfirmAction = action === 'confirm';
+    const { isConfirmed } = await Swal.fire({
+      title: isConfirmAction ? 'Confirm Order?' : 'Cancel Order?',
+      text: isConfirmAction 
+        ? "Are you sure you want to confirm this Purchase Order? Status will be updated to Confirmed."
+        : "Are you sure you want to cancel this Purchase Order? This action cannot be undone.",
+      icon: isConfirmAction ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: isConfirmAction ? 'Yes, Confirm It' : 'Yes, Cancel It',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: isConfirmAction ? '#0066cc' : '#dc3545',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0',
+        confirmButton: `btn ${isConfirmAction ? 'btn-primary' : 'btn-danger'} px-4 rounded-pill`,
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false
+    });
+
+    if (!isConfirmed) return;
     
     setActionLoading(true);
     try {
-      if (action === 'confirm') {
+      if (isConfirmAction) {
         await confirmPurchaseOrder(id);
         toast.success('Purchase order confirmed successfully');
       } else {
@@ -42,8 +61,8 @@ const PurchaseOrderDetails = () => {
       }
       fetchOrder();
     } catch (error) {
-      console.error(`Error ${actionName}ing order:`, error);
-      toast.error(error.message || `Failed to ${actionName} order`);
+      console.error(`Error ${action}ing order:`, error);
+      toast.error(error.message || `Failed to ${action} order`);
     } finally {
       setActionLoading(false);
     }
@@ -157,8 +176,8 @@ const PurchaseOrderDetails = () => {
                 <span className="fw-semibold text-primary">{order.expected_delivery || 'Not Set'}</span>
               </div>
               <div className="d-flex justify-content-between mb-0">
-                <span className="text-muted">Vendor ID</span>
-                <span className="fw-semibold text-dark">{order.vendor_id}</span>
+                <span className="text-muted">Vendor Name</span>
+                <span className="fw-semibold text-dark">{order.vendor?.name || 'N/A'}</span>
               </div>
             </div>
           </div>

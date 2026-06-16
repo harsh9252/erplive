@@ -2,13 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
+import branchService from '../services/branchService';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+
+import { useAuth } from '../components/AuthContext';
 
 const Branches = () => {
+  const { activeCompany } = useAuth();
   const [branches, setBranches] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null, type: 'delete', newStatus: null });
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  
+
   const [branchData, setBranchData] = useState({
     company_id: '',
     name: '',
@@ -21,7 +28,10 @@ const Branches = () => {
     email: '',
     gstin: '',
     is_head_office: false,
+    pincode: '',
   });
+
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -30,34 +40,30 @@ const Branches = () => {
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedStateIso, setSelectedStateIso] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Load branches from localStorage or use dummy data
+  // Fetch branches from API
+  const fetchBranches = async () => {
+    try {
+      setBranchesLoading(true);
+      const response = await branchService.getBranches();
+      setBranches(response.data || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      toast.error('Failed to load branches');
+    } finally {
+      setBranchesLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadBranches = () => {
-      const stored = localStorage.getItem('branches');
-      if (stored) {
-        setBranches(JSON.parse(stored));
-      } else {
-        const dummyBranches = [
-          { id: 1, name: 'Head Office', code: 'HO-001', city: 'Mumbai', state: 'Maharashtra', phone: '+91 9876543210', email: 'ho@company.com', isHeadOffice: true, status: 'Active' },
-          { id: 2, name: 'Delhi Branch', code: 'BR-002', city: 'New Delhi', state: 'Delhi', phone: '+91 9876543211', email: 'delhi@company.com', isHeadOffice: false, status: 'Active' },
-          { id: 3, name: 'Bangalore Branch', code: 'BR-003', city: 'Bangalore', state: 'Karnataka', phone: '+91 9876543212', email: 'bangalore@company.com', isHeadOffice: false, status: 'Active' },
-          { id: 4, name: 'Chennai Branch', code: 'BR-004', city: 'Chennai', state: 'Tamil Nadu', phone: '+91 9876543213', email: 'chennai@company.com', isHeadOffice: false, status: 'Active' },
-          { id: 5, name: 'Kolkata Branch', code: 'BR-005', city: 'Kolkata', state: 'West Bengal', phone: '+91 9876543214', email: 'kolkata@company.com', isHeadOffice: false, status: 'Inactive' },
-          { id: 6, name: 'Hyderabad Branch', code: 'BR-006', city: 'Hyderabad', state: 'Telangana', phone: '+91 9876543215', email: 'hyderabad@company.com', isHeadOffice: false, status: 'Active' },
-          { id: 7, name: 'Pune Branch', code: 'BR-007', city: 'Pune', state: 'Maharashtra', phone: '+91 9876543216', email: 'pune@company.com', isHeadOffice: false, status: 'Active' },
-          { id: 8, name: 'Ahmedabad Branch', code: 'BR-008', city: 'Ahmedabad', state: 'Gujarat', phone: '+91 9876543217', email: 'ahmedabad@company.com', isHeadOffice: false, status: 'Inactive' },
-        ];
-        localStorage.setItem('branches', JSON.stringify(dummyBranches));
-        setBranches(dummyBranches);
-      }
-    };
-    loadBranches();
+    fetchBranches();
   }, []);
 
   // State codes mapping
   const stateCodeMap = {
     'Jammu & Kashmir': '01',
+    'Jammu and Kashmir': '01',
     'Himachal Pradesh': '02',
     'Punjab': '03',
     'Chandigarh': '04',
@@ -82,6 +88,7 @@ const Branches = () => {
     'Madhya Pradesh': '23',
     'Gujarat': '24',
     'Dadra & Nagar Haveli and Daman & Diu': '26',
+    'Dadra and Nagar Haveli and Daman and Diu': '26',
     'Maharashtra': '27',
     'Andhra Pradesh': '28',
     'Karnataka': '29',
@@ -91,9 +98,15 @@ const Branches = () => {
     'Tamil Nadu': '33',
     'Puducherry': '34',
     'Andaman & Nicobar': '35',
+    'Andaman and Nicobar Islands': '35',
     'Telangana': '36',
+    'Ladakh': '38',
     'Other Territory': '96',
   };
+
+  const stateNameMap = Object.fromEntries(
+    Object.entries(stateCodeMap).map(([name, code]) => [code, name])
+  );
 
   // Fetch states from API when component mounts
   useEffect(() => {
@@ -176,6 +189,18 @@ const Branches = () => {
     fetchCities();
   }, [selectedStateIso]);
 
+  // Effect to sync selected state ISO for city fetching, especially during edit
+  useEffect(() => {
+    if (branchData.state && states.length > 0) {
+      const state = states.find(s => s.stateCode === branchData.state);
+      if (state && state.iso2 !== selectedStateIso) {
+        setSelectedStateIso(state.iso2);
+      }
+    } else if (!branchData.state && selectedStateIso !== '') {
+      setSelectedStateIso('');
+    }
+  }, [branchData.state, states]);
+
   // Validation functions
   const validateGSTIN = (gstin) => {
     const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -183,7 +208,7 @@ const Branches = () => {
   };
 
   const validatePhone = (phone) => {
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
     return phoneRegex.test(phone);
   };
 
@@ -192,24 +217,45 @@ const Branches = () => {
     return emailRegex.test(email);
   };
 
+  const validatePincode = (pincode) => {
+    const pincodeRegex = /^[0-9]{6}$/;
+    return pincodeRegex.test(pincode);
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let finalValue = type === 'checkbox' ? checked : value;
+
+    if (name === 'phone' || name === 'pincode') {
+      finalValue = value.replace(/\D/g, '');
+    }
+
+    if (name === 'email') {
+      finalValue = value.replace(/[^a-zA-Z0-9@.]/g, '');
+    }
 
     if (name === 'state') {
-      // Find the selected state and get its ISO2 code and state code
-      const selectedState = states.find(s => s.name === value);
+      // Find the selected state by its state code
+      const selectedState = states.find(s => s.stateCode === value);
       if (selectedState) {
-        setSelectedStateIso(selectedState.iso2);
         setBranchData(prev => ({
           ...prev,
-          state: value,
+          state: selectedState.stateCode,
           state_code: selectedState.stateCode,
+          city: '' // Reset city when state changes
+        }));
+      } else {
+        setBranchData(prev => ({
+          ...prev,
+          state: '',
+          state_code: '',
+          city: ''
         }));
       }
     } else {
       setBranchData(prev => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value
+        [name]: finalValue
       }));
     }
 
@@ -224,8 +270,46 @@ const Branches = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!branchData.name.trim()) newErrors.name = 'Branch name is required';
-    if (!branchData.code.trim()) newErrors.code = 'Branch code is required';
+    if (!branchData.name?.trim()) newErrors.name = 'Branch name is required';
+    if (!branchData.code?.trim()) {
+      newErrors.code = 'Branch code is required';
+    } else {
+      const isDuplicateCode = branches.some(
+        (b) => 
+          (b.branch_code?.toLowerCase() === branchData.code.trim().toLowerCase() || b.code?.toLowerCase() === branchData.code.trim().toLowerCase()) && 
+          b.id !== editingId
+      );
+      if (isDuplicateCode) {
+        newErrors.code = 'Branch code must be unique';
+      }
+    }
+    if (!branchData.address?.trim()) newErrors.address = 'Address is required';
+    if (!branchData.city) newErrors.city = 'City is required';
+    if (!branchData.state) newErrors.state = 'State is required';
+    
+    if (!branchData.phone?.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!validatePhone(branchData.phone)) {
+      newErrors.phone = 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9';
+    }
+
+    if (!branchData.email?.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(branchData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    if (!branchData.pincode?.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!validatePincode(branchData.pincode)) {
+      newErrors.pincode = 'Pincode must be 6 digits';
+    }
+
+    if (branchData.gstin && branchData.gstin.trim()) {
+      if (!validateGSTIN(branchData.gstin)) {
+        newErrors.gstin = 'Invalid GSTIN format (e.g., 22AAAAA0000A1Z5)';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -238,57 +322,20 @@ const Branches = () => {
       return;
     }
 
+    if (!activeCompany) {
+      toast.error('Please create or select a company first');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
       if (isEditMode) {
-        // Update existing branch
-        const updatedBranches = branches.map(branch =>
-          branch.id === editingId
-            ? {
-                ...branch,
-                name: branchData.name,
-                code: branchData.code,
-                city: branchData.city,
-                state: branchData.state,
-                phone: branchData.phone,
-                email: branchData.email,
-                isHeadOffice: branchData.is_head_office,
-              }
-            : branch
-        );
-        localStorage.setItem('branches', JSON.stringify(updatedBranches));
-        setBranches(updatedBranches);
-        
-        toast.success('Branch updated successfully!', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        await branchService.updateBranch(editingId, branchData);
+        toast.success('Branch updated successfully!');
       } else {
-        // Create new branch
-        const newId = branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1;
-        const newBranch = {
-          id: newId,
-          name: branchData.name,
-          code: branchData.code,
-          city: branchData.city,
-          state: branchData.state,
-          phone: branchData.phone,
-          email: branchData.email,
-          isHeadOffice: branchData.is_head_office,
-          status: 'Active'
-        };
-        
-        const updatedBranches = [...branches, newBranch];
-        localStorage.setItem('branches', JSON.stringify(updatedBranches));
-        setBranches(updatedBranches);
-        
-        toast.success('Branch created successfully!', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        await branchService.createBranch(branchData);
+        toast.success('Branch created successfully!');
       }
 
       setBranchData({
@@ -303,10 +350,13 @@ const Branches = () => {
         email: '',
         gstin: '',
         is_head_office: false,
+        pincode: '',
       });
-      
+
       setIsEditMode(false);
       setEditingId(null);
+      fetchBranches();
+      window.dispatchEvent(new Event('BRANCHES_MODIFIED'));
 
       const modalElement = document.getElementById('add_branch');
       const modal = window.bootstrap.Modal.getInstance(modalElement);
@@ -315,10 +365,7 @@ const Branches = () => {
       }
     } catch (error) {
       console.error('Error saving branch:', error);
-      toast.error('Error saving branch. Please try again.', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      toast.error(error.message || 'Error saving branch. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -326,21 +373,22 @@ const Branches = () => {
 
   const handleEdit = (branch) => {
     setBranchData({
-      company_id: '',
+      company_id: branch.company_id || '',
       name: branch.name,
-      code: branch.code,
-      address: '',
+      code: branch.branch_code || branch.code,
+      address: branch.address || '',
       city: branch.city,
-      state: branch.state,
-      state_code: '',
+      state: branch.state_code || branch.state,
+      state_code: branch.state_code || '',
       phone: branch.phone,
       email: branch.email,
-      gstin: '',
-      is_head_office: branch.isHeadOffice,
+      gstin: branch.gstin || '',
+      is_head_office: branch.is_head_office || branch.isHeadOffice,
+      pincode: branch.pincode || '',
     });
     setIsEditMode(true);
     setEditingId(branch.id);
-    
+
     // Open modal
     const modalElement = document.getElementById('add_branch');
     const modal = new window.bootstrap.Modal(modalElement);
@@ -360,6 +408,7 @@ const Branches = () => {
       email: '',
       gstin: '',
       is_head_office: false,
+      pincode: '',
     });
     setIsEditMode(false);
     setEditingId(null);
@@ -374,282 +423,336 @@ const Branches = () => {
     setConfirmDialog({ isOpen: true, id, type: 'status', newStatus });
   };
 
-  const confirmAction = () => {
-    if (confirmDialog.type === 'delete') {
-      const updatedBranches = branches.filter(branch => branch.id !== confirmDialog.id);
-      localStorage.setItem('branches', JSON.stringify(updatedBranches));
-      setBranches(updatedBranches);
-      toast.success('Branch deleted successfully!', {
-        position: 'top-right',
-        autoClose: 3000,
+  const confirmAction = async () => {
+    try {
+      if (confirmDialog.type === 'delete') {
+        await branchService.deleteBranch(confirmDialog.id);
+        toast.success('Branch deleted successfully!');
+        fetchBranches();
+        window.dispatchEvent(new Event('BRANCHES_MODIFIED'));
+      } else if (confirmDialog.type === 'status') {
+        await branchService.updateBranch(confirmDialog.id, {
+          is_active: confirmDialog.newStatus === 'Active'
+        });
+        toast.success(`Branch status updated to ${confirmDialog.newStatus}!`);
+        fetchBranches();
+        window.dispatchEvent(new Event('BRANCHES_MODIFIED'));
+      }
+    } catch (error) {
+      console.error('Error in confirm action:', error);
+      toast.error(error.message || 'Action failed. Please try again.');
+    } finally {
+      setConfirmDialog({ isOpen: false, id: null, type: 'delete', newStatus: null });
+    }
+  };
+
+  const filteredBranches = branches.filter(branch => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      (branch.name || '').toLowerCase().includes(searchLower) ||
+      (branch.branch_code || branch.code || '').toLowerCase().includes(searchLower) ||
+      (branch.city || '').toLowerCase().includes(searchLower) ||
+      (branch.state || '').toLowerCase().includes(searchLower) ||
+      (branch.email || '').toLowerCase().includes(searchLower) ||
+      (branch.phone || '').toLowerCase().includes(searchLower)
+    );
+  });
+
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF('landscape');
+      
+      doc.setFontSize(16);
+      doc.setTextColor(40, 40, 40);
+      doc.text("Branches / Units Report", 14, 15);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+      
+      if (searchTerm) {
+        doc.text(`Filter applied: "${searchTerm}"`, 14, 28);
+      }
+
+      const tableColumn = [
+        "Branch Name", "Branch Code", "GSTIN", "City", "State", "Phone", "Email", "Head Office", "Status"
+      ];
+      const tableRows = [];
+
+      filteredBranches.forEach(branch => {
+        const branchData = [
+          branch.name || '-',
+          branch.branch_code || branch.code || '-',
+          branch.gstin || '-',
+          branch.city || '-',
+          branch.state_code ? `${branch.state_code}-${stateNameMap[branch.state_code] || branch.state}` : (branch.state || '-'),
+          branch.phone || '-',
+          branch.email || '-',
+          branch.is_head_office ? 'Yes' : 'No',
+          branch.is_active === false ? 'Inactive' : 'Active'
+        ];
+        tableRows.push(branchData);
       });
-    } else if (confirmDialog.type === 'status') {
-      const updatedBranches = branches.map(branch =>
-        branch.id === confirmDialog.id ? { ...branch, status: confirmDialog.newStatus } : branch
-      );
-      localStorage.setItem('branches', JSON.stringify(updatedBranches));
-      setBranches(updatedBranches);
-      toast.success(`Branch status updated to ${confirmDialog.newStatus}!`, {
-        position: 'top-right',
-        autoClose: 3000,
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: searchTerm ? 34 : 28,
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [63, 81, 181], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
       });
+      doc.save("branches_report.pdf");
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(filteredBranches.map(branch => ({
+        "Branch Name": branch.name || '-',
+        "Branch Code": branch.branch_code || branch.code || '-',
+        "GSTIN": branch.gstin || '-',
+        "Address": branch.address || '-',
+        "City": branch.city || '-',
+        "State": branch.state_code ? `${branch.state_code}-${stateNameMap[branch.state_code] || branch.state}` : (branch.state || '-'),
+        "Pincode": branch.pincode || '-',
+        "Phone": branch.phone || '-',
+        "Email": branch.email || '-',
+        "Head Office": branch.is_head_office ? 'Yes' : 'No',
+        "Status": branch.is_active === false ? 'Inactive' : 'Active'
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Branches");
+      XLSX.writeFile(workbook, "branches_report.xlsx");
+      toast.success("Excel exported successfully");
+    } catch (error) {
+      console.error("Excel Export Error:", error);
+      toast.error("Failed to export Excel");
     }
   };
 
   const getStats = () => {
     const total = branches.length;
-    const active = branches.filter(b => b.status === 'Active').length;
-    const inactive = branches.filter(b => b.status === 'Inactive').length;
-    const headOffice = branches.filter(b => b.isHeadOffice).length;
+    const active = branches.filter(b => b.is_active !== false).length;
+    const inactive = branches.filter(b => b.is_active === false).length;
+    const headOffice = branches.filter(b => b.is_head_office).length;
     return { total, active, inactive, headOffice };
   };
 
   const stats = getStats();
 
+  if (!activeCompany) {
+    return (
+      <div className="content container-fluid pb-5">
+        <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '60vh' }}>
+          <div className="text-center">
+            <div className="avatar avatar-xxl bg-soft-primary text-primary rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
+              <i className="isax isax-building fs-40"></i>
+            </div>
+            <h3 className="fw-bold mb-2">No Active Company</h3>
+            <p className="text-muted mb-4">Please create and select a company to manage branches.</p>
+            <Link to="/add-company" className="btn btn-primary px-4 py-2 rounded-3">
+              <i className="isax isax-add-circle5 me-2"></i>Create Company
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, id: null, type: 'delete', newStatus: null })}
-        onConfirm={confirmAction}
-        title={confirmDialog.type === 'delete' ? 'Delete Branch' : 'Update Status'}
-        message={
-          confirmDialog.type === 'delete'
-            ? 'Are you sure you want to delete this branch? This action cannot be undone.'
-            : `Are you sure you want to change the status to ${confirmDialog.newStatus}?`
-        }
-        confirmText={confirmDialog.type === 'delete' ? 'Yes, Delete' : 'Yes, Update'}
-        cancelText="Cancel"
-        type={confirmDialog.type === 'delete' ? 'danger' : 'warning'}
-      />
-      
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
-        <div>
-          <h6>Branches</h6>
-        </div>
-        <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
-          <div className="dropdown">
-            <Link
-              href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as Excel
-                </Link>
-              </li>
-            </ul>
-          </div>
+      <div className="container-fluid p-0">
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ isOpen: false, id: null, type: 'delete', newStatus: null })}
+          onConfirm={confirmAction}
+          title={confirmDialog.type === 'delete' ? 'Delete Branch' : 'Update Status'}
+          message={
+            confirmDialog.type === 'delete'
+              ? 'Are you sure you want to delete this branch? This action cannot be undone.'
+              : `Are you sure you want to change the status to ${confirmDialog.newStatus}?`
+          }
+          confirmText={confirmDialog.type === 'delete' ? 'Yes, Delete' : 'Yes, Update'}
+          cancelText="Cancel"
+          type={confirmDialog.type === 'delete' ? 'danger' : 'warning'}
+        />
+
+        {/* Header section with Breadcrumbs */}
+        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
           <div>
+            <h4 className="fw-bold mb-1">Branches / Units</h4>
+            <nav aria-label="breadcrumb">
+              <ol className="breadcrumb breadcrumb-divide mb-0">
+                <li className="breadcrumb-item">
+                  <Link to="/" className="text-muted"><i className="isax isax-home-2 me-1"></i>Home</Link>
+                </li>
+
+                <li className="breadcrumb-item active text-primary">Branches / Units</li>
+              </ol>
+            </nav>
+          </div>
+          <div className="d-flex gap-2">
+            <div className="dropdown">
+              <button className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none dropdown-toggle" data-bs-toggle="dropdown">
+                <i className="isax isax-export-1 me-2 text-primary"></i>Export
+              </button>
+              <ul className="dropdown-menu">
+                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); exportToPDF(); }}>Download as PDF</a></li>
+                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); exportToExcel(); }}>Download as Excel</a></li>
+              </ul>
+            </div>
             <Link
               href="#"
-              className="btn btn-primary d-flex align-items-center"
+              className="btn btn-primary d-flex align-items-center shadow-sm px-4 rounded-pill transition-all"
               data-bs-toggle="modal"
               data-bs-target="#add_branch"
             >
-              <i className="isax isax-add-circle5 me-1"></i>New Branch
+              <i className="isax isax-add-circle me-2 fs-18"></i>New Unit / Branch
             </Link>
-          </div>
-        </div>
-      </div>
 
-      <div className="row">
-        <div className="col-xl-3 col-lg-4 col-md-6">
-          <div className="card position-relative">
-            <div className="card-body">
-              <div className="d-flex align-items-center pb-0">
-                <div className="me-2">
-                  <span className="avatar avatar-lg bg-soft-info">
-                    <i className="isax isax-buildings-25 text-info fs-28"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="mb-1">Total Branches</p>
-                  <h6 className="fs-16 fw-semibold">{stats.total}</h6>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
-          <div className="card position-relative">
-            <div className="card-body">
-              <div className="d-flex align-items-center pb-0">
-                <div className="me-2">
-                  <span className="avatar avatar-lg bg-success-subtle">
-                    <i className="isax isax-tick-circle5 text-success fs-28"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="mb-1">Active Branches</p>
-                  <h6 className="fs-16 fw-semibold">{stats.active}</h6>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
-          <div className="card position-relative">
-            <div className="card-body">
-              <div className="d-flex align-items-center pb-0">
-                <div className="me-2">
-                  <span className="avatar avatar-lg bg-danger-subtle">
-                    <i className="isax isax-close-circle5 text-danger fs-28"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="mb-1">Inactive Branches</p>
-                  <h6 className="fs-16 fw-semibold">{stats.inactive}</h6>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
-          <div className="card position-relative">
-            <div className="card-body">
-              <div className="d-flex align-items-center pb-0">
-                <div className="me-2">
-                  <span className="avatar avatar-lg bg-primary-subtle">
-                    <i className="isax isax-building5 text-primary fs-28"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="mb-1">Head Office</p>
-                  <h6 className="fs-16 fw-semibold">{stats.headOffice}</h6>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="table-responsive">
-        <table className="table table-nowrap datatable">
-          <thead className="thead-light">
-            <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input className="form-check-input" type="checkbox" id="select-all" />
-                </div>
-              </th>
-              <th>Branch Name</th>
-              <th>Branch Code</th>
-              <th>City</th>
-              <th>State</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Head Office</th>
-              <th className="no-sort text-center">Status</th>
-              <th className="no-sort text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {branches.map((branch) => (
-              <tr key={branch.id}>
-                <td>
-                  <div className="form-check form-check-md">
-                    <input className="form-check-input" type="checkbox" />
-                  </div>
-                </td>
-                <td>
-                  <h6 className="fs-14 fw-medium mb-0">
-                    <Link href="#">{branch.name}</Link>
-                  </h6>
-                </td>
-                <td>{branch.code}</td>
-                <td>{branch.city}</td>
-                <td>{branch.state}</td>
-                <td>{branch.phone}</td>
-                <td>{branch.email}</td>
-                <td>
-                  {branch.isHeadOffice ? (
-                    <span className="badge badge-soft-success">
-                      <i className="isax isax-tick-circle me-1"></i>Yes
+        <div className="row">
+          <div className="col-xl-6 col-lg-6 col-md-6">
+            <div className="card position-relative">
+              <div className="card-body">
+                <div className="d-flex align-items-center pb-0">
+                  <div className="me-2">
+                    <span className="avatar avatar-lg bg-soft-info">
+                      <i className="isax isax-buildings-25 text-info fs-28"></i>
                     </span>
+                  </div>
+                  <div>
+                    <p className="mb-1">Total Branches</p>
+                    <h6 className="fs-16 fw-semibold">{stats.total}</h6>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-6 col-lg-6 col-md-6">
+            <div className="card position-relative">
+              <div className="card-body">
+                <div className="d-flex align-items-center pb-0">
+                  <div className="me-2">
+                    <span className="avatar avatar-lg bg-primary-subtle">
+                      <i className="isax isax-building5 text-primary fs-28"></i>
+                    </span>
+                  </div>
+                  <div>
+                    <p className="mb-1">Head Office</p>
+                    <h6 className="fs-16 fw-semibold">{stats.headOffice}</h6>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card border-0 shadow-sm rounded-4 mt-4">
+          <div className="card-header bg-white py-3 border-0">
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <h6 className="mb-0 fw-bold">Branch Locations</h6>
+              <div className="input-group" style={{ maxWidth: '300px' }}>
+                <span className="input-group-text bg-light border-0"><i className="isax isax-search-normal text-muted fs-14"></i></span>
+                <input
+                  type="text"
+                  className="form-control bg-light border-0 shadow-none ps-0"
+                  placeholder="Search branches..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="bg-light text-muted fs-11 text-uppercase tracking-wider">
+                  <tr>
+                    <th className="ps-4">Branch Name</th>
+                    <th>Branch Code</th>
+                    <th>GSTIN</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Head Office</th>
+                    <th className="text-end pe-4">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="border-top-0">
+                  {branchesLoading ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status"></div>
+                      </td>
+                    </tr>
+                  ) : filteredBranches.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-5 text-muted">No branches found matching your search.</td>
+                    </tr>
                   ) : (
-                    <span className="badge badge-soft-secondary">
-                      <i className="isax isax-close-circle me-1"></i>No
-                    </span>
+                    filteredBranches.map((branch) => (
+                      <tr key={branch.id}>
+                        <td className="ps-4">
+                          <h6 className="fs-14 fw-medium mb-0">
+                            <Link to="#" onClick={(e) => { e.preventDefault(); handleEdit(branch); }}>{branch.name}</Link>
+                          </h6>
+                        </td>
+                        <td>{branch.branch_code || branch.code}</td>
+                        <td>{branch.gstin || '-'}</td>
+                        <td>{branch.city || '-'}</td>
+                        <td>{branch.state_code ? `${branch.state_code}-${stateNameMap[branch.state_code] || branch.state}` : (branch.state || '-')}</td>
+                        <td>{branch.phone || '-'}</td>
+                        <td>{branch.email || '-'}</td>
+                        <td>
+                          {branch.is_head_office ? (
+                            <span className="badge badge-soft-success">
+                              <i className="isax isax-tick-circle me-1"></i>Yes
+                            </span>
+                          ) : (
+                            <span className="badge badge-soft-secondary">
+                              <i className="isax isax-close-circle me-1"></i>No
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-end pe-4">
+                          <div className="d-flex justify-content-end align-items-center gap-2">
+                            <button
+                              className="btn btn-sm btn-soft-warning border-0"
+                              title="Edit"
+                              onClick={() => handleEdit(branch)}
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </button>
+                            <button
+                              className="btn btn-sm btn-soft-danger border-0"
+                              title="Delete"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(branch.id);
+                              }}
+                            >
+                              <i className="isax isax-trash fs-16"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </td>
-                <td>
-                  <div className="dropdown">
-                    <button
-                      className={`btn ${branch.status === 'Active' ? 'btn-soft-success' : 'btn-soft-danger'} btn-sm dropdown-toggle d-inline-flex align-items-center`}
-                      type="button"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      {branch.status}
-                    </button>
-                    <ul className="dropdown-menu">
-                      <li>
-                        <a 
-                          className="dropdown-item" 
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (branch.status !== 'Active') {
-                              handleStatusChange(branch.id, 'Active');
-                            }
-                          }}
-                        >
-                          Active
-                        </a>
-                      </li>
-                      <li>
-                        <a 
-                          className="dropdown-item" 
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (branch.status !== 'Inactive') {
-                              handleStatusChange(branch.id, 'Inactive');
-                            }
-                          }}
-                        >
-                          Inactive
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </td>
-                <td className="text-center">
-                  <div className="d-flex align-items-center justify-content-center gap-2">
-                    <button 
-                      className="btn btn-icon btn-soft-primary btn-sm" 
-                      title="Edit"
-                      onClick={() => handleEdit(branch)}
-                    >
-                      <i className="isax isax-edit-25"></i>
-                    </button>
-                    <a 
-                      href="#" 
-                      className="btn btn-icon btn-soft-danger btn-sm" 
-                      title="Delete"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDelete(branch.id);
-                      }}
-                    >
-                      <i className="isax isax-trash"></i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Add Branch Modal */}
@@ -657,11 +760,11 @@ const Branches = () => {
         <div className="modal-dialog modal-dialog-centered modal-lg">
           <div className="modal-content">
             <div className="modal-header d-flex justify-content-between align-items-center">
-              <h5 className="modal-title">{isEditMode ? 'Edit Branch' : 'Add Branch'}</h5>
-              <button 
-                type="button" 
-                className="btn btn-light d-flex align-items-center justify-content-center ms-auto" 
-                data-bs-dismiss="modal" 
+              <h5 className="modal-title">{isEditMode ? 'Edit Unit / Branch' : 'Add Unit / Branch'}</h5>
+              <button
+                type="button"
+                className="btn btn-light d-flex align-items-center justify-content-center ms-auto"
+                data-bs-dismiss="modal"
                 style={{ width: '32px', height: '32px', padding: '0', border: 'none' }}
                 onClick={handleModalClose}
               >
@@ -704,21 +807,22 @@ const Branches = () => {
                   </div>
 
                   <div className="col-12 mb-3">
-                    <label className="form-label">Address</label>
+                    <label className="form-label">Address <span className="text-danger">*</span></label>
                     <textarea
-                      className="form-control"
+                      className={`form-control ${errors.address ? 'is-invalid' : ''}`}
                       name="address"
                       value={branchData.address}
                       onChange={handleInputChange}
                       placeholder="Enter branch address"
                       rows="3"
                     ></textarea>
+                    {errors.address && <div className="invalid-feedback d-block">{errors.address}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">City</label>
+                    <label className="form-label">City <span className="text-danger">*</span></label>
                     <select
-                      className="form-select"
+                      className={`form-select ${errors.city ? 'is-invalid' : ''}`}
                       name="city"
                       value={branchData.city}
                       onChange={handleInputChange}
@@ -733,12 +837,13 @@ const Branches = () => {
                         </option>
                       ))}
                     </select>
+                    {errors.city && <div className="invalid-feedback d-block">{errors.city}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">State</label>
+                    <label className="form-label">State <span className="text-danger">*</span></label>
                     <select
-                      className="form-select"
+                      className={`form-select ${errors.state ? 'is-invalid' : ''}`}
                       name="state"
                       value={branchData.state}
                       onChange={handleInputChange}
@@ -748,48 +853,68 @@ const Branches = () => {
                         {loadingStates ? 'Loading states...' : 'Select state'}
                       </option>
                       {states.map((state) => (
-                        <option key={state.iso2 || state.name} value={state.name}>
-                          {state.name}
+                        <option key={state.iso2 || state.name} value={state.stateCode}>
+                          {state.stateCode}-{state.name}
                         </option>
                       ))}
                     </select>
+                    {errors.state && <div className="invalid-feedback d-block">{errors.state}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Phone</label>
+                    <label className="form-label">Phone Number <span className="text-danger">*</span></label>
                     <input
                       type="tel"
-                      className="form-control"
+                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
                       name="phone"
                       value={branchData.phone}
                       onChange={handleInputChange}
                       placeholder="10-digit mobile number"
                     />
+                    {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Email</label>
+                    <label className="form-label">Email <span className="text-danger">*</span></label>
                     <input
                       type="email"
-                      className="form-control"
+                      className={`form-control ${errors.email ? 'is-invalid' : ''}`}
                       name="email"
                       value={branchData.email}
                       onChange={handleInputChange}
                       placeholder="branch@example.com"
                     />
+                    {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
+                  </div>
+
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Pincode <span className="text-danger">*</span></label>
+                    <input
+                      type="text"
+                      className={`form-control ${errors.pincode ? 'is-invalid' : ''}`}
+                      name="pincode"
+                      value={branchData.pincode}
+                      onChange={handleInputChange}
+                      placeholder="Enter pincode"
+                    />
+                    {errors.pincode && <div className="invalid-feedback d-block">{errors.pincode}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Branch GSTIN</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.gstin ? 'is-invalid' : ''}`}
                       name="gstin"
                       value={branchData.gstin}
                       onChange={handleInputChange}
                       placeholder="e.g., 22AAAAA0000A1Z5"
                     />
-                    <small className="text-muted">Optional</small>
+                    {errors.gstin ? (
+                      <div className="invalid-feedback d-block">{errors.gstin}</div>
+                    ) : (
+                      <small className="text-muted">Optional</small>
+                    )}
                   </div>
 
                   <div className="col-md-6 mb-3">
@@ -811,9 +936,9 @@ const Branches = () => {
               </form>
             </div>
             <div className="modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-light" 
+              <button
+                type="button"
+                className="btn btn-light"
                 data-bs-dismiss="modal"
                 onClick={handleModalClose}
               >

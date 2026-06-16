@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 
@@ -11,15 +11,26 @@ const MainLayout = () => {
     console.log('Route changed to:', location.pathname);
   }, [location.pathname]);
 
-  // Tooltip initialization disabled - using native browser tooltips via title attribute
-  // Bootstrap tooltip causing JSON parse errors with data-bs-* attributes
+  // Initialize Bootstrap tooltips on route change
   useEffect(() => {
-    // Remove all data-bs-toggle="tooltip" attributes to prevent Bootstrap from trying to initialize
-    const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipElements.forEach(el => {
-      el.removeAttribute('data-bs-toggle');
-      el.removeAttribute('data-bs-placement');
+    // Only proceed if bootstrap is available on window
+    const bootstrap = window.bootstrap;
+    if (!bootstrap) return;
+
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map((tooltipTriggerEl) => {
+      // Cleanup existing instances to prevent memory leaks and "JSON parse" ghost errors
+      const existingInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+      if (existingInstance) {
+        existingInstance.dispose();
+      }
+      return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    // Cleanup on unmount or route change
+    return () => {
+      tooltipList.forEach(tooltip => tooltip.dispose());
+    };
   }, [location.pathname]);
 
   // Force scroll to top on route change

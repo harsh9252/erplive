@@ -48,21 +48,33 @@ export const createCompany = async (data) => {
   return apiRequest({ method: 'post', url: '/api/company', data });
 };
 
-/**
- * Fetch a specific company by ID
- * @param {string|number} id Company ID
- */
 export const getCompanyById = async (id) => {
-  return apiRequest({ method: 'get', url: `/api/company/${id}` });
+  return apiRequest({
+    method: 'get',
+    url: '/api/company',
+    headers: {
+      'x-company-id': String(id),
+      'x-business-id': String(id)
+    }
+  });
 };
 
-/**
- * Update company active status
- * @param {string|number} id Company ID
- * @param {boolean} isActive New status
- */
 export const updateCompanyStatus = async (id, isActive) => {
-  return apiRequest({ method: 'put', url: `/api/company/${id}/status`, data: { is_active: isActive } });
+  return apiRequest({
+    method: 'put',
+    url: `/api/company/${id}`,
+    headers: {
+      'x-company-id': String(id),
+      'x-business-id': String(id)
+    },
+    data: {
+      is_active: isActive
+    }
+  });
+};
+
+export const getBusinessNatures = async () => {
+  return apiRequest({ method: 'get', url: '/api/settings/business-natures' });
 };
 
 // Default export for backward compatibility with new pages
@@ -76,7 +88,8 @@ const companyService = {
   switchCompany,
   createCompany,
   getCompanyById,
-  updateCompanyStatus
+  updateCompanyStatus,
+  getBusinessNatures
 };
 
 export default companyService;

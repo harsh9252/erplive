@@ -3,9 +3,10 @@ import { cleanParams, normalizeListResponse, toDecimal, toNumberOrValue } from '
 
 const normalizeCreditNotePayload = (data = {}) => ({
   customer_id: toNumberOrValue(data.customer_id ?? data.customerId),
-  credit_date: data.credit_date ?? data.creditDate,
-  original_invoice_id: toNumberOrValue(data.original_invoice_id ?? data.originalInvoiceId) || null,
+  credit_note_date: data.credit_note_date ?? data.credit_date ?? data.creditDate,
+  sales_invoice_id: toNumberOrValue(data.sales_invoice_id ?? data.original_invoice_id ?? data.originalInvoiceId) || null,
   place_of_supply: data.place_of_supply || '',
+  reason: data.reason || 'SALES_RETURN',
   remarks: data.remarks || '',
   items: (data.items || []).map((item) => ({
     item_id: toNumberOrValue(item.item_id ?? item.productId),
@@ -13,16 +14,17 @@ const normalizeCreditNotePayload = (data = {}) => ({
     qty: toDecimal(item.qty ?? item.quantity, 1),
     rate: toDecimal(item.rate),
     gst_rate: toDecimal(item.gst_rate ?? item.tax_rate),
+    uom_id: toNumberOrValue(item.uom_id ?? item.uomId),
     hsn_code: item.hsn_code || '',
   })),
 });
 
-export const getCreditNotes = async (page = 1, limit = 20, search = '', status = '') =>
+export const getCreditNotes = async (page = 1, limit = 20, search = '', status = '', customer_id = '', from_date = '', to_date = '') =>
   normalizeListResponse(
     await apiRequest({
       url: '/api/credit-notes',
       method: 'GET',
-      params: cleanParams({ page, limit, search, status: status === 'All' ? '' : status }),
+      params: cleanParams({ page, limit, search, status: status === 'All' ? '' : status, customer_id, from_date, to_date }),
     }),
   );
 

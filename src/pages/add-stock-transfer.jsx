@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { transferStock } from '../services/inventoryService';
 import { getWarehouses } from '../services/settingsService';
 import { getItems } from '../services/itemService';
+import { getStockSummaryReport } from '../services/reportService';
 import SearchableSelect from '../components/SearchableSelect';
 
 const AddStockTransfer = () => {
@@ -12,6 +13,7 @@ const AddStockTransfer = () => {
   const [saving, setSaving] = useState(false);
   const [warehouses, setWarehouses] = useState([]);
   const [items, setItems] = useState([]);
+  const [stockSummary, setStockSummary] = useState([]);
 
   const [formData, setFormData] = useState({
     from_warehouse_id: '',
@@ -25,13 +27,15 @@ const AddStockTransfer = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [warehouseRes, itemsRes] = await Promise.all([
+        const [warehouseRes, itemsRes, stockRes] = await Promise.all([
           getWarehouses(),
-          getItems(1, 1000) // Fetch all items for the dropdown
+          getItems(1, 1000), // Fetch all items for the dropdown
+          getStockSummaryReport()
         ]);
         
         setWarehouses(warehouseRes.data || warehouseRes || []);
         setItems(itemsRes.data || itemsRes || []);
+        setStockSummary(stockRes.data || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load warehouses or items');
@@ -51,6 +55,19 @@ const AddStockTransfer = () => {
     setFormData(prev => ({ ...prev, item_id: itemId }));
   };
 
+  const availableStock = (() => {
+    if (!formData.item_id || !formData.from_warehouse_id) return null;
+    const selectedWarehouse = warehouses.find(w => String(w.id) === String(formData.from_warehouse_id));
+    if (!selectedWarehouse) return 0;
+    
+    const stockItem = stockSummary.find(s => 
+      String(s.id) === String(formData.item_id) && 
+      s.warehouse === selectedWarehouse.name
+    );
+    
+    return stockItem ? Number(stockItem.current_stock) : 0;
+  })();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -64,15 +81,18 @@ const AddStockTransfer = () => {
       return;
     }
 
+    if (availableStock !== null && Number(formData.qty) > availableStock) {
+      toast.error(`Insufficient stock in source warehouse. Available: ${availableStock}`);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
         item_id: Number(formData.item_id),
         from_warehouse_id: Number(formData.from_warehouse_id),
         to_warehouse_id: Number(formData.to_warehouse_id),
-        qty: Number(formData.qty),
-        transfer_date: formData.transfer_date,
-        remarks: formData.remarks
+        qty: Number(formData.qty)
       };
       
       await transferStock(payload);
@@ -194,7 +214,14 @@ const AddStockTransfer = () => {
 
                   {/* Quantity */}
                   <div className="col-md-6">
-                    <label className="form-label fw-600 text-dark">Quantity <span className="text-danger">*</span></label>
+                    <label className="form-label fw-600 text-dark d-flex align-items-center">
+                      Quantity <span className="text-danger ms-1">*</span>
+                      {availableStock !== null && (
+                        <span className={`ms-auto badge ${availableStock > 0 ? 'bg-success' : 'bg-danger'}`}>
+                          Available: {availableStock}
+                        </span>
+                      )}
+                    </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-0">
                         <i className="isax isax-hierarchy fs-16"></i>

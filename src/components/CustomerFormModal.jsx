@@ -27,12 +27,14 @@ const CustomerFormModal = ({ show, onClose, onSubmit, initialData = null, isLoad
               ></button>
             </div>
             <div className="modal-body">
-              <CustomerForm
-                initialData={initialData}
-                onSubmit={handleSubmit}
-                isLoading={isLoading}
-                onClose={onClose}
-              />
+              {show && (
+                <CustomerForm
+                  initialData={initialData}
+                  onSubmit={handleSubmit}
+                  isLoading={isLoading}
+                  onClose={onClose}
+                />
+              )}
             </div>
           </div>
         </div>

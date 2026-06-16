@@ -2,6 +2,7 @@ import { apiRequest } from './apiClient';
 import { cleanParams, normalizeListResponse } from './apiUtils';
 
 const normalizeSalesOrderPayload = (data = {}) => ({
+  branch_id: data.branch_id ?? data.branchId,
   customer_id: data.customer_id,
   order_date: data.order_date,
   expected_delivery: data.expected_delivery || data.delivery_date || null,

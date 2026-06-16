@@ -60,6 +60,46 @@ const BankAccountsType = () => {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const doc = new jsPDF();
+      doc.text("Bank Account Types", 14, 15);
+      autoTable(doc, {
+        head: [["Account Type", "Created On", "Status"]],
+        body: filteredTypes.map(item => [item.type, item.createdOn, item.status]),
+        startY: 20,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+      doc.save("Bank_Account_Types.pdf");
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("PDF Export error:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const tableData = filteredTypes.map(item => ({
+        "Account Type": item.type,
+        "Created On": item.createdOn,
+        "Status": item.status
+      }));
+      const ws = XLSX.utils.json_to_sheet(tableData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Account Types");
+      XLSX.writeFile(wb, "Bank_Account_Types.xlsx");
+      toast.success("Excel exported successfully");
+    } catch (error) {
+      console.error("Excel Export error:", error);
+      toast.error("Failed to export Excel");
+    }
+  };
+
   let filteredTypes = types.filter(item =>
     item.type.toLowerCase().includes(searchText.toLowerCase()) ||
     item.createdOn.toLowerCase().includes(searchText.toLowerCase())
@@ -101,14 +141,10 @@ const BankAccountsType = () => {
             </Link>
             <ul className="dropdown-menu">
               <li>
-                <Link className="dropdown-item" href="#">
-                  Download as PDF
-                </Link>
+                <button className="dropdown-item" onClick={handleExportPDF}>Download as PDF</button>
               </li>
               <li>
-                <Link className="dropdown-item" href="#">
-                  Download as Excel
-                </Link>
+                <button className="dropdown-item" onClick={handleExportExcel}>Download as Excel</button>
               </li>
             </ul>
           </div>
@@ -138,63 +174,6 @@ const BankAccountsType = () => {
                   <i className="isax isax-search-normal fs-12"></i>
                 </Link>
               </div>
-            </div>
-          </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown">
-              <Link
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-              >
-                <i className="isax isax-sort me-1"></i>Sort By :{' '}
-                <span className="fw-normal ms-1">{sortOrder}</span>
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu-end">
-                <li>
-                  <Link href="#" className="dropdown-item" onClick={() => setSortOrder("Latest")}>
-                    Latest
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="dropdown-item" onClick={() => setSortOrder("Oldest")}>
-                    Oldest
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div className="dropdown">
-              <Link
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu-lg">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.type} onChange={() => handleColumnToggle('type')} />
-                    <span>Account Type</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.createdOn} onChange={() => handleColumnToggle('createdOn')} />
-                    <span>Created On</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.status} onChange={() => handleColumnToggle('status')} />
-                    <span>Status</span>
-                  </label>
-                </li>
-              </ul>
             </div>
           </div>
         </div>

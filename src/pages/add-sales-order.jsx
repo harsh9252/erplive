@@ -5,6 +5,7 @@ import customerService from '../services/customerService';
 import { getItems } from '../services/productService';
 import { getCompanySettings, getWarehouses } from '../services/settingsService';
 import { createSalesOrder, getSalesOrderById, updateSalesOrder } from '../services/salesOrderService';
+import { getProformaInvoices, getProformaInvoiceById } from '../services/proformaInvoiceService';
 import { INDIAN_STATES } from '../utils/constants';
 
 const AddSalesOrder = () => {
@@ -17,7 +18,9 @@ const AddSalesOrder = () => {
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [proformaInvoices, setProformaInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
+  const [errors, setErrors] = useState({});
   
   const [formData, setFormData] = useState({
     customer_id: '',
@@ -25,6 +28,7 @@ const AddSalesOrder = () => {
     expected_delivery: '',
     place_of_supply: '',
     reference: '',
+    proforma_invoice_id: '',
     warehouse_id: '',
     remarks: '',
     items: [
@@ -41,41 +45,72 @@ const AddSalesOrder = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [custRes, itemsRes, settingsRes, whRes] = await Promise.all([
+      const [custRes, itemsRes, settingsRes, whRes, proformaRes] = await Promise.all([
         customerService.getCustomers(1, 1000),
         getItems(1, 1000),
         getCompanySettings(),
-        getWarehouses()
+        getWarehouses(),
+        getProformaInvoices()
       ]);
       
-      setCustomers(Array.isArray(custRes.data) ? custRes.data : (custRes.data?.rows || []));
-      setItems(Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []));
-      setCompanySettings(settingsRes.data || settingsRes);
-      setWarehouses(whRes.data || whRes || []);
+      const customerList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.rows || []);
+      const itemList = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []);
+      const settings = settingsRes.data || settingsRes;
+      const warehouseList = whRes.data || whRes || [];
+      const proformaList = Array.isArray(proformaRes.data) ? proformaRes.data : (proformaRes.data?.rows || proformaRes?.items || []);
+      
+      setCustomers(customerList);
+      setItems(itemList);
+      setCompanySettings(settings);
+      setWarehouses(warehouseList);
+      setProformaInvoices(proformaList);
       
       if (!isEditMode) {
-        const defaultState = settingsRes.data?.state_code || settingsRes.state_code;
+        const defaultState = settings.state_code;
         if (defaultState) {
-          setFormData(prev => ({ ...prev, place_of_supply: defaultState }));
+          setFormData(prev => ({ ...prev, place_of_supply: String(defaultState) }));
         }
       } else {
         const orderRes = await getSalesOrderById(id);
         const order = orderRes.data || orderRes;
+        
+        console.log('API Order Data:', order);
+
+        // Virtual Injection: If the customer or items are missing from the global lists, 
+        // inject them from the order's nested metadata to ensure they show up in dropdowns.
+        const augmentedCustomers = [...customerList];
+        const orderCustId = String(order.customer_id || order.customer?.id || '').trim();
+        if (order.customer && !augmentedCustomers.some(c => String(c.id).trim() === orderCustId)) {
+          augmentedCustomers.push(order.customer);
+          setCustomers(augmentedCustomers);
+        }
+
+        const augmentedItems = [...itemList];
+        let itemsChanged = false;
+        (order.items || []).forEach(oi => {
+          const oiId = String(oi.item_id || oi.item?.id || '').trim();
+          if (oi.item && !augmentedItems.some(i => String(i.id).trim() === oiId)) {
+            augmentedItems.push(oi.item);
+            itemsChanged = true;
+          }
+        });
+        if (itemsChanged) setItems(augmentedItems);
+
         setFormData({
-          customer_id: order.customer_id,
+          customer_id: orderCustId,
           order_date: order.order_date,
           expected_delivery: order.expected_delivery || order.delivery_date || '',
-          place_of_supply: order.place_of_supply || '',
+          place_of_supply: String(order.place_of_supply || order.customer?.state_code || '').trim(),
           reference: order.reference || '',
-          warehouse_id: order.warehouse_id || '',
+          warehouse_id: String(order.warehouse_id || '').trim(),
           remarks: order.remarks || '',
           items: (order.items || []).map(item => ({
-            item_id: item.item_id,
-            description: item.description,
-            qty: item.qty,
-            rate: item.rate,
-            discount_pct: item.discount_pct || 0,
-            warehouse_id: item.warehouse_id || ''
+            item_id: String(item.item_id || item.item?.id || '').trim(),
+            description: item.description || item.item?.name || '',
+            qty: parseFloat(item.qty || item.quantity) || 0,
+            rate: parseFloat(item.rate || item.price) || 0,
+            discount_pct: parseFloat(item.discount_pct) || 0,
+            warehouse_id: String(item.warehouse_id || order.warehouse_id || '').trim()
           }))
         });
       }
@@ -93,17 +128,55 @@ const AddSalesOrder = () => {
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCustomerChange = (e) => {
     const customerId = e.target.value;
+    setErrors(prev => {
+      const newErr = { ...prev };
+      if (newErr.customer_id) newErr.customer_id = null;
+      if (newErr.place_of_supply) newErr.place_of_supply = null;
+      return newErr;
+    });
     const customer = customers.find(c => String(c.id) === String(customerId));
     setFormData(prev => ({ 
       ...prev, 
       customer_id: customerId,
-      place_of_supply: customer?.state_code || prev.place_of_supply
+      place_of_supply: customer?.state_code || companySettings?.state_code || companySettings?.data?.state_code || ''
     }));
+  };
+
+  const handleProformaChange = async (e) => {
+    const pId = e.target.value;
+    setFormData(prev => ({ ...prev, proforma_invoice_id: pId }));
+    
+    if (pId) {
+      try {
+        setLoading(true);
+        const res = await getProformaInvoiceById(pId);
+        const pi = res.data || res;
+        
+        setFormData(prev => ({
+          ...prev,
+          customer_id: String(pi.customer_id || prev.customer_id),
+          remarks: prev.remarks || pi.remarks || '',
+          items: (pi.items || []).map(item => ({
+            item_id: String(item.item_id || item.item?.id || ''),
+            description: item.description || item.item?.name || '',
+            qty: parseFloat(item.qty || item.quantity) || 1,
+            rate: parseFloat(item.rate || item.price) || 0,
+            discount_pct: parseFloat(item.discount_pct || 0),
+            warehouse_id: prev.warehouse_id || ''
+          }))
+        }));
+      } catch (err) {
+        toast.error('Failed to load Proforma details');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const handleItemChange = (index, field, value) => {
@@ -161,8 +234,14 @@ const AddSalesOrder = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.customer_id) {
-      toast.error('Please select a customer');
+
+    const newErrors = {};
+    if (!formData.customer_id) newErrors.customer_id = 'Please select a customer';
+    if (!formData.order_date) newErrors.order_date = 'Order Date is required';
+    if (!formData.place_of_supply) newErrors.place_of_supply = 'Place of Supply is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -200,7 +279,7 @@ const AddSalesOrder = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-header bg-white py-3">
             <h6 className="mb-0 fw-bold"><i className="isax isax-info-circle me-2 text-primary"></i>Order Information</h6>
@@ -209,16 +288,18 @@ const AddSalesOrder = () => {
             <div className="row g-3">
               <div className="col-md-4">
                 <label className="form-label fw-600">Customer <span className="text-danger">*</span></label>
-                <select className="form-select shadow-none" name="customer_id" value={formData.customer_id} onChange={handleCustomerChange} required>
+                <select key={`cust-${customers.length}`} className={`form-select shadow-none ${errors.customer_id ? 'is-invalid' : ''}`} name="customer_id" value={String(formData.customer_id)} onChange={handleCustomerChange}>
                   <option value="">Select Customer</option>
                   {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={String(c.id)}>{c.name}</option>
                   ))}
                 </select>
+                {errors.customer_id && <div className="invalid-feedback">{errors.customer_id}</div>}
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Order Date <span className="text-danger">*</span></label>
-                <input type="date" className="form-control shadow-none" name="order_date" value={formData.order_date} onChange={handleHeaderChange} required />
+                <input type="date" className={`form-control shadow-none ${errors.order_date ? 'is-invalid' : ''}`} name="order_date" value={formData.order_date} onChange={handleHeaderChange} />
+                {errors.order_date && <div className="invalid-feedback">{errors.order_date}</div>}
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Expected Delivery</label>
@@ -226,25 +307,35 @@ const AddSalesOrder = () => {
               </div>
               <div className="col-md-4">
                 <label className="form-label fw-600">Place of Supply <span className="text-danger">*</span></label>
-                <select className="form-select shadow-none" name="place_of_supply" value={formData.place_of_supply} onChange={handleHeaderChange} required>
+                <select className={`form-select shadow-none ${errors.place_of_supply ? 'is-invalid' : ''}`} name="place_of_supply" value={String(formData.place_of_supply)} onChange={handleHeaderChange}>
                   <option value="">Select State</option>
                   {INDIAN_STATES.map(state => (
-                    <option key={state.code} value={state.code}>{state.name} ({state.code})</option>
+                    <option key={state.code} value={String(state.code)}>{state.name} ({state.code})</option>
                   ))}
                 </select>
+                {errors.place_of_supply && <div className="invalid-feedback">{errors.place_of_supply}</div>}
               </div>
               <div className="col-md-4">
                 <label className="form-label fw-600">Warehouse</label>
-                <select className="form-select shadow-none" name="warehouse_id" value={formData.warehouse_id} onChange={handleHeaderChange}>
+                <select key={`wh-${warehouses.length}`} className="form-select shadow-none" name="warehouse_id" value={String(formData.warehouse_id)} onChange={handleHeaderChange}>
                   <option value="">Default Warehouse</option>
                   {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
+                    <option key={w.id} value={String(w.id)}>{w.name}</option>
                   ))}
                 </select>
               </div>
               <div className="col-md-4">
                 <label className="form-label fw-600">Reference / PO No.</label>
                 <input type="text" className="form-control shadow-none" name="reference" value={formData.reference} onChange={handleHeaderChange} placeholder="Enter PO reference..." />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label fw-600">Against Proforma</label>
+                <select className="form-select shadow-none" name="proforma_invoice_id" value={String(formData.proforma_invoice_id)} onChange={handleProformaChange}>
+                  <option value="">None</option>
+                  {proformaInvoices.map(p => (
+                    <option key={p.id} value={String(p.id)}>{p.proforma_number || `PI-${p.id}`} - {p.customer?.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -274,10 +365,10 @@ const AddSalesOrder = () => {
                   {formData.items.map((item, index) => (
                     <tr key={index}>
                       <td>
-                        <select className="form-select shadow-none border-0 bg-transparent" value={item.item_id} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
+                        <select key={`item-${index}-${items.length}`} className="form-select shadow-none border-0 bg-transparent" value={String(item.item_id)} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
                           <option value="">Select Item</option>
                           {items.map(i => (
-                            <option key={i.id} value={i.id}>{i.name}</option>
+                            <option key={i.id} value={String(i.id)}>{i.name}</option>
                           ))}
                         </select>
                         <input type="text" className="form-control shadow-none border-0 bg-transparent fs-12 text-muted mt-n2" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Item note..." />

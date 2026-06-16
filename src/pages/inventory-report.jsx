@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const InventoryReport = () => {
   return (
@@ -38,7 +39,7 @@ const InventoryReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-2 pb-1">
                 <div>
                   <p className="mb-1">Total Inventory</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$8,500,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">?8,500,000</h6>
                 </div>
                 <div>
                   <span className="avatar bg-primary rounded">
@@ -116,7 +117,7 @@ const InventoryReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-2 pb-1">
                 <div>
                   <p className="mb-1">Pending Reorders</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$750,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">?750,000</h6>
                 </div>
                 <div>
                   <span className="avatar bg-info rounded">
@@ -290,8 +291,8 @@ const InventoryReport = () => {
               Smartphones
               <td className="text-dark">Piece</td>
               <td>2</td>
-              <td className="text-dark">$100</td>
-              <td className="text-dark">$98</td>
+              <td className="text-dark">?100</td>
+              <td className="text-dark">?98</td>
             </tr>
             <tr>
               <td>
@@ -324,8 +325,8 @@ const InventoryReport = () => {
               Laptops
               <td className="text-dark">Piece</td>
               <td>12</td>
-              <td className="text-dark">$25</td>
-              <td className="text-dark">$24</td>
+              <td className="text-dark">?25</td>
+              <td className="text-dark">?24</td>
             </tr>
             <tr>
               <td>
@@ -358,8 +359,8 @@ const InventoryReport = () => {
               Headphones
               <td className="text-dark">Piece</td>
               <td>2</td>
-              <td className="text-dark">$34</td>
-              <td className="text-dark">$58</td>
+              <td className="text-dark">?34</td>
+              <td className="text-dark">?58</td>
             </tr>
             <tr>
               <td>
@@ -392,8 +393,8 @@ const InventoryReport = () => {
               Computer Service
               <td className="text-dark">Piece</td>
               <td>24</td>
-              <td className="text-dark">$75</td>
-              <td className="text-dark">$72</td>
+              <td className="text-dark">?75</td>
+              <td className="text-dark">?72</td>
             </tr>
             <tr>
               <td>
@@ -426,8 +427,8 @@ const InventoryReport = () => {
               Footwear
               <td className="text-dark">Piece</td>
               <td>13</td>
-              <td className="text-dark">$9</td>
-              <td className="text-dark">$89</td>
+              <td className="text-dark">?9</td>
+              <td className="text-dark">?89</td>
             </tr>
             <tr>
               <td>
@@ -460,8 +461,8 @@ const InventoryReport = () => {
               Kitchen
               <td className="text-dark">Pack</td>
               <td>67</td>
-              <td className="text-dark">$120</td>
-              <td className="text-dark">$115</td>
+              <td className="text-dark">?120</td>
+              <td className="text-dark">?115</td>
             </tr>
             <tr>
               <td>
@@ -494,8 +495,8 @@ const InventoryReport = () => {
               Cleaning
               <td className="text-dark">Pack</td>
               <td>13</td>
-              <td className="text-dark">$250</td>
-              <td className="text-dark">$240</td>
+              <td className="text-dark">?250</td>
+              <td className="text-dark">?240</td>
             </tr>
             <tr>
               <td>
@@ -528,8 +529,8 @@ const InventoryReport = () => {
               Laptops
               <td className="text-dark">Piece</td>
               <td>25</td>
-              <td className="text-dark">$541</td>
-              <td className="text-dark">$525</td>
+              <td className="text-dark">?541</td>
+              <td className="text-dark">?525</td>
             </tr>
             <tr>
               <td>
@@ -562,8 +563,8 @@ const InventoryReport = () => {
               Haircare
               <td className="text-dark">Litre</td>
               <td>24</td>
-              <td className="text-dark">$741</td>
-              <td className="text-dark">$750</td>
+              <td className="text-dark">?741</td>
+              <td className="text-dark">?750</td>
             </tr>
             <tr>
               <td>
@@ -596,8 +597,8 @@ const InventoryReport = () => {
               Headphones
               <td className="text-dark">Piece</td>
               <td>65</td>
-              <td className="text-dark">$89</td>
-              <td className="text-dark">$49</td>
+              <td className="text-dark">?89</td>
+              <td className="text-dark">?49</td>
             </tr>
             <tr>
               <td>
@@ -630,8 +631,8 @@ const InventoryReport = () => {
               Men’s Apparel
               <td className="text-dark">Piece</td>
               <td>23</td>
-              <td className="text-dark">$34</td>
-              <td className="text-dark">$36</td>
+              <td className="text-dark">?34</td>
+              <td className="text-dark">?36</td>
             </tr>
             <tr>
               <td>
@@ -664,8 +665,8 @@ const InventoryReport = () => {
               Skincare
               <td className="text-dark">Liter</td>
               <td>12</td>
-              <td className="text-dark">$45</td>
-              <td className="text-dark">$47</td>
+              <td className="text-dark">?45</td>
+              <td className="text-dark">?47</td>
             </tr>
             <tr>
               <td>
@@ -698,8 +699,8 @@ const InventoryReport = () => {
               Bikes & Accessories
               <td className="text-dark">Piece</td>
               <td>43</td>
-              <td className="text-dark">$74</td>
-              <td className="text-dark">$70</td>
+              <td className="text-dark">?74</td>
+              <td className="text-dark">?70</td>
             </tr>
             <tr>
               <td>
@@ -732,8 +733,8 @@ const InventoryReport = () => {
               Smartphones
               <td className="text-dark">Piece</td>
               <td>20</td>
-              <td className="text-dark">$80</td>
-              <td className="text-dark">$74</td>
+              <td className="text-dark">?80</td>
+              <td className="text-dark">?74</td>
             </tr>
           </tbody>
         </table>
@@ -1007,7 +1008,7 @@ const InventoryReport = () => {
                   <div className="filter-range">
                     <input type="text" id="range_03" />
                     <p>
-                      Range : <span className="text-gray-9">Range : $200 - $5695</span>
+                      Range : <span className="text-gray-9">Range : ?200 - ?5695</span>
                     </p>
                   </div>
                 </div>

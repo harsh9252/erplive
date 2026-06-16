@@ -8,7 +8,7 @@ const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     const sampleExpenses = [
@@ -236,7 +236,7 @@ const Expenses = () => {
                   <th>Amount</th>
                   <th>Status</th>
                   <th>Receipt</th>
-                  <th>Actions</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,28 +261,35 @@ const Expenses = () => {
                         {expense.receipt}
                       </Link>
                     </td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
+                    <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end align-items-center gap-2">
                         {expense.status?.toLowerCase() === 'pending' && (
                           <button 
-                            className="btn btn-sm btn-outline-info"
+                            className="btn btn-sm btn-soft-info border-0" 
                             onClick={() => handleSubmitForApproval(expense)}
                             title="Submit for Approval"
                           >
-                            <i className="isax isax-send-1"></i>
+                            <i className="isax isax-send-1 fs-16"></i>
                           </button>
                         )}
-                        <button className="btn btn-sm btn-outline-primary">
-                          <i className="isax isax-eye"></i>
-                        </button>
-                        <button className="btn btn-sm btn-outline-warning">
-                          <i className="isax isax-edit"></i>
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(expense.id)}
+                        <button 
+                          className="btn btn-sm btn-soft-primary border-0"
+                          title="View Details"
                         >
-                          <i className="isax isax-trash"></i>
+                          <i className="isax isax-eye fs-16"></i>
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-soft-warning border-0"
+                          title="Edit Expense"
+                        >
+                          <i className="isax isax-edit-2 fs-16"></i>
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-soft-danger border-0" 
+                          onClick={() => handleDelete(expense.id)}
+                          title="Delete Expense"
+                        >
+                          <i className="isax isax-trash fs-16"></i>
                         </button>
                       </div>
                     </td>

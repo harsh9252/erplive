@@ -1,14 +1,31 @@
 import { apiRequest } from './apiClient';
 import { buildUnsupportedOperationError, cleanParams, normalizeListResponse } from './apiUtils';
 
-const getVouchers = async (params = {}) =>
-  normalizeListResponse(
-    await apiRequest({
-      url: '/api/vouchers',
-      method: 'GET',
-      params: cleanParams(params),
-    }),
-  );
+let fetchVouchersInProgress = new Map();
+
+const getVouchers = async (params = {}) => {
+  const paramKey = JSON.stringify(params);
+  if (fetchVouchersInProgress.has(paramKey)) {
+    return fetchVouchersInProgress.get(paramKey);
+  }
+
+  const promise = (async () => {
+    try {
+      return normalizeListResponse(
+        await apiRequest({
+          url: '/api/vouchers',
+          method: 'GET',
+          params: cleanParams(params),
+        })
+      );
+    } finally {
+      fetchVouchersInProgress.delete(paramKey);
+    }
+  })();
+
+  fetchVouchersInProgress.set(paramKey, promise);
+  return promise;
+};
 
 const getVoucher = async (id) =>
   apiRequest({
@@ -23,11 +40,12 @@ const createVoucher = async (voucherData) =>
     data: voucherData,
   });
 
-const updateVoucher = async () => {
-  throw buildUnsupportedOperationError(
-    'Voucher updates are not exposed by the current backend API. Post or cancel the voucher instead.',
-  );
-};
+const updateVoucher = async (id, voucherData) =>
+  apiRequest({
+    url: `/api/vouchers/${id}`,
+    method: 'PUT',
+    data: voucherData,
+  });
 
 const deleteVoucher = async () => {
   throw buildUnsupportedOperationError(
@@ -35,13 +53,28 @@ const deleteVoucher = async () => {
   );
 };
 
-const getVoucherTypes = async () =>
-  normalizeListResponse(
-    await apiRequest({
-      url: '/api/settings/voucher-types',
-      method: 'GET',
-    }),
-  );
+let fetchVoucherTypesInProgress = null;
+
+const getVoucherTypes = async () => {
+  if (fetchVoucherTypesInProgress) {
+    return fetchVoucherTypesInProgress;
+  }
+
+  fetchVoucherTypesInProgress = (async () => {
+    try {
+      return normalizeListResponse(
+        await apiRequest({
+          url: '/api/settings/voucher-types',
+          method: 'GET',
+        })
+      );
+    } finally {
+      fetchVoucherTypesInProgress = null;
+    }
+  })();
+
+  return fetchVoucherTypesInProgress;
+};
 
 const getNextVoucherNumber = async () => {
   throw buildUnsupportedOperationError(

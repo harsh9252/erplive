@@ -112,7 +112,7 @@ export const refreshToken = async () => {
 
 export const forgotPassword = async (email) =>
   apiRequest({
-    url: '/api/auth/request-password-reset',
+    url: '/api/auth/forgot-password',
     method: 'POST',
     data: { email },
   });
@@ -211,13 +211,40 @@ export const isAuthenticated = () => {
 };
 
 export const hasPermission = (module, action) => {
-  const permissions = getPermissions();
+  const permissions = getStoredPermissions();
+  
+  const user = getStoredUser() || {};
+  const primaryRole = (user.role || '').toLowerCase();
+  const rawRoles = user.roles || [];
+  
+  const roles = (Array.isArray(rawRoles) ? rawRoles : [])
+    .map(r => typeof r === 'string' ? r.toLowerCase() : String(r?.name || '').toLowerCase());
+  
+  // If the user's role is owner, admin, or super_admin, they bypass all permission checks
+  if (
+    primaryRole === 'owner' ||
+    primaryRole === 'admin' ||
+    primaryRole === 'super_admin' ||
+    primaryRole === 'super admin' ||
+    roles.includes('owner') ||
+    roles.includes('admin') ||
+    roles.includes('super_admin') ||
+    roles.includes('super admin')
+  ) {
+    return true;
+  }
+
+  // Fallback: If they have permissions explicitly set up for this module, return that check
   if (permissions?.[module]) {
     return permissions[module][`can_${action}`] === true;
   }
 
-  const roles = getCurrentUser()?.roles || [];
-  return roles.includes('super_admin') || roles.includes('admin');
+  // Fallback: If roles and permissions are empty, bypass for newly registered user
+  if (roles.length === 0 && (!permissions || Object.keys(permissions).length === 0)) {
+    return true;
+  }
+
+  return false;
 };
 
 export default apiClient;

@@ -1,0 +1,52 @@
+﻿[
+  {
+    "name": "╬ô├£├ûΓê⌐Γòò├à SETTINGS > Close Financial Year",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/financial-years/1/close"
+  },
+  {
+    "name": "╬ô├ûΓòùΓê⌐Γòò├à WASTAGE > Get Wastage by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/wastage/1"
+  },
+  {
+    "name": "Γëí╞Æ├ªΓòû PAYROLL & HR > ╬ô├ç├╢ SALARY & PAYSLIP ╬ô├ç├╢ > Mark Payslip Paid",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/payslips/1/pay"
+  },
+  {
+    "name": "Γëí╞Æ├åΓûÆ CURRENCIES > Update Exchange Rate",
+    "method": "PUT",
+    "url": "{{base_url}}/api/currencies/rate"
+  },
+  {
+    "name": "Γëí╞Æ├åΓò¢ DATA BACKUP > List Backups",
+    "method": "GET",
+    "url": "{{base_url}}/api/backups"
+  },
+  {
+    "name": "Γëí╞Æ├åΓò¢ DATA BACKUP > Create Backup",
+    "method": "POST",
+    "url": "{{base_url}}/api/backups"
+  },
+  {
+    "name": "Γëí╞Æ├åΓò¢ DATA BACKUP > Download Backup",
+    "method": "GET",
+    "url": "{{base_url}}/api/backups/backup_20260327_000000.sql/download"
+  },
+  {
+    "name": "Γëí╞Æ├åΓò¢ DATA BACKUP > Delete Backup",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/backups/backup_20260327_000000.sql"
+  },
+  {
+    "name": "Γëí╞Æ├┤├¿ AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Summary by Module",
+    "method": "GET",
+    "url": "{{base_url}}/api/audit-logs/summary/sales_invoice"
+  },
+  {
+    "name": "Γëí╞Æ├╢├│ SERIAL NUMBER TRACKING [2026-04-07] > Lookup by Serial Number",
+    "method": "GET",
+    "url": "{{base_url}}/api/serial-numbers/lookup/SN-2026-001"
+  }
+]

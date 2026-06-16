@@ -13,11 +13,13 @@ export const normalizeListResponse = (payload = {}) => {
   const data = payload?.data;
   const items = Array.isArray(data)
     ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : Array.isArray(data?.rows)
-        ? data.rows
-        : [];
+    : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.rows)
+          ? data.rows
+          : [];
 
   const pagination = data?.pagination || payload?.pagination || null;
 

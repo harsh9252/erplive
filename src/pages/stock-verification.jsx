@@ -11,6 +11,23 @@ const StockVerification = () => {
     const [warehouses, setWarehouses] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [saving, setSaving] = useState(false);
+    const modalRef = useState(null);
+
+    const openModal = () => {
+        const modalEl = document.getElementById('createVerificationModal');
+        if (modalEl) {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    const closeModal = () => {
+        const modalEl = document.getElementById('createVerificationModal');
+        if (modalEl) {
+            const modal = window.bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+    };
 
     const [formData, setFormData] = useState({
         warehouse_id: '',
@@ -56,7 +73,7 @@ const StockVerification = () => {
                 warehouse_id: Number(formData.warehouse_id)
             });
             toast.success('Stock verification project created');
-            setShowCreateModal(false);
+            closeModal();
             // Navigate to detail page to enter counts
             navigate(`/inventory/stock-verification/${res.data?.id || res.id}`);
         } catch (error) {
@@ -93,7 +110,7 @@ const StockVerification = () => {
                         </ol>
                     </nav>
                 </div>
-                <button className="btn btn-primary px-4 rounded-pill" onClick={() => setShowCreateModal(true)}>
+                <button className="btn btn-primary px-4 rounded-pill" onClick={openModal}>
                     <i className="isax isax-add-circle5 me-2 fs-18"></i>
                     Start New Verification
                 </button>
@@ -120,14 +137,18 @@ const StockVerification = () => {
                                     <tr><td colSpan="5" className="text-center py-5">Loading...</td></tr>
                                 ) : verifications.length > 0 ? (
                                     verifications.map(v => (
-                                        <tr key={v.id}>
+                                        <tr key={v.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/inventory/stock-verification/${v.id}`)}>
                                             <td className="ps-4 text-muted">#{v.id}</td>
                                             <td>{new Date(v.verification_date).toLocaleDateString()}</td>
                                             <td className="fw-500">{getWarehouseName(v.warehouse_id)}</td>
                                             <td>{getStatusBadge(v.status)}</td>
-                                            <td className="text-end pe-4">
-                                                <Link to={`/inventory/stock-verification/${v.id}`} className="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                                    View / Enter Counts
+                                            <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
+                                                <Link 
+                                                  to={`/inventory/stock-verification/${v.id}`} 
+                                                  className="btn btn-sm btn-soft-primary border-0"
+                                                  title="View / Enter Counts"
+                                                >
+                                                  <i className="isax isax-eye fs-16"></i>
                                                 </Link>
                                             </td>
                                         </tr>
@@ -141,47 +162,42 @@ const StockVerification = () => {
                 </div>
             </div>
 
-            {/* Simple Create Modal (Overlay) */}
-            {showCreateModal && (
-                <>
-                    <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} onClick={() => setShowCreateModal(false)}></div>
-                    <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1055 }}>
-                        <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content border-0 shadow-lg rounded-4">
-                                <form onSubmit={handleCreate}>
-                                    <div className="modal-header border-bottom-light py-3">
-                                        <h6 className="modal-title fw-bold">New Physical Count Project</h6>
-                                        <button type="button" className="btn-close shadow-none" onClick={() => setShowCreateModal(false)}></button>
-                                    </div>
-                                    <div className="modal-body p-4">
-                                        <div className="mb-3">
-                                            <label className="form-label fw-600">Warehouse <span className="text-danger">*</span></label>
-                                            <select className="form-select bg-light border-0 py-2 shadow-none" value={formData.warehouse_id} onChange={e => setFormData({ ...formData, warehouse_id: e.target.value })} required>
-                                                <option value="">Select Warehouse</option>
-                                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label fw-600">Verification Date <span className="text-danger">*</span></label>
-                                            <input type="date" className="form-control bg-light border-0 py-2 shadow-none" value={formData.verification_date} onChange={e => setFormData({ ...formData, verification_date: e.target.value })} required />
-                                        </div>
-                                        <div className="mb-0">
-                                            <label className="form-label fw-600">Notes</label>
-                                            <textarea className="form-control bg-light border-0 shadow-none" rows="3" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="e.g. Year-end count..."></textarea>
-                                        </div>
-                                    </div>
-                                    <div className="modal-footer border-0 p-4 pt-0">
-                                        <button type="button" className="btn btn-outline-secondary px-4 rounded-pill" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                                        <button type="submit" className="btn btn-primary px-4 rounded-pill" disabled={saving}>
-                                            {saving ? 'Creating...' : 'Start Count'}
-                                        </button>
-                                    </div>
-                                </form>
+            {/* Standard Bootstrap Modal */}
+            <div className="modal fade" id="createVerificationModal" tabIndex="-1" aria-hidden="true">
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content border-0 shadow-lg rounded-4">
+                        <form onSubmit={handleCreate}>
+                            <div className="modal-header border-bottom-light py-3">
+                                <h6 className="modal-title fw-bold">New Physical Count Project</h6>
+                                <button type="button" className="btn-close shadow-none" onClick={closeModal}></button>
                             </div>
-                        </div>
+                            <div className="modal-body p-4">
+                                <div className="mb-3">
+                                    <label className="form-label fw-600">Warehouse <span className="text-danger">*</span></label>
+                                    <select className="form-select bg-light border-0 py-2 shadow-none" value={formData.warehouse_id} onChange={e => setFormData({ ...formData, warehouse_id: e.target.value })} required>
+                                        <option value="">Select Warehouse</option>
+                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-600">Verification Date <span className="text-danger">*</span></label>
+                                    <input type="date" className="form-control bg-light border-0 py-2 shadow-none" value={formData.verification_date} onChange={e => setFormData({ ...formData, verification_date: e.target.value })} required />
+                                </div>
+                                <div className="mb-0">
+                                    <label className="form-label fw-600">Notes</label>
+                                    <textarea className="form-control bg-light border-0 shadow-none" rows="3" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="e.g. Year-end count..."></textarea>
+                                </div>
+                            </div>
+                            <div className="modal-footer border-0 p-4 pt-0">
+                                <button type="button" className="btn btn-outline-secondary px-4 rounded-pill" onClick={closeModal}>Cancel</button>
+                                <button type="submit" className="btn btn-primary px-4 rounded-pill" disabled={saving}>
+                                    {saving ? 'Creating...' : 'Start Count'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </>
-            )}
+                </div>
+            </div>
         </div>
     );
 };

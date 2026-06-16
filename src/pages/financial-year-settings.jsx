@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import SettingsSidebar from '../components/SettingsSidebar';
 import { financialYearService } from '../services/financialYearService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const FinancialYearSettings = () => {
   const [financialYears, setFinancialYears] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [activatingId, setActivatingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -73,8 +75,22 @@ const FinancialYearSettings = () => {
     if (formData.start_date && formData.end_date) {
       const startDate = new Date(formData.start_date);
       const endDate = new Date(formData.end_date);
+      
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+
       if (startDate >= endDate) {
         newErrors.end_date = 'End Date must be after Start Date';
+      } else if (endDate.getMonth() !== 2 || endDate.getDate() !== 31) {
+        newErrors.end_date = 'Financial Year end date must always be March 31st';
+      } else {
+        const expectedStartYear = endDate.getFullYear() - 1;
+        const expectedStartDate = new Date(expectedStartYear, 3, 1);
+        expectedStartDate.setHours(0, 0, 0, 0);
+        
+        if (startDate < expectedStartDate) {
+          newErrors.start_date = `Start date cannot be earlier than 01-Apr-${expectedStartYear}`;
+        }
       }
     }
 
@@ -91,28 +107,31 @@ const FinancialYearSettings = () => {
 
     setSubmitting(true);
     try {
+      let response;
       if (isEditMode) {
-        // Many APIs don't support updating financial years
-        try {
-          const response = await financialYearService.updateFinancialYear(editingId, formData);
-          if (response.success) {
-            toast.success('Financial Year updated successfully');
-          } else {
-            toast.error(response.message || 'Failed to update financial year');
+        response = await financialYearService.updateFinancialYear(editingId, formData);
+        if (response && response.success !== false) {
+          // If set as active is checked, call the switch API to update backend active state
+          if (formData.is_active) {
+            await financialYearService.switchFinancialYear(editingId);
           }
-        } catch (err) {
-          if (err.message.includes('not support updating')) {
-            toast.warning('Updating financial years is not supported by the backend');
-          } else {
-            throw err;
-          }
+          toast.success('Financial Year updated successfully');
+        } else {
+          toast.error(response?.message || 'Failed to update financial year');
         }
       } else {
-        const response = await financialYearService.createFinancialYear(formData);
-        if (response.success) {
+        response = await financialYearService.createFinancialYear(formData);
+        if (response && response.success !== false) {
+          // If set as active is checked, call the switch API to update backend active state
+          if (formData.is_active) {
+            const targetId = response.data?.id || response.id;
+            if (targetId) {
+              await financialYearService.switchFinancialYear(targetId);
+            }
+          }
           toast.success('Financial Year created successfully');
         } else {
-          toast.error(response.message || 'Failed to create financial year');
+          toast.error(response?.message || 'Failed to create financial year');
         }
       }
 
@@ -150,39 +169,85 @@ const FinancialYearSettings = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this financial year?')) {
-      try {
-        await financialYearService.deleteFinancialYear(id);
-        toast.success('Financial Year deleted successfully');
-        await loadFinancialYears();
-      } catch (error) {
-        if (error.message.includes('not support deleting')) {
-          toast.warning('Deleting financial years is not supported by the backend');
-        } else {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await financialYearService.deleteFinancialYear(id);
+          if (response && response.success !== false) {
+            Swal.fire(
+              'Deleted!',
+              'Financial Year has been deleted.',
+              'success'
+            );
+            await loadFinancialYears();
+          } else {
+            toast.error(response?.message || 'Failed to delete financial year');
+          }
+        } catch (error) {
           console.error('Error deleting financial year:', error);
           toast.error(error.message || 'Failed to delete financial year');
         }
       }
-    }
+    });
   };
 
   const handleSetActive = async (id) => {
+    if (activatingId) return;
+
+    const year = financialYears.find(y => y.id === id);
+    if (year?.is_active) {
+      toast.warning('This financial year is already active');
+      return;
+    }
+
     try {
-      // Update the financial year to set as active
-      const response = await financialYearService.updateFinancialYear(id, { is_active: true });
-      if (response.success) {
+      setActivatingId(id);
+      const response = await financialYearService.switchFinancialYear(id);
+      if (response && response.success !== false) {
         toast.success('Financial Year set as active successfully');
         await loadFinancialYears();
       } else {
-        toast.error(response.message || 'Failed to set active');
+        toast.error(response?.message || 'Failed to set active');
       }
     } catch (error) {
-      if (error.message.includes('not support updating')) {
-        toast.warning('Switching active financial years is not supported by the backend via this method');
-      } else {
-        console.error('Error setting financial year as active:', error);
-        toast.error(error.message || 'Failed to set financial year as active');
-      }
+      console.error('Error setting financial year as active:', error);
+      toast.error(error.message || 'Failed to set financial year as active');
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
+  const handleCloseYear = async (year) => {
+    const { isConfirmed } = await Swal.fire({
+      title: `Close ${year.name}?`,
+      text: "Closing a financial year will finalize all balances and carry them forward. This action is irreversible!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Yes, Close Year',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!isConfirmed) return;
+
+    setLoading(true);
+    try {
+      await financialYearService.closeFinancialYear(year.id);
+      toast.success(`${year.name} closed successfully`);
+      await loadFinancialYears();
+    } catch (error) {
+      console.error('Error closing financial year:', error);
+      toast.error(error.message || 'Failed to close financial year');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -244,7 +309,7 @@ const FinancialYearSettings = () => {
                     {isEditMode ? 'Edit Financial Year' : 'Add New Financial Year'}
                   </h6>
 
-                  <form onSubmit={handleSubmit}>
+                  <form onSubmit={handleSubmit} autoComplete="off">
                     <div className="row">
                       {/* Year Name */}
                       <div className="col-md-6 mb-3">
@@ -259,6 +324,7 @@ const FinancialYearSettings = () => {
                           onChange={handleInputChange}
                           placeholder="e.g., FY 2025-26"
                           required
+                          autoComplete="one-time-code"
                         />
                         {errors.name && (
                           <div className="invalid-feedback d-block">{errors.name}</div>
@@ -296,6 +362,7 @@ const FinancialYearSettings = () => {
                           value={formData.start_date}
                           onChange={handleInputChange}
                           required
+                          autoComplete="one-time-code"
                         />
                         {errors.start_date && (
                           <div className="invalid-feedback d-block">{errors.start_date}</div>
@@ -314,6 +381,7 @@ const FinancialYearSettings = () => {
                           value={formData.end_date}
                           onChange={handleInputChange}
                           required
+                          autoComplete="one-time-code"
                         />
                         {errors.end_date && (
                           <div className="invalid-feedback d-block">{errors.end_date}</div>
@@ -360,7 +428,7 @@ const FinancialYearSettings = () => {
 
             {/* Financial Years List */}
             {!showForm && (
-              <div className="card shadow-sm border-0 overflow-hidden">
+              <div className="card shadow-sm border-0">
                 {loading ? (
                   <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
@@ -382,7 +450,7 @@ const FinancialYearSettings = () => {
                           <th>Start Date</th>
                           <th>End Date</th>
                           <th>Status</th>
-                          {/* <th className="text-end pe-4">Actions</th> */}
+                          <th className="text-end pe-4">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -401,35 +469,51 @@ const FinancialYearSettings = () => {
                             <td>
                               {year.is_active ? (
                                 <span className="badge bg-light-success text-success">Active</span>
+                              ) : year.status === 'CLOSED' || year.is_closed ? (
+                                <span className="badge bg-light-danger text-danger">Closed</span>
                               ) : (
-                                <span className="badge bg-light-secondary text-secondary">Inactive</span>
+                                <span className="badge bg-light-secondary text-secondary">Open</span>
                               )}
                             </td>
                             <td className="text-end pe-4">
-                              <div className="d-flex justify-content-end gap-2">
+                              <div className="d-flex justify-content-end align-items-center gap-2">
                                 {!year.is_active && (
-                                  <button
-                                    className="btn btn-sm btn-outline-success"
+                                  <button 
+                                    className="btn btn-sm btn-soft-success border-0" 
                                     onClick={() => handleSetActive(year.id)}
-                                    title="Set as Active"
+                                    disabled={activatingId !== null}
+                                    title="Activate Year"
                                   >
-                                    <i className="isax isax-tick-circle"></i>
+                                    {activatingId === year.id ? (
+                                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    ) : (
+                                      <i className="isax isax-tick-circle fs-16"></i>
+                                    )}
                                   </button>
                                 )}
-                                {/* <button
-                                  className="btn btn-sm btn-outline-primary"
+                                {!Boolean(year.is_active) && year.status !== 'CLOSED' && !year.is_closed && (
+                                  <button 
+                                    className="btn btn-sm btn-soft-danger border-0" 
+                                    onClick={() => handleCloseYear(year)}
+                                    title="Close Year"
+                                  >
+                                    <i className="isax isax-lock fs-16 text-danger"></i>
+                                  </button>
+                                )}
+                                <button 
+                                  className="btn btn-sm btn-soft-warning border-0" 
                                   onClick={() => handleEdit(year)}
-                                  title="Edit"
+                                  title="Edit Year"
                                 >
-                                  <i className="isax isax-edit"></i>
+                                  <i className="isax isax-edit-2 fs-16"></i>
                                 </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
+                                <button 
+                                  className="btn btn-sm btn-soft-danger border-0" 
                                   onClick={() => handleDelete(year.id)}
-                                  title="Delete"
+                                  title="Delete Year"
                                 >
-                                  <i className="isax isax-trash"></i>
-                                </button> */}
+                                  <i className="isax isax-trash fs-16"></i>
+                                </button>
                               </div>
                             </td>
                           </tr>

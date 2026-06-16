@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getSalesInvoices, cancelSalesInvoice, collectPayment } from '../services/salesInvoiceService';
 import { getCustomers } from '../services/customerService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import CollectPaymentModal from '../components/CollectPaymentModal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 /* Using global bootstrap from window */
 
 const SalesInvoices = () => {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
@@ -19,7 +24,7 @@ const SalesInvoices = () => {
     customer_id: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [totalInvoices, setTotalInvoices] = useState(0);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const modalRef = useRef(null);
@@ -49,6 +54,7 @@ const SalesInvoices = () => {
       setCustomers(Array.isArray(res.data) ? res.data : (res.data?.rows || []));
     } catch (error) {
       console.error('Error fetching customers:', error);
+      toast.error('Failed to load customers');
     }
   };
 
@@ -99,24 +105,35 @@ const SalesInvoices = () => {
   };
 
   const handleCancelClick = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this invoice?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to cancel this sales invoice?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, cancel it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await cancelSalesInvoice(id);
         toast.success('Invoice cancelled successfully');
         fetchInvoices();
       } catch (error) {
         console.error('Error cancelling invoice:', error);
-        toast.error('Failed to cancel invoice');
+        toast.error(error.message || 'Failed to cancel invoice');
       }
     }
   };
 
   const handleCollectPayment = (invoice) => {
     setSelectedInvoice(invoice);
-    if (!modalRef.current) {
-      modalRef.current = new window.bootstrap.Modal(document.getElementById('collectPaymentModal'));
+    const modalEl = document.getElementById('collectPaymentModal');
+    if (modalEl) {
+      modalRef.current = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      modalRef.current.show();
     }
-    modalRef.current.show();
   };
 
   const onSavePayment = async (paymentData) => {
@@ -132,8 +149,61 @@ const SalesInvoices = () => {
   };
 
   const handleExport = (type) => {
-    // Basic export logic
-    toast.info(`Exporting to ${type}...`);
+    if (!invoices || invoices.length === 0) {
+      toast.warning('No data to export');
+      return;
+    }
+
+    if (type === 'Excel') {
+      const exportData = invoices.map(inv => ({
+        'Invoice No': inv.invoice_number || `INV-${inv.id}`,
+        'Date': (inv.invoice_date || inv.invoiceDate || '').split('T')[0],
+        'Customer': inv.customer_name || inv.customer?.name || 'Unknown',
+        'Net Total': inv.net_total || inv.netTotal || 0,
+        'Status': inv.status || 'DRAFT',
+        'Payment Status': inv.payment_status || inv.paymentStatus || 'UNPAID'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Invoices");
+      XLSX.writeFile(workbook, `sales_invoices_${new Date().toISOString().slice(0,10)}.xlsx`);
+      toast.success('Excel file downloaded successfully');
+    } else if (type === 'PDF') {
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text('Sales Invoices Report', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+      const tableColumn = ["Invoice No", "Date", "Customer", "Net Total", "Status", "Payment Status"];
+      const tableRows = [];
+
+      invoices.forEach(inv => {
+        const invoiceData = [
+          inv.invoice_number || `INV-${inv.id}`,
+          (inv.invoice_date || inv.invoiceDate || '').split('T')[0],
+          inv.customer_name || inv.customer?.name || 'Unknown',
+          `Rs. ${Number(inv.net_total || inv.netTotal || 0).toFixed(2)}`,
+          inv.status || 'DRAFT',
+          inv.payment_status || inv.paymentStatus || 'UNPAID'
+        ];
+        tableRows.push(invoiceData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'striped',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [65, 84, 241] }
+      });
+
+      doc.save(`sales_invoices_${new Date().toISOString().slice(0,10)}.pdf`);
+      toast.success('PDF file downloaded successfully');
+    }
   };
 
   const totalPages = Math.ceil(totalInvoices / itemsPerPage);
@@ -151,7 +221,6 @@ const SalesInvoices = () => {
                   <i className="isax isax-home-2 me-1"></i>Home
                 </Link>
               </li>
-              <li className="breadcrumb-item">Sales</li>
               <li className="breadcrumb-item active" aria-current="page">
                 Sales Invoices
               </li>
@@ -159,9 +228,6 @@ const SalesInvoices = () => {
           </nav>
         </div>
         <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
-          <Link to="/invoicing/sales/add" className="btn btn-primary d-flex align-items-center rounded-pill px-3">
-            <i className="isax isax-add-circle me-1"></i>Create Invoice
-          </Link>
           <div className="dropdown">
             <button
               className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none border"
@@ -182,6 +248,10 @@ const SalesInvoices = () => {
               </li>
             </ul>
           </div>
+          <Link to="/invoicing/sales/add" className="btn btn-primary d-flex align-items-center rounded-pill px-3">
+            <i className="isax isax-add-circle me-1"></i>Create Invoice
+          </Link>
+
         </div>
       </div>
 
@@ -189,8 +259,8 @@ const SalesInvoices = () => {
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-3">
           <div className="row g-2">
-            <div className="col-md-3">
-              <div className="input-group">
+            <div className="col">
+              <div className="input-group input-group-sm">
                 <span className="input-group-text bg-white border-end-0">
                   <i className="isax isax-search-normal text-muted"></i>
                 </span>
@@ -204,10 +274,10 @@ const SalesInvoices = () => {
                 />
               </div>
             </div>
-            <div className="col-md-2">
+            <div className="col">
               <select
                 name="customer_id"
-                className="form-select shadow-none border"
+                className="form-select form-select-sm shadow-none border"
                 value={filters.customer_id}
                 onChange={handleFilterChange}
               >
@@ -217,24 +287,23 @@ const SalesInvoices = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-2">
+            <div className="col">
               <select
                 name="status"
-                className="form-select shadow-none border"
+                className="form-select form-select-sm shadow-none border"
                 value={filters.status}
                 onChange={handleFilterChange}
               >
                 <option value="All">All Status</option>
                 <option value="DRAFT">Draft</option>
                 <option value="POSTED">Posted</option>
-                <option value="PAID">Paid</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
-            <div className="col-md-2">
+            <div className="col">
               <select
                 name="payment_status"
-                className="form-select shadow-none border"
+                className="form-select form-select-sm shadow-none border"
                 value={filters.payment_status}
                 onChange={handleFilterChange}
               >
@@ -244,27 +313,29 @@ const SalesInvoices = () => {
                 <option value="UNPAID">Unpaid</option>
               </select>
             </div>
-            <div className="col-md-2">
-              <div className="d-flex align-items-center gap-2">
-                <input 
-                  type="date" 
-                  name="from_date" 
-                  className="form-control form-control-sm" 
-                  value={filters.from_date} 
-                  onChange={handleFilterChange} 
+            <div className="col-auto">
+              <div className="d-flex align-items-center gap-1">
+                <input
+                  type="date"
+                  name="from_date"
+                  className="form-control form-control-sm"
+                  style={{ maxWidth: '120px' }}
+                  value={filters.from_date}
+                  onChange={handleFilterChange}
                 />
-                <span className="text-muted">to</span>
-                <input 
-                  type="date" 
-                  name="to_date" 
-                  className="form-control form-control-sm" 
-                  value={filters.to_date} 
-                  onChange={handleFilterChange} 
+                <span className="text-muted fs-13">to</span>
+                <input
+                  type="date"
+                  name="to_date"
+                  className="form-control form-control-sm"
+                  style={{ maxWidth: '120px' }}
+                  value={filters.to_date}
+                  onChange={handleFilterChange}
                 />
               </div>
             </div>
-            <div className="col-md-1">
-              <button className="btn btn-outline-danger w-100" onClick={resetFilters}>
+            <div className="col-auto text-end d-flex">
+              <button className="btn btn-light border shadow-none px-3 d-flex align-items-center justify-content-center" onClick={resetFilters}>
                 <i className="isax isax-refresh"></i>
               </button>
             </div>
@@ -298,7 +369,7 @@ const SalesInvoices = () => {
                   </tr>
                 ) : invoices.length > 0 ? (
                   invoices.map((invoice) => (
-                    <tr key={invoice.id}>
+                    <tr key={invoice.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoicing/sales/${invoice.id}`)}>
                       <td className="ps-4">
                         <Link
                           to={`/invoicing/sales/${invoice.id}`}
@@ -309,11 +380,11 @@ const SalesInvoices = () => {
                       </td>
                       <td>{invoice.invoice_date || '-'}</td>
                       <td>
-                        <h6 className="fs-13 fw-semibold mb-0 text-truncate" style={{maxWidth: '180px'}}>
+                        <h6 className="fs-13 fw-semibold mb-0 text-truncate" style={{ maxWidth: '180px' }}>
                           {invoice.customer?.name || 'N/A'}
                         </h6>
                       </td>
-                      <td className="fw-bold text-dark text-nowrap">₹{(invoice.net_amount || 0).toLocaleString()}</td>
+                      <td className="fw-bold text-dark text-nowrap">₹{(invoice.net_total || 0).toLocaleString()}</td>
                       <td>
                         <span className={`badge badge-sm rounded-pill ${getStatusBadge(invoice.status)}`}>
                           {invoice.status}
@@ -323,48 +394,51 @@ const SalesInvoices = () => {
                         <span className={`badge badge-sm rounded-pill ${getPaymentStatusBadge(invoice.payment_status)}`}>
                           {invoice.payment_status || 'UNPAID'}
                         </span>
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown">
-                            <i className="isax isax-more fs-18"></i>
-                          </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
-                            <li>
-                              <Link className="dropdown-item py-2" to={`/invoicing/sales/${invoice.id}`}>
-                                <i className="isax isax-eye me-2 text-primary"></i>View Details
-                              </Link>
-                            </li>
-                            {invoice.status === 'POSTED' && invoice.payment_status !== 'PAID' && (
-                              <li>
-                                <button className="dropdown-item py-2" onClick={() => handleCollectPayment(invoice)}>
-                                  <i className="isax isax-card me-2 text-success"></i>Collect Payment
-                                </button>
-                              </li>
-                            )}
-                            {invoice.status === 'DRAFT' && (
-                              <li>
-                                <Link className="dropdown-item py-2" to={`/invoicing/sales/edit/${invoice.id}`}>
-                                  <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Invoice
-                                </Link>
-                              </li>
-                            )}
-                            {invoice.status !== 'CANCELLED' && (
-                              <li>
-                                <button className="dropdown-item py-2" onClick={() => handleCancelClick(invoice.id)}>
-                                  <i className="isax isax-trash me-2 text-danger"></i>Cancel Invoice
-                                </button>
-                              </li>
-                            )}
-                          </ul>
+                      </td>                      <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link
+                            className="btn btn-sm btn-soft-primary border-0"
+                            to={`/invoicing/sales/${invoice.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          {invoice.status === 'POSTED' && invoice.payment_status !== 'PAID' && (
+                            <button
+                              className="btn btn-sm btn-soft-success border-0"
+                              onClick={() => handleCollectPayment(invoice)}
+                              title="Collect Payment"
+                            >
+                              <i className="isax isax-card fs-16"></i>
+                            </button>
+                          )}
+                          {invoice.status === 'DRAFT' && (
+                            <Link
+                              className="btn btn-sm btn-soft-warning border-0"
+                              to={`/invoicing/sales/edit/${invoice.id}`}
+                              title="Edit Invoice"
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </Link>
+                          )}
+                          {invoice.status !== 'CANCELLED' && (
+                            <button
+                              className="btn btn-sm btn-soft-danger border-0"
+                              onClick={() => handleCancelClick(invoice.id)}
+                              title="Cancel Invoice"
+                            >
+                              <i className="isax isax-trash fs-16"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
+
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan="7" className="text-center py-5">
-                      <img src="/assets/img/no-data.svg" alt="No data" className="mb-3" style={{width: '60px'}} />
+                      {/* <img src="/assets/img/no-data.svg" alt="No data" className="mb-3" style={{width: '60px'}} /> */}
                       <p className="text-muted mb-0">No invoices found matching your criteria.</p>
                     </td>
                   </tr>
@@ -417,9 +491,9 @@ const SalesInvoices = () => {
         </div>
       </div>
 
-      <CollectPaymentModal 
-        invoice={selectedInvoice} 
-        onSave={onSavePayment} 
+      <CollectPaymentModal
+        invoice={selectedInvoice}
+        onSuccess={onSavePayment}
       />
     </>
   );

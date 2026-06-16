@@ -38,3 +38,12 @@ export const INDIAN_STATES = [
   { code: '38', name: 'Ladakh' },
   { code: '97', name: 'Other Territory' },
 ];
+
+export const CREDIT_NOTE_REASONS = [
+  { label: 'Sales Return', value: 'SALES_RETURN' },
+  { label: 'Deficiency in Service', value: 'DEFICIENCY_IN_SERVICE' },
+  { label: 'Correction in Invoice', value: 'CORRECTION_IN_INVOICE' },
+  { label: 'Change in Place of Supply', value: 'CHANGE_IN_POS' },
+  { label: 'Finalization of Provisional Assessment', value: 'FINALIZATION_OF_PROVISIONAL_ASSESSMENT' },
+  { label: 'Others', value: 'OTHERS' }
+];

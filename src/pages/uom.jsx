@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
+import uomService from '../services/uomService';
+import { useAuth } from '../components/AuthContext';
 
 const UOM = () => {
+  const { activeCompany } = useAuth();
   const [uoms, setUoms] = useState([]);
   const [filteredUoms, setFilteredUoms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,11 +14,15 @@ const UOM = () => {
   const [selectedUoms, setSelectedUoms] = useState(new Set());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null, isBulk: false });
   const [formData, setFormData] = useState({
     name: '',
     symbol: '',
     uom_type: 'QUANTITY',
+    base_uom_id: '',
+    conversion_factor: 1,
   });
 
   const UOM_TYPES = [
@@ -27,61 +34,42 @@ const UOM = () => {
     { value: 'UNIT', label: 'Unit' },
   ];
 
-  const PRE_SEEDED_UOMS = [
-    { name: 'Number', symbol: 'NOS', uom_type: 'QUANTITY' },
-    { name: 'Kilogram', symbol: 'KG', uom_type: 'WEIGHT' },
-    { name: 'Gram', symbol: 'GMS', uom_type: 'WEIGHT' },
-    { name: 'Liter', symbol: 'LTR', uom_type: 'VOLUME' },
-    { name: 'Milliliter', symbol: 'ML', uom_type: 'VOLUME' },
-    { name: 'Meter', symbol: 'MTR', uom_type: 'LENGTH' },
-    { name: 'Centimeter', symbol: 'CM', uom_type: 'LENGTH' },
-    { name: 'Box', symbol: 'BOX', uom_type: 'UNIT' },
-    { name: 'Carton', symbol: 'CTN', uom_type: 'UNIT' },
-    { name: 'Dozen', symbol: 'DZN', uom_type: 'QUANTITY' },
-    { name: 'Pair', symbol: 'PRS', uom_type: 'QUANTITY' },
-    { name: 'Square Feet', symbol: 'SFT', uom_type: 'AREA' },
-    { name: 'Square Meter', symbol: 'SQM', uom_type: 'AREA' },
-    { name: 'Bag', symbol: 'BAG', uom_type: 'UNIT' },
-    { name: 'Tablet', symbol: 'TAB', uom_type: 'UNIT' },
-  ];
-
   useEffect(() => {
-    loadUoms();
-  }, []);
+    if (activeCompany?.id) {
+      fetchUoms();
+    }
+  }, [activeCompany?.id]);
 
   useEffect(() => {
     filterAndSortUoms();
   }, [uoms, searchTerm, sortBy]);
 
-  const loadUoms = () => {
-    const storedUoms = JSON.parse(localStorage.getItem('uoms') || '[]');
-    if (storedUoms.length === 0) {
-      initializePreSeededUoms();
-    } else {
-      setUoms(storedUoms);
+  const fetchUoms = async () => {
+    if (!activeCompany?.id) return;
+    setIsLoading(true);
+    try {
+      const response = await uomService.getUoms(1, 200, { company_id: activeCompany.id }); // Fetch a large batch to avoid pagination for now
+      let uomList = response.data || [];
+      uomList = uomList.filter(u => !u.company_id || String(u.company_id) === String(activeCompany.id));
+      setUoms(uomList);
+    } catch (error) {
+      console.error('Failed to fetch UOMs:', error);
+      toast.error('Failed to load UOMs');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const initializePreSeededUoms = () => {
-    const preSeededWithIds = PRE_SEEDED_UOMS.map((uom, index) => ({
-      id: index + 1,
-      ...uom,
-      createdAt: new Date().toISOString(),
-    }));
-    localStorage.setItem('uoms', JSON.stringify(preSeededWithIds));
-    setUoms(preSeededWithIds);
-  };
-
   const filterAndSortUoms = () => {
-    let filtered = uoms.filter(uom =>
+    let filtered = [...uoms].filter(uom =>
       uom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       uom.symbol.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (sortBy === 'latest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      filtered.sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
     } else if (sortBy === 'oldest') {
-      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      filtered.sort((a, b) => new Date(a.created_at || a.createdAt) - new Date(b.created_at || b.createdAt));
     } else if (sortBy === 'name') {
       filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -95,48 +83,57 @@ const UOM = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.symbol.trim()) {
-      toast.error('Unit Name and Symbol are required', { position: 'top-right', autoClose: 3000 });
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Unit Name is required';
+    if (!formData.symbol.trim()) newErrors.symbol = 'Symbol is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    if (editingId) {
-      const updatedUoms = uoms.map(uom =>
-        uom.id === editingId
-          ? { ...formData, id: editingId, updatedAt: new Date().toISOString() }
-          : uom
-      );
-      localStorage.setItem('uoms', JSON.stringify(updatedUoms));
-      setUoms(updatedUoms);
-      toast.success('UOM updated successfully!', { position: 'top-right', autoClose: 3000 });
-    } else {
-      const newUom = {
-        id: Math.max(...uoms.map(u => u.id), 0) + 1,
-        ...formData,
-        createdAt: new Date().toISOString(),
-      };
-      const updatedUoms = [...uoms, newUom];
-      localStorage.setItem('uoms', JSON.stringify(updatedUoms));
-      setUoms(updatedUoms);
-      toast.success('UOM created successfully!', { position: 'top-right', autoClose: 3000 });
+    setIsLoading(true);
+    try {
+      if (editingId) {
+        await uomService.updateUom(editingId, formData);
+        toast.success('UOM updated successfully!');
+      } else {
+        await uomService.createUom(formData);
+        toast.success('UOM created successfully!');
+      }
+      fetchUoms();
+      resetForm();
+    } catch (error) {
+      console.error('Failed to save UOM:', error);
+      toast.error(error.message || 'Failed to save UOM');
+    } finally {
+      setIsLoading(false);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
-    setFormData({ name: '', symbol: '', uom_type: 'QUANTITY' });
+    setFormData({ name: '', symbol: '', uom_type: 'QUANTITY', base_uom_id: '', conversion_factor: 1 });
     setEditingId(null);
+    setErrors({});
     setShowForm(false);
   };
 
   const handleEdit = (uom) => {
-    setFormData(uom);
+    setFormData({
+      name: uom.name,
+      symbol: uom.symbol,
+      uom_type: uom.uom_type || 'QUANTITY',
+      base_uom_id: uom.base_uom_id || '',
+      conversion_factor: uom.conversion_factor || 1,
+    });
     setEditingId(uom.id);
     setShowForm(true);
   };
@@ -145,25 +142,31 @@ const UOM = () => {
     setConfirmDialog({ isOpen: true, id, isBulk: false });
   };
 
-  const confirmDelete = () => {
-    if (confirmDialog.isBulk) {
-      const updatedUoms = uoms.filter(uom => !selectedUoms.has(uom.id));
-      localStorage.setItem('uoms', JSON.stringify(updatedUoms));
-      setUoms(updatedUoms);
-      setSelectedUoms(new Set());
-      toast.success('Selected UOMs deleted successfully!', { position: 'top-right', autoClose: 3000 });
-    } else {
-      const updatedUoms = uoms.filter(uom => uom.id !== confirmDialog.id);
-      localStorage.setItem('uoms', JSON.stringify(updatedUoms));
-      setUoms(updatedUoms);
-      toast.success('UOM deleted successfully!', { position: 'top-right', autoClose: 3000 });
+  const confirmDelete = async () => {
+    setIsLoading(true);
+    try {
+      if (confirmDialog.isBulk) {
+        const deletePromises = Array.from(selectedUoms).map(id => uomService.deleteUom(id));
+        await Promise.all(deletePromises);
+        setSelectedUoms(new Set());
+        toast.success('Selected UOMs deleted successfully!');
+      } else {
+        await uomService.deleteUom(confirmDialog.id);
+        toast.success('UOM deleted successfully!');
+      }
+      fetchUoms();
+    } catch (error) {
+      console.error('Failed to delete UOM:', error);
+      toast.error(error.message || 'Failed to delete UOM');
+    } finally {
+      setIsLoading(false);
+      setConfirmDialog({ isOpen: false, id: null, isBulk: false });
     }
-    setConfirmDialog({ isOpen: false, id: null, isBulk: false });
   };
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedUoms(new Set(uoms.map(uom => uom.id)));
+      setSelectedUoms(new Set(filteredUoms.map(uom => uom.id)));
     } else {
       setSelectedUoms(new Set());
     }
@@ -181,7 +184,7 @@ const UOM = () => {
 
   const handleDeleteSelected = () => {
     if (selectedUoms.size === 0) {
-      toast.warning('Please select UOMs to delete', { position: 'top-right', autoClose: 3000 });
+      toast.warning('Please select UOMs to delete');
       return;
     }
     setConfirmDialog({ isOpen: true, id: null, isBulk: true });
@@ -225,77 +228,103 @@ const UOM = () => {
         </div>
         <button
           className="btn btn-primary d-flex align-items-center"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) resetForm();
+            else setShowForm(true);
+          }}
+          disabled={isLoading}
         >
-          <i className="isax isax-add-circle5 me-1"></i>
+          <i className={`isax ${showForm ? 'isax-close-circle' : 'isax-add-circle5'} me-1`}></i>
           {showForm ? 'Cancel' : 'Add UOM'}
         </button>
       </div>
 
       {showForm && (
-        <div className="card mb-3">
+        <div className="card mb-3 border-0 shadow-sm">
           <div className="card-body">
             <h6 className="mb-3">{editingId ? 'Edit UOM' : 'Add New UOM'}</h6>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="row">
-                <div className="col-md-4">
+                <div className="col-md-6">
                   <div className="mb-3">
                     <label className="form-label">Unit Name *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control h-40 ${errors.name ? 'is-invalid' : ''}`}
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="e.g., Kilogram"
-                      required
                     />
+                    {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                   </div>
                 </div>
-                <div className="col-md-4">
+                <div className="col-md-6">
                   <div className="mb-3">
                     <label className="form-label">Symbol *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control h-40 ${errors.symbol ? 'is-invalid' : ''}`}
                       name="symbol"
                       value={formData.symbol}
                       onChange={handleInputChange}
                       placeholder="e.g., KG"
-                      required
                     />
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="mb-3">
-                    <label className="form-label">Type *</label>
-                    <select
-                      className="form-control"
-                      name="uom_type"
-                      value={formData.uom_type}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      {UOM_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
+                    {errors.symbol && <div className="invalid-feedback">{errors.symbol}</div>}
                   </div>
                 </div>
               </div>
 
-              <div className="d-flex justify-content-end gap-2">
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="mb-3">
+                    <label className="form-label">Base Unit (Optional)</label>
+                    <select
+                      className="form-control h-40"
+                      name="base_uom_id"
+                      value={formData.base_uom_id}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">None (Primary Unit)</option>
+                      {uoms.filter(u => String(u.id) !== String(editingId) && !u.base_uom_id).map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
+                      ))}
+                    </select>
+                    <small className="text-muted">If this is a secondary unit (e.g. Box of 10 Pcs)</small>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="mb-3">
+                    <label className="form-label">Conversion Factor</label>
+                    <input
+                      type="number"
+                      className="form-control h-40"
+                      name="conversion_factor"
+                      value={formData.conversion_factor}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 10"
+                      min="0.000001"
+                      step="any"
+                    />
+                    <small className="text-muted">How many base units in this unit?</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-end gap-2 mt-2">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn btn-light"
                   onClick={resetForm}
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? 'Update UOM' : 'Add UOM'}
+                <button type="submit" className="btn btn-primary px-4" disabled={isLoading}>
+                  {isLoading ? (
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  ) : null}
+                  {editingId ? 'Update UOM' : 'Save UOM'}
                 </button>
               </div>
             </form>
@@ -308,137 +337,117 @@ const UOM = () => {
           <div className="mb-3">
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
               <div className="d-flex align-items-center flex-wrap gap-2">
-                <div className="table-search d-flex align-items-center mb-0">
-                  <div className="search-input">
-                    <i className="isax isax-search-normal fs-12"></i>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search by name or symbol..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
+                <div className="input-group" style={{ maxWidth: '350px' }}>
+                  <span className="input-group-text bg-white border-end-0"><i className="isax isax-search-normal text-muted fs-14"></i></span>
+                  <input
+                    type="text"
+                    className="form-control h-40 border-start-0 shadow-none ps-0"
+                    placeholder="Search by name or symbol..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
-                {selectedUoms.size > 0 && (
-                  <button
-                    className="btn btn-outline-danger d-inline-flex align-items-center"
-                    onClick={handleDeleteSelected}
-                  >
-                    <i className="isax isax-trash me-1"></i>Delete ({selectedUoms.size})
-                  </button>
-                )}
-              </div>
-              <div className="dropdown">
-                <Link
-                  href="#"
-                  className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                  data-bs-toggle="dropdown"
-                >
-                  <i className="isax isax-sort me-1"></i>Sort By :{' '}
-                  <span className="fw-normal ms-1">
-                    {sortBy === 'latest' ? 'Latest' : sortBy === 'oldest' ? 'Oldest' : 'Name'}
-                  </span>
-                </Link>
-                <ul className="dropdown-menu dropdown-menu-end">
-                  <li>
-                    <Link href="#" className="dropdown-item" onClick={() => setSortBy('latest')}>
-                      Latest
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item" onClick={() => setSortBy('oldest')}>
-                      Oldest
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="dropdown-item" onClick={() => setSortBy('name')}>
-                      Name
-                    </Link>
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
 
-          {filteredUoms.length === 0 ? (
-            <div className="card">
-              <div className="card-body text-center py-5">
-                <i className="isax isax-ruler-2 fs-1 text-muted mb-3 d-block"></i>
-                <h6 className="mb-2">No UOMs Found</h6>
-                <p className="text-muted">No UOMs match your search</p>
+          <div className="card border-0 shadow-sm overflow-hidden">
+            <div className="card-body p-0">
+              {isLoading && uoms.length === 0 ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-2 text-muted">Loading UOMs...</p>
+                </div>
+              ) : filteredUoms.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="isax isax-ruler-2 fs-1 text-muted mb-3 d-block"></i>
+                  <h6 className="mb-2">No UOMs Found</h6>
+                  <p className="text-muted">
+                    {searchTerm ? 'No results for your search' : 'Add your first unit of measurement to get started'}
+                  </p>
+                  {!searchTerm && (
+                    <button className="btn btn-primary mt-2" onClick={() => setShowForm(true)}>
+                      <i className="isax isax-add-circle5 me-1"></i>Add UOM
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="bg-light text-muted small text-uppercase fw-semibold">
+                      <tr>
+                        <th className="ps-4">Unit Name</th>
+                        <th>Symbol</th>
+                        <th>Conversion</th>
+                        <th className="text-end pe-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="border-top-0">
+                      {filteredUoms.map((uom) => (
+                        <tr key={uom.id}>
+                          <td className="ps-4">
+                            <div className="d-flex align-items-center gap-2">
+                              <span className="fw-semibold text-dark">{uom.name}</span>
+                              {!uom.company_id && (
+                                <span className="badge bg-light text-secondary border" style={{ fontSize: '10px' }}>Global</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="badge bg-soft-primary text-primary px-2 py-1">{uom.symbol}</span>
+                          </td>
+                          <td>
+                            {uom.base_uom_id ? (
+                               <span className="fs-12">1 {uom.symbol} = {uom.conversion_factor} {uoms.find(u => String(u.id) === String(uom.base_uom_id))?.symbol || 'Units'}</span>
+                            ) : (
+                               <span className="text-muted fs-12">Base Unit</span>
+                            )}
+                          </td>
+                          <td className="text-end pe-4">
+                            <div className="d-flex justify-content-end gap-1">
+                              {uom.company_id && (
+                                <>
+                                  <button
+                                    className="btn btn-icon btn-soft-primary border-0"
+                                    onClick={() => handleEdit(uom)}
+                                    title="Edit"
+                                    disabled={isLoading}
+                                  >
+                                    <i className="isax isax-edit-25"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-icon btn-soft-danger border-0"
+                                    onClick={() => handleDelete(uom.id)}
+                                    title="Delete"
+                                    disabled={isLoading}
+                                  >
+                                    <i className="isax isax-trash"></i>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="mt-3 d-flex justify-content-between align-items-center">
+            <div className="text-muted small">
+              Showing {filteredUoms.length} of {uoms.length} UOMs
+            </div>
+            {isLoading && uoms.length > 0 && (
+              <div className="small text-primary">
+                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                Updating...
               </div>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-nowrap">
-                <thead className="thead-light">
-                  <tr>
-                    <th className="no-sort">
-                      <div className="form-check form-check-md">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          onChange={handleSelectAll}
-                          checked={selectedUoms.size === filteredUoms.length && filteredUoms.length > 0}
-                        />
-                      </div>
-                    </th>
-                    <th>Unit Name</th>
-                    <th>Symbol</th>
-                    <th>Type</th>
-                    <th className="no-sort">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUoms.map((uom) => (
-                    <tr key={uom.id}>
-                      <td>
-                        <div className="form-check form-check-md">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            checked={selectedUoms.has(uom.id)}
-                            onChange={() => handleSelectUom(uom.id)}
-                          />
-                        </div>
-                      </td>
-                      <td>
-                        <h6 className="fs-14 fw-medium mb-0">{uom.name}</h6>
-                      </td>
-                      <td>
-                        <span className="badge bg-light-primary">{uom.symbol}</span>
-                      </td>
-                      <td>
-                        <span className="badge bg-light-info">{getUomTypeLabel(uom.uom_type)}</span>
-                      </td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <button
-                            className="btn btn-sm btn-icon btn-soft-primary"
-                            onClick={() => handleEdit(uom)}
-                            title="Edit"
-                          >
-                            <i className="isax isax-edit-25"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-icon btn-soft-danger"
-                            onClick={() => handleDelete(uom.id)}
-                            title="Delete"
-                          >
-                            <i className="isax isax-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="mt-3 text-muted fs-12">
-            Showing {filteredUoms.length} of {uoms.length} UOMs
+            )}
           </div>
         </>
       )}

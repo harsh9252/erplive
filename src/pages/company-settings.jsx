@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import SettingsSidebar from '../components/SettingsSidebar';
 import { settingsService } from '../services/settingsService';
-import { getCurrentCompany } from '../services/companyService';
+import companyService, { getCurrentCompany } from '../services/companyService';
 import { toast } from 'react-toastify';
 
 const CompanySettings = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    id: null,
     name: '',
     legal_name: '',
     email: '',
@@ -20,6 +21,8 @@ const CompanySettings = () => {
     state_code: '',
     gstin: '',
     pan: '',
+    tan: '',
+    cin: '',
   });
 
   useEffect(() => {
@@ -35,6 +38,7 @@ const CompanySettings = () => {
       if (response.success && response.data) {
         const data = response.data;
         setFormData({
+          id: data.id || null,
           name: data.name || '',
           legal_name: data.legal_name || '',
           email: data.email || '',
@@ -47,6 +51,8 @@ const CompanySettings = () => {
           state_code: data.state_code || '',
           gstin: data.gstin || '',
           pan: data.pan || '',
+          tan: data.tan || '',
+          cin: data.cin || '',
         });
       } else {
         // Fallback to settingsService if getCurrentCompany is not successful
@@ -54,6 +60,7 @@ const CompanySettings = () => {
         if (settingsResponse.success && settingsResponse.data) {
           const data = settingsResponse.data;
           setFormData({
+            id: data.id || null,
             name: data.name || '',
             legal_name: data.legal_name || '',
             email: data.email || '',
@@ -66,6 +73,8 @@ const CompanySettings = () => {
             state_code: data.state_code || '',
             gstin: data.gstin || '',
             pan: data.pan || '',
+            tan: data.tan || '',
+            cin: data.cin || '',
           });
         }
       }
@@ -87,17 +96,23 @@ const CompanySettings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.id) {
+      toast.error('Unable to update company: ID missing');
+      return;
+    }
     setSubmitting(true);
     try {
-      const response = await settingsService.updateCompanySettings(formData);
-      if (response.success) {
+      // Use companyService.updateCompanyProfile for updating company information
+      const response = await companyService.updateCompanyProfile(formData.id, formData);
+      if (response.success || response.id) {
         toast.success('Company settings updated successfully');
+        fetchCompanySettings(); // Refresh data
       } else {
         toast.error(response.message || 'Failed to update settings');
       }
     } catch (error) {
       console.error('Error updating company settings:', error);
-      toast.error('Failed to update company settings');
+      toast.error(error.message || 'Failed to update company settings');
     } finally {
       setSubmitting(false);
     }
@@ -176,7 +191,6 @@ const CompanySettings = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="Email Address"
-                        required
                       />
                     </div>
 
@@ -216,6 +230,36 @@ const CompanySettings = () => {
                         value={formData.pan}
                         onChange={handleInputChange}
                         placeholder="e.g., AAPFU0939F"
+                      />
+                    </div>
+
+                    {/* TAN */}
+                    <div className="col-md-6">
+                      <label className="form-label text-dark">TAN <span className="text-muted fw-normal">(Tax Deduction Account Number)</span></label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="tan"
+                        value={formData.tan}
+                        onChange={handleInputChange}
+                        placeholder="e.g., BLRA12345B"
+                        maxLength={10}
+                        style={{ textTransform: 'uppercase' }}
+                      />
+                    </div>
+
+                    {/* CIN */}
+                    <div className="col-md-6">
+                      <label className="form-label text-dark">CIN <span className="text-muted fw-normal">(Company Identification Number)</span></label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="cin"
+                        value={formData.cin}
+                        onChange={handleInputChange}
+                        placeholder="e.g., U72200KA2020PTC123456"
+                        maxLength={21}
+                        style={{ textTransform: 'uppercase' }}
                       />
                     </div>
 

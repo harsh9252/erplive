@@ -162,7 +162,7 @@ const PaymentMethods = () => {
                         <th>Method Name</th>
                         <th>Status</th>
                         <th>Default</th>
-                        <th>Actions</th>
+                        <th className="text-end pe-4">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -177,19 +177,24 @@ const PaymentMethods = () => {
                           <td>
                             {method.isDefault && <span className="badge bg-primary">Default</span>}
                           </td>
-                          <td>
-                            <button 
-                              className="btn btn-sm btn-primary me-2"
-                              onClick={() => handleEdit(method)}
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDelete(method.id)}
-                            >
-                              Delete
-                            </button>
+                          <td className="text-end pe-4">
+                            <div className="dropdown">
+                              <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                <i className="isax isax-more fs-18"></i>
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                                <li>
+                                  <button className="dropdown-item py-2" onClick={() => handleEdit(method)}>
+                                    <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Method
+                                  </button>
+                                </li>
+                                <li>
+                                  <button className="dropdown-item py-2" onClick={() => handleDelete(method.id)}>
+                                    <i className="isax isax-trash me-2 text-danger"></i>Delete Method
+                                  </button>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                       ))}

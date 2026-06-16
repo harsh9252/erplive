@@ -8,7 +8,7 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null });
   const [viewModal, setViewModal] = useState({ isOpen: false, product: null });
   const [isLoading, setIsLoading] = useState(true);
@@ -311,30 +311,28 @@ const Products = () => {
                           {product.status}
                         </span>
                       </td>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <Link
-                            to="#"
-                            className="btn btn-sm btn-outline-primary"
-                            title="View Product"
-                            onClick={(e) => handleView(e, product)}
-                          >
-                            <i className="isax isax-eye"></i>
-                          </Link>
-                          <Link
-                            to={`/edit-product/${product.id}`}
-                            className="btn btn-sm btn-outline-warning"
-                            title="Edit Product"
-                          >
-                            <i className="isax isax-edit"></i>
-                          </Link>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(product.id)}
-                            title="Delete Product"
-                          >
-                            <i className="isax isax-trash"></i>
+                      <td className="text-end pe-4">
+                        <div className="dropdown">
+                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                            <i className="isax isax-more fs-18"></i>
                           </button>
+                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                            <li>
+                              <Link className="dropdown-item py-2" to="#" onClick={(e) => handleView(e, product)}>
+                                <i className="isax isax-eye me-2 text-primary"></i>View Details
+                              </Link>
+                            </li>
+                            <li>
+                              <Link className="dropdown-item py-2" to={`/edit-product/${product.id}`}>
+                                <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Product
+                              </Link>
+                            </li>
+                            <li>
+                              <button className="dropdown-item py-2" onClick={() => handleDelete(product.id)}>
+                                <i className="isax isax-trash me-2 text-danger"></i>Delete Product
+                              </button>
+                            </li>
+                          </ul>
                         </div>
                       </td>
                     </tr>

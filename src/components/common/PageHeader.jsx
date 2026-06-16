@@ -12,12 +12,12 @@ const PageHeader = ({ title, actions = [] }) => {
                     if (action.type === 'export') {
                         return (
                             <div className="dropdown" key={index}>
-                                <Link to="#" className="btn btn-outline-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+                                <button className="btn btn-outline-white d-inline-flex align-items-center shadow-none border" data-bs-toggle="dropdown" data-bs-display="static">
                                     <i className="isax isax-export-1 me-1"></i>Export
-                                </Link>
-                                <ul className="dropdown-menu">
-                                    <li><Link className="dropdown-item" to="#">Download as PDF</Link></li>
-                                    <li><Link className="dropdown-item" to="#">Download as Excel</Link></li>
+                                </button>
+                                <ul className="dropdown-menu border-0 shadow" style={{ right: 0, left: 'auto', transform: 'translateX(-20px)' }}>
+                                    <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={action.onDownloadPDF}>Download as PDF</button></li>
+                                    <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={action.onDownloadExcel}>Download as Excel</button></li>
                                 </ul>
                             </div>
                         );

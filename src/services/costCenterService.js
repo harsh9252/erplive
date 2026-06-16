@@ -1,19 +1,36 @@
 import { apiRequest } from './apiClient';
 import { cleanParams, normalizeListResponse } from './apiUtils';
 
+let fetchInProgress = new Map();
+
 export const costCenterService = {
   /**
    * Fetches all cost centers.
    * @param {Object} params - Query parameters.
    */
-  getCostCenters: async (params = {}) =>
-    normalizeListResponse(
-      await apiRequest({
-        url: '/api/cost-centres',
-        method: 'GET',
-        params: cleanParams(params),
-      }),
-    ),
+  getCostCenters: async (params = {}) => {
+    const paramKey = JSON.stringify(params);
+    if (fetchInProgress.has(paramKey)) {
+      return fetchInProgress.get(paramKey);
+    }
+
+    const promise = (async () => {
+      try {
+        return normalizeListResponse(
+          await apiRequest({
+            url: '/api/cost-centres',
+            method: 'GET',
+            params: cleanParams(params),
+          })
+        );
+      } finally {
+        fetchInProgress.delete(paramKey);
+      }
+    })();
+
+    fetchInProgress.set(paramKey, promise);
+    return promise;
+  },
 
   /**
    * Fetches a single cost center by ID.

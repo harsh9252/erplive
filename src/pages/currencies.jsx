@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SettingsSidebar from '../components/SettingsSidebar';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import currencyService from '../services/currencyService';
 
 const Currencies = () => {
@@ -24,6 +25,14 @@ const Currencies = () => {
     symbol: '',
     exchange_rate: ''
   });
+  const [errors, setErrors] = useState({});
+
+  const handleInputChange = (field, value) => {
+    setNewCurrency(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
 
   const fetchCurrencies = useCallback(async () => {
     setLoading(true);
@@ -88,14 +97,27 @@ const Currencies = () => {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!newCurrency.code?.trim()) newErrors.code = 'Currency Code is required';
+    if (!newCurrency.symbol?.trim()) newErrors.symbol = 'Symbol is required';
+    if (!newCurrency.name?.trim()) newErrors.name = 'Full Name is required';
+    if (!newCurrency.exchange_rate) newErrors.exchange_rate = 'Exchange Rate is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setLoading(true);
     try {
       await currencyService.createCurrency(newCurrency);
       toast.success('Currency added successfully');
       setShowAddModal(false);
       setNewCurrency({ code: '', name: '', symbol: '', exchange_rate: '' });
+      setErrors({});
       fetchCurrencies();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to add currency');
@@ -104,12 +126,23 @@ const Currencies = () => {
     }
   };
 
-  const handleUpdateRate = async (id, currentRate) => {
-    const newRate = window.prompt(`Enter new exchange rate for ID ${id}:`, currentRate);
-    if (newRate === null || newRate === currentRate) return;
+  const handleUpdateRate = async (code, currentRate) => {
+    const { value: newRate } = await Swal.fire({
+      title: 'Update Exchange Rate',
+      text: `Enter new exchange rate for ${code}:`,
+      input: 'number',
+      inputValue: currentRate,
+      showCancelButton: true,
+      confirmButtonText: 'Update',
+      inputAttributes: {
+        step: '0.0001'
+      }
+    });
+    
+    if (!newRate || parseFloat(newRate) === parseFloat(currentRate)) return;
     
     try {
-      await currencyService.updateExchangeRate(id, parseFloat(newRate));
+      await currencyService.updateExchangeRate(code, parseFloat(newRate));
       toast.success('Rate updated');
       fetchCurrencies();
     } catch (error) {
@@ -121,10 +154,8 @@ const Currencies = () => {
     <div className="row justify-content-center">
       <div className="col-xl-12">
         <div className="row settings-wrapper d-flex">
-          <div className="col-xl-3 col-lg-4">
-            <SettingsSidebar activeItem="/currencies" />
-          </div>
-          <div className="col-xl-9 col-lg-8">
+          {/* Settings Sidebar Removed for full-width layout */}
+          <div className="col-12">
             <div className="mb-4">
               <div className="pb-3 border-bottom mb-4 d-flex justify-content-between align-items-center">
                 <h4 className="fw-bold mb-0">Multi-Currency Management</h4>
@@ -190,7 +221,7 @@ const Currencies = () => {
                         <th>Symbol</th>
                         <th className="text-end">Exchange Rate (vs INR)</th>
                         <th>Last Updated</th>
-                        <th className="text-center pe-4">Actions</th>
+                        <th className="text-end pe-4">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -204,12 +235,13 @@ const Currencies = () => {
                             <td><span className="badge bg-soft-info text-info fs-14">{currency.symbol}</span></td>
                             <td className="text-end fw-semibold">₹{currency.exchange_rate}</td>
                             <td className="text-muted fs-12">{currency.updated_at || currency.last_updated || 'N/A'}</td>
-                            <td className="text-center pe-4">
+                            <td className="text-end pe-4">
                               <button 
-                                className="btn btn-soft-primary btn-sm px-3"
-                                onClick={() => handleUpdateRate(currency.id, currency.exchange_rate)}
+                                className="btn btn-icon-sm btn-soft-primary rounded-circle" 
+                                onClick={() => handleUpdateRate(currency.code, currency.exchange_rate)}
+                                title="Update Rate"
                               >
-                                Update Rate
+                                <i className="isax isax-edit-2 fs-16"></i>
                               </button>
                             </td>
                           </tr>
@@ -231,43 +263,46 @@ const Currencies = () => {
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-primary text-white border-0 py-3">
                 <h5 className="modal-title fw-bold">Register New Global Currency</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button>
+                <button type="button" className="btn-close btn-close-white" onClick={() => { setShowAddModal(false); setErrors({}); }}></button>
               </div>
-              <form onSubmit={handleCreate}>
+              <form onSubmit={handleCreate} noValidate>
                 <div className="modal-body p-4">
                   <div className="row g-3">
                     <div className="col-md-6 text-start">
                       <label className="form-label small fw-bold text-muted">Currency Code *</label>
                       <input 
                         type="text" 
-                        className="form-control" 
+                        className={`form-control ${errors.code ? 'is-invalid' : ''}`} 
                         placeholder="USD" 
                         value={newCurrency.code} 
-                        onChange={e => setNewCurrency({...newCurrency, code: e.target.value})} 
+                        onChange={e => handleInputChange('code', e.target.value)} 
                         required 
                       />
+                      {errors.code && <div className="invalid-feedback d-block">{errors.code}</div>}
                     </div>
                     <div className="col-md-6 text-start">
                       <label className="form-label small fw-bold text-muted">Symbol *</label>
                       <input 
                         type="text" 
-                        className="form-control" 
+                        className={`form-control ${errors.symbol ? 'is-invalid' : ''}`} 
                         placeholder="$" 
                         value={newCurrency.symbol} 
-                        onChange={e => setNewCurrency({...newCurrency, symbol: e.target.value})} 
+                        onChange={e => handleInputChange('symbol', e.target.value)} 
                         required 
                       />
+                      {errors.symbol && <div className="invalid-feedback d-block">{errors.symbol}</div>}
                     </div>
                     <div className="col-12 text-start">
                       <label className="form-label small fw-bold text-muted">Full Name *</label>
                       <input 
                         type="text" 
-                        className="form-control" 
+                        className={`form-control ${errors.name ? 'is-invalid' : ''}`} 
                         placeholder="US Dollar" 
                         value={newCurrency.name} 
-                        onChange={e => setNewCurrency({...newCurrency, name: e.target.value})} 
+                        onChange={e => handleInputChange('name', e.target.value)} 
                         required 
                       />
+                      {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
                     </div>
                     <div className="col-12 text-start">
                       <label className="form-label small fw-bold text-muted">Current Exchange Rate (vs 1 INR) *</label>
@@ -276,18 +311,19 @@ const Currencies = () => {
                         <input 
                           type="number" 
                           step="0.0001" 
-                          className="form-control border-start-0 ps-0" 
+                          className={`form-control border-start-0 ps-0 ${errors.exchange_rate ? 'is-invalid' : ''}`} 
                           placeholder="83.50" 
                           value={newCurrency.exchange_rate} 
-                          onChange={e => setNewCurrency({...newCurrency, exchange_rate: e.target.value})} 
+                          onChange={e => handleInputChange('exchange_rate', e.target.value)} 
                           required 
                         />
                       </div>
+                      {errors.exchange_rate && <div className="invalid-feedback d-block">{errors.exchange_rate}</div>}
                     </div>
                   </div>
                 </div>
                 <div className="modal-footer border-0 p-4 pt-0">
-                  <button type="button" className="btn btn-light px-4" onClick={() => setShowAddModal(false)}>Cancel</button>
+                  <button type="button" className="btn btn-light px-4" onClick={() => { setShowAddModal(false); setErrors({}); }}>Cancel</button>
                   <button type="submit" className="btn btn-primary px-4 shadow" disabled={loading}>
                     {loading ? 'Processing...' : 'Add Currency'}
                   </button>

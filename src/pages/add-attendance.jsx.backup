@@ -1,0 +1,779 @@
+import { useState, useRef, useEffect } from 'react';
+import { FiCalendar, FiUser, FiCheck, FiX, FiCoffee, FiActivity, FiTarget, FiUpload, FiDownload, FiSave, FiClock, FiEdit, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
+import * as XLSX from 'xlsx';
+import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
+import attendanceApi from '../services/attendanceApi.js';
+import api from '../services/api.js';
+
+// Generate current week's data with real dates
+const generateCurrentWeekData = () => {
+  const today = new Date();
+  const currentWeekData = [];
+
+  // Get the start of the week (Sunday)
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+
+  for (let i = 0; i < 7; i++) {
+    const currentDate = new Date(weekStart);
+    currentDate.setDate(weekStart.getDate() + i);
+
+    const isToday = currentDate.toDateString() === today.toDateString();
+    const isFuture = currentDate > today;
+    const dayOfWeek = currentDate.getDay();
+
+    currentWeekData.push({
+      date: currentDate.toISOString().split('T')[0],
+      dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek],
+      status: '',
+      check_in_time: '',
+      check_out_time: '',
+      hours_worked: '',
+      work_notes: '',
+      is_working_day: true,
+      is_future: isFuture
+    });
+  }
+
+  return currentWeekData;
+};
+
+// Helper function to calculate hours worked
+const calculateHoursWorked = (checkIn, checkOut) => {
+  if (!checkIn || !checkOut) return '';
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const inTime = new Date(`${today}T${checkIn}:00`);
+    const outTime = new Date(`${today}T${checkOut}:00`);
+
+    if (outTime <= inTime) return '';
+
+    const diffMs = outTime - inTime;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours.toFixed(2);
+  } catch (error) {
+    return '';
+  }
+};
+
+// Helper function to get status color classes
+const getStatusBadgeColor = (status) => {
+  switch (status) {
+    case 'present': return 'bg-green-100 text-green-800 border-green-200';
+    case 'half_day': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'leave': return 'bg-red-100 text-red-800 border-red-200';
+    case 'holiday': return 'bg-blue-100 text-blue-800 border-blue-200';
+    default: return 'bg-gray-100 text-gray-600 border-gray-200';
+  }
+};
+
+const getStatusRowColor = (status) => {
+  switch (status) {
+    case 'present': return 'bg-green-50/30';
+    case 'half_day': return 'bg-yellow-50/30';
+    case 'leave': return 'bg-red-50/30';
+    case 'holiday': return 'bg-blue-50/30';
+    default: return '';
+  }
+};
+
+export default function AttendancePage() {
+  const { showToast } = useNotification();
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [userAttendanceData, setUserAttendanceData] = useState({});
+  const fileInputRef = useRef(null);
+  const [editingCell, setEditingCell] = useState(null); // Track which cell is being edited
+  const [weekData, setWeekData] = useState(generateCurrentWeekData()); // Editable week data
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentViewDate, setCurrentViewDate] = useState(new Date()); // Track current view date
+
+  // Load attendance data on component mount
+  useEffect(() => {
+    loadAttendanceData();
+  }, [selectedDate]);
+
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === 'admin';
+
+  const loadUsers = async () => {
+    try {
+      console.log('Attempting to load users from:', '/users/directory');
+      const response = await api.get('/users/directory');
+      console.log('Users loaded successfully:', response);
+      setUsers(response);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      showToast('Failed to load users', 'error');
+    }
+  };
+
+  const loadAttendanceData = async () => {
+    try {
+      setLoading(true);
+      const selectedDateObj = new Date(selectedDate);
+      const weekStart = new Date(selectedDateObj);
+      weekStart.setDate(selectedDateObj.getDate() - selectedDateObj.getDay());
+
+      // Load users first and wait for completion
+      console.log('Loading users...');
+      await loadUsers();
+      console.log('Users loaded, proceeding with attendance data');
+
+      // Get all users' attendance data for the week
+      const allUsersAttendance = {};
+
+      if (isAdmin) {
+        // Admin users can fetch all users' attendance data
+        try {
+          console.log('Loading all users attendance as admin');
+          const allAttendance = await attendanceApi.getAllAttendance({
+            start_date: weekStart.toISOString().split('T')[0],
+            end_date: new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          });
+
+          console.log('All attendance data:', allAttendance);
+
+          // Group attendance by user ID
+          if (Array.isArray(allAttendance)) {
+            allAttendance.forEach(record => {
+              if (!allUsersAttendance[record.user_id]) {
+                allUsersAttendance[record.user_id] = [];
+              }
+              allUsersAttendance[record.user_id].push(record);
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to load all users attendance:', error);
+          // Fallback to loading individual user data
+          for (const user of users) {
+            try {
+              const summary = await attendanceApi.getWeekSummary({
+                week_start_date: weekStart.toISOString().split('T')[0]
+              });
+              allUsersAttendance[user.id] = summary.attendance || [];
+            } catch (err) {
+              console.warn(`Failed to load attendance for user ${user.id}:`, err);
+              allUsersAttendance[user.id] = [];
+            }
+          }
+        }
+      } else {
+        // Regular users can only fetch their own data
+        try {
+          console.log('Loading own attendance as regular user');
+          const summary = await attendanceApi.getWeekSummary({
+            week_start_date: weekStart.toISOString().split('T')[0]
+          });
+          allUsersAttendance[currentUser?.id] = summary.attendance || [];
+        } catch (error) {
+          console.warn('Failed to load user attendance:', error);
+          allUsersAttendance[currentUser?.id] = [];
+        }
+      }
+
+      // Ensure all users are included in the display, even if they have no attendance data
+      users.forEach(user => {
+        if (!allUsersAttendance[user.id]) {
+          allUsersAttendance[user.id] = [];
+        }
+      });
+
+      setUserAttendanceData(allUsersAttendance);
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+      setError('Failed to load attendance data. Please try again.');
+      showToast('Failed to load attendance data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get attendance data for a specific user and day
+  const getUserAttendanceForDay = (userId, date) => {
+    const userAttendance = userAttendanceData[userId] || [];
+    return userAttendance.find(a => a.date === date) || {
+      status: '',
+      check_in_time: '',
+      check_out_time: '',
+      hours_worked: '',
+      work_notes: ''
+    };
+  };
+
+  // Check if a date is in the future
+  const isFutureDate = (dateString) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(dateString);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate > today;
+  };
+
+  const saveAttendanceData = async () => {
+    try {
+      setLoading(true);
+      console.log('Saving attendance data for current user:', currentUser);
+      console.log('Week data:', weekData);
+
+      const savePromises = weekData
+        .filter(day => day.is_working_day && day.status)
+        .map(day => {
+          // Calculate hours worked if check-in and check-out times are provided
+          const calculatedHours = calculateHoursWorked(day.check_in_time, day.check_out_time);
+          const hoursWorked = calculatedHours || day.hours_worked;
+
+          // Ensure date is in ISO8601 format (YYYY-MM-DD)
+          const dateStr = day.date instanceof Date
+            ? day.date.toISOString().split('T')[0]
+            : day.date;
+
+          const attendanceData = {
+            date: dateStr,
+            status: day.status,
+            check_in_time: day.check_in_time && day.check_in_time.trim() ? day.check_in_time.trim() : null,
+            check_out_time: day.check_out_time && day.check_out_time.trim() ? day.check_out_time.trim() : null,
+            hours_worked: hoursWorked ? parseFloat(hoursWorked) : null,
+            work_notes: day.work_notes && day.work_notes.trim() ? day.work_notes.trim() : null
+          };
+
+          console.log('Saving attendance for day:', dateStr, 'Data:', attendanceData);
+
+          return attendanceApi.saveAttendance(attendanceData);
+        });
+
+      if (savePromises.length === 0) {
+        showToast('Please select at least one day with a status to save', 'warning');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Total save promises:', savePromises.length);
+      const results = await Promise.all(savePromises);
+      console.log('Attendance save results:', results);
+
+      showToast('Attendance data saved successfully!', 'success');
+      await loadAttendanceData(); // Reload to get updated data
+    } catch (error) {
+      console.error('Error saving attendance data:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      showToast('Failed to save attendance data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitWeekForApproval = async () => {
+    try {
+      setIsSubmitting(true);
+      const selectedDateObj = new Date(selectedDate);
+      const weekStart = new Date(selectedDateObj);
+      weekStart.setDate(selectedDateObj.getDate() - selectedDateObj.getDay());
+
+      await attendanceApi.submitWeekForApproval(weekStart.toISOString().split('T')[0]);
+      showToast('Week submitted for approval successfully!', 'success');
+    } catch (error) {
+      console.error('Error submitting week:', error);
+      showToast('Failed to submit week for approval', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Excel file upload
+  const handleUploadExcel = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle file selection
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // Get the first worksheet
+        const worksheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[worksheetName];
+
+        // Convert to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Process the data (this is a basic example)
+        console.log('Excel data:', jsonData);
+
+        showToast('Excel file uploaded successfully!', 'success');
+
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Error reading Excel file:', error);
+      showToast('Failed to read Excel file. Please check the file format.', 'error');
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Handle time changes for current user's data
+  const handleTimeChange = (rowIndex, field, value) => {
+    setWeekData(prevData => {
+      const newData = [...prevData];
+      newData[rowIndex] = {
+        ...newData[rowIndex],
+        [field]: value
+      };
+
+      // Auto-calculate hours if both check-in and check-out are provided
+      if (field === 'check_in_time' || field === 'check_out_time') {
+        const checkIn = field === 'check_in_time' ? value : newData[rowIndex].check_in_time;
+        const checkOut = field === 'check_out_time' ? value : newData[rowIndex].check_out_time;
+
+        if (checkIn && checkOut) {
+          const calculatedHours = calculateHoursWorked(checkIn, checkOut);
+          if (calculatedHours) {
+            newData[rowIndex].hours_worked = calculatedHours;
+          }
+        }
+      }
+
+      return newData;
+    });
+  };
+
+  // Handle Excel download
+  const handleDownloadExcel = () => {
+    try {
+      // Prepare data for Excel
+      const excelData = weekData.map(day => ({
+        'Day': day.dayName,
+        'Date': new Date(day.date).toLocaleDateString('en-US'),
+        'Check In': day.check_in_time || '',
+        'Check Out': day.check_out_time || '',
+        'Hours': day.hours_worked || '',
+        'Work Notes': day.work_notes || '',
+        'Status': day.status === 'present' ? 'Present' :
+                 day.status === 'half_day' ? 'Half Day' :
+                 day.status === 'leave' ? 'Leave' :
+                 day.status === 'holiday' ? 'Holiday' : ''
+      }));
+
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `attendance_${currentDate}.xlsx`;
+
+      // Download the file
+      XLSX.writeFile(workbook, filename);
+
+      showToast('Attendance data downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error creating Excel file:', error);
+      showToast('Failed to download Excel file.', 'error');
+    }
+  };
+
+  // Handle navigation to next day
+  const goToNextDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + 1);
+    setSelectedDate(currentDate.toISOString().split('T')[0]);
+    loadAttendanceData();
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-gray-600 font-medium">Loading attendance data...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FiX className="w-6 h-6 text-red-600" />
+              <h3 className="text-lg font-semibold text-red-800">Attendance Data Error</h3>
+            </div>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Reload Page
+              </button>
+              <button
+                onClick={loadAttendanceData}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate dates for the navigation card
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const formatDateCard = (date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatDayName = (date) => {
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Date Navigation Card */}
+      <div className="bg-white border-b border-gray-200 px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-3 gap-4">
+{/* Previous Day */}
+            <button
+              type="button"
+              onClick={() => {
+                const currentDate = new Date(selectedDate);
+                currentDate.setDate(currentDate.getDate() - 1);
+                setSelectedDate(currentDate.toISOString().split('T')[0]);
+                setCurrentViewDate(currentDate); // Update view date
+                loadAttendanceData();
+              }}
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+            >
+              <FiArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Previous Day</span>
+            </button>
+
+            {/* Today */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-2 border-blue-400 p-4 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Today</div>
+              <div className="text-sm font-bold text-blue-700">{formatDayName(today)}</div>
+              <div className="text-lg font-semibold text-blue-900 mt-1">{formatDateCard(today)}</div>
+            </div>
+
+            {/* Next Day */}
+            <button
+              type="button"
+              onClick={() => {
+                const currentDate = new Date(selectedDate);
+                currentDate.setDate(currentDate.getDate() + 1);
+                setSelectedDate(currentDate.toISOString().split('T')[0]);
+                setCurrentViewDate(currentDate); // Update view date
+                loadAttendanceData();
+              }}
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+            >
+              <span className="text-sm font-medium">Next Day</span>
+              <FiArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto">
+          <div className="bg-gray-50 px-6 py-4 border-b">
+            <div className="flex items-center justify-between">
+<div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <FiCalendar className="text-blue-600" />
+                  Daily Attendance
+                </h3>
+                <div className="text-sm text-gray-600 font-medium">
+                  {currentViewDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Date Filter */}
+                <input
+                  type="date"
+                  className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  style={{ height: '28px', fontSize: '10px' }}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+
+
+                {/* Action Buttons */}
+                <button
+                  type="button"
+                  onClick={handleUploadExcel}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-green-600 text-white border border-green-700 rounded-lg font-medium transition-colors text-xs hover:bg-green-700 shadow-sm"
+                  style={{ height: '28px', fontSize: '10px' }}
+                >
+                  <FiUpload className="w-3 h-3" />
+                  Upload Excel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadExcel}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white border border-blue-700 rounded-lg font-medium transition-colors text-xs hover:bg-blue-700 shadow-sm"
+                  style={{ height: '28px', fontSize: '10px' }}
+                >
+                  <FiDownload className="w-3 h-3" />
+                  Download
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveAttendanceData}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white border border-blue-700 rounded-lg font-medium transition-colors text-xs hover:bg-blue-700 shadow-sm"
+                  style={{ height: '28px', fontSize: '10px' }}
+                >
+                  <FiSave className="w-3 h-3" />
+                  Save
+                </button>
+
+                {/* Hidden file input for Excel upload */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".xlsx,.xls"
+                  style={{ display: 'none' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Employee Name</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Check In</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Check Out</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Hours</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Work Notes</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500 uppercase tracking-tight" style={{ fontSize: '10px' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {users.map((user) => {
+                  const isCurrentUser = user.id === currentUser?.id;
+                  const canEdit = isAdmin || isCurrentUser;
+
+                  // For non-admin users, only show current user
+                  // if (!isAdmin && !isCurrentUser) {
+                  //   return null;
+                  // }
+
+                  // Find the day data for the selected date
+                  const dayData = weekData.find(day => day.date === selectedDate);
+                  if (!dayData) return null;
+
+                  const isToday = dayData.date === new Date().toISOString().split('T')[0];
+                  const isFuture = isFutureDate(dayData.date);
+                  const rowKey = `${user.id}-${dayData.date}`;
+
+                  return (
+                    <tr
+                      key={rowKey}
+                      className={`hover:bg-gray-50 transition-colors ${isToday ? 'bg-blue-50' : ''} ${isFuture ? 'opacity-50' : ''}`}
+                    >
+                        <td className="px-3 py-1.5">
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="font-medium text-gray-900" style={{ fontSize: '10px' }}>
+                                {user.first_name || user.name || 'Employee'}
+                              </div>
+                              <div className="text-gray-500" style={{ fontSize: '9px' }}>
+                                {user.employee_id || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-1.5">
+                          {canEdit && !isFuture ? (
+                            editingCell?.row === 0 && editingCell?.column === 'checkIn' ? (
+                              <input
+                                type="time"
+                                className="w-full px-2 py-1 border border-blue-500 rounded text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                style={{ fontSize: '10px', height: '24px' }}
+                                value={dayData.check_in_time || ''}
+                                onChange={(e) => handleTimeChange(0, 'check_in_time', e.target.value)}
+                                onBlur={() => setEditingCell(null)}
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                className="w-full px-2 py-1 bg-gray-100 text-center font-medium cursor-pointer hover:bg-gray-200 transition-colors rounded"
+                                style={{ fontSize: '10px', height: '24px', lineHeight: '24px' }}
+                                onClick={() => setEditingCell({ row: 0, column: 'checkIn' })}
+                              >
+                                {dayData.check_in_time || '-'}
+                              </div>
+                            )
+                          ) : (
+                            <div className="w-full px-2 py-1 bg-gray-100 text-center font-medium" style={{ fontSize: '10px' }}>
+                              -
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          {canEdit && !isFuture ? (
+                            editingCell?.row === 0 && editingCell?.column === 'checkOut' ? (
+                              <input
+                                type="time"
+                                className="w-full px-2 py-1 border border-blue-500 rounded text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                style={{ fontSize: '10px', height: '24px' }}
+                                value={dayData.check_out_time || ''}
+                                onChange={(e) => handleTimeChange(0, 'check_out_time', e.target.value)}
+                                onBlur={() => setEditingCell(null)}
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                className="w-full px-2 py-1 bg-gray-100 text-center font-medium cursor-pointer hover:bg-gray-200 transition-colors rounded"
+                                style={{ fontSize: '10px', height: '24px', lineHeight: '24px' }}
+                                onClick={() => setEditingCell({ row: 0, column: 'checkOut' })}
+                              >
+                                {dayData.check_out_time || '-'}
+                              </div>
+                            )
+                          ) : (
+                            <div className="w-full px-2 py-1 bg-gray-100 text-center font-medium" style={{ fontSize: '10px' }}>
+                              -
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <div className="w-16 px-2 py-1 bg-blue-50 text-center font-semibold text-blue-900 rounded border border-blue-200" style={{ fontSize: '10px', height: '24px', lineHeight: '24px' }}>
+                            {dayData.hours_worked || '-'}
+                          </div>
+                        </td>
+                        <td className="px-3 py-1.5">
+                          {canEdit && !isFuture ? (
+                            editingCell?.row === 0 && editingCell?.column === 'workNotes' ? (
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                style={{ fontSize: '10px', height: '24px' }}
+                                value={dayData.work_notes || ''}
+                                onChange={(e) => handleTimeChange(0, 'work_notes', e.target.value)}
+                                onBlur={() => setEditingCell(null)}
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                className="w-full px-2 py-1 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors rounded"
+                                style={{ fontSize: '10px', height: '24px', lineHeight: '24px' }}
+                                onClick={() => setEditingCell({ row: 0, column: 'workNotes' })}
+                              >
+                                {dayData.work_notes || '-'}
+                              </div>
+                            )
+                          ) : (
+                            <div className="w-full px-2 py-1 bg-gray-100" style={{ fontSize: '10px' }}>
+                              -
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={dayData.status || ''}
+                              onChange={(e) => handleTimeChange(0, 'status', e.target.value)}
+                              className={`flex-1 px-2 py-1 border rounded text-center font-bold text-xs ${getStatusBadgeColor(dayData.status)}`}
+                              style={{ fontSize: '10px', height: '24px' }}
+                              disabled={!canEdit || isFuture}
+                            >
+                              <option value="">Select Status</option>
+                              <option value="present">Present</option>
+                              <option value="half_day">Half Day</option>
+                              <option value="leave">Leave</option>
+                              <option value="holiday">Holiday</option>
+                            </select>
+                            {canEdit && !isFuture && (
+                              <button
+                                onClick={() => {
+                                  const calculatedHours = calculateHoursWorked(dayData.check_in_time, dayData.check_out_time);
+                                  if (calculatedHours) {
+                                    handleTimeChange(0, 'hours_worked', calculatedHours);
+                                  }
+                                }}
+                                className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                                title="Auto-calculate hours"
+                              >
+                                <FiClock className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+  );
+}
+
+// Simple status icons
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'present': return <FiCheck className="w-4 h-4 text-green-600" />;
+    case 'half_day': return <FiCoffee className="w-4 h-4 text-yellow-600" />;
+    case 'leave': return <FiCalendar className="w-4 h-4 text-red-600" />;
+    case 'holiday': return <FiTarget className="w-4 h-4 text-blue-600" />;
+    default: return <FiActivity className="w-4 h-4 text-gray-400" />;
+  }
+}

@@ -145,7 +145,7 @@ const SupplierPayments = () => {
             <span className="num-count d-inline-flex align-items-center justify-content-center bg-success fs-10 me-1">
               1
             </span>
-            $10,000 - $25,500
+            ₹10,000 - ₹25,500
             <span className="ms-1 tag-close">
               <i className="fa-solid fa-x fs-10"></i>
             </span>
@@ -254,7 +254,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>07 Feb 2025</td>
-              <td className="text-dark">$25,750</td>
+              <td className="text-dark">₹25,750</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -309,7 +309,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>30 Jan 2025</td>
-              <td className="text-dark">$50,125</td>
+              <td className="text-dark">₹50,125</td>
               <td className="text-dark">Cash</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -364,7 +364,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>24 Jan 2025</td>
-              <td className="text-dark">$75,900</td>
+              <td className="text-dark">₹75,900</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -419,7 +419,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>04 Jan 2025</td>
-              <td className="text-dark">$99,999</td>
+              <td className="text-dark">₹99,999</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -474,7 +474,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>09 Dec 2024</td>
-              <td className="text-dark">$1,20,500</td>
+              <td className="text-dark">₹1,20,500</td>
               <td className="text-dark">Cash</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -529,7 +529,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>02 Dec 2024</td>
-              <td className="text-dark">$2,50,000</td>
+              <td className="text-dark">₹2,50,000</td>
               <td className="text-dark">Cash</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -584,7 +584,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>15 Nov 2024</td>
-              <td className="text-dark">$5,00,750</td>
+              <td className="text-dark">₹5,00,750</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -639,7 +639,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>30 Nov 2024</td>
-              <td className="text-dark">$7,50,300</td>
+              <td className="text-dark">₹7,50,300</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -694,7 +694,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>12 Oct 2024</td>
-              <td className="text-dark">$9,99,999</td>
+              <td className="text-dark">₹9,99,999</td>
               <td className="text-dark">Cash</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -749,7 +749,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>05 Oct 2024</td>
-              <td className="text-dark">$87,650</td>
+              <td className="text-dark">₹87,650</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -804,7 +804,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>09 Sep 2024</td>
-              <td className="text-dark">$69,420</td>
+              <td className="text-dark">₹69,420</td>
               <td className="text-dark">Cash</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -859,7 +859,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>02 Sep 2024</td>
-              <td className="text-dark">$33,210</td>
+              <td className="text-dark">₹33,210</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -914,7 +914,7 @@ const SupplierPayments = () => {
                 </Link>
               </td>
               <td>07 Aug 2024</td>
-              <td className="text-dark">$2,10,000</td>
+              <td className="text-dark">₹2,10,000</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td className="action-item">
                 <Link href="#" data-bs-toggle="dropdown">
@@ -1080,7 +1080,7 @@ const SupplierPayments = () => {
                   <div className="filter-range">
                     <input type="text" id="range_03" />
                     <p>
-                      Range : <span className="text-gray-9">$200 - $5695</span>
+                      Range : <span className="text-gray-9">₹200 - ₹5,695</span>
                     </p>
                   </div>
                 </div>
@@ -1293,7 +1293,7 @@ const SupplierPayments = () => {
                         <label className="form-label">
                           Paid Amount<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" value="$5200" readonly />
+                        <input type="text" className="form-control" value="₹5,200" readonly />
                       </div>
                     </div>
                     <div className="col-lg-4 col-md-6">
@@ -1301,7 +1301,7 @@ const SupplierPayments = () => {
                         <label className="form-label">
                           Due Amount<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" value="$10000" readonly />
+                        <input type="text" className="form-control" value="₹10,000" readonly />
                       </div>
                     </div>
                     <div className="col-lg-12">
@@ -1448,7 +1448,7 @@ const SupplierPayments = () => {
                         <label className="form-label">
                           Amount<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" value="$4800" />
+                        <input type="text" className="form-control" value="₹4,800" />
                       </div>
                     </div>
                     <div className="col-lg-4 col-md-6">
@@ -1456,7 +1456,7 @@ const SupplierPayments = () => {
                         <label className="form-label">
                           Paid Amount<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" value="$5200" readonly />
+                        <input type="text" className="form-control" value="₹5,200" readonly />
                       </div>
                     </div>
                     <div className="col-lg-4 col-md-6">
@@ -1464,7 +1464,7 @@ const SupplierPayments = () => {
                         <label className="form-label">
                           Due Amount<span className="text-danger ms-1">*</span>
                         </label>
-                        <input type="text" className="form-control" value="$10000" readonly />
+                        <input type="text" className="form-control" value="₹10,000" readonly />
                       </div>
                     </div>
                     <div className="col-lg-12">

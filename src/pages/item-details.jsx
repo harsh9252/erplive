@@ -26,6 +26,14 @@ const ItemDetails = () => {
       setLoading(false);
     }
   }, [id]);
+  
+  const renderValue = (val, key = 'name') => {
+    if (val === null || val === undefined) return 'N/A';
+    if (typeof val === 'object') {
+      return val[key] || val.name || val.code || val.label || 'N/A';
+    }
+    return val;
+  };
 
   useEffect(() => {
     fetchItemData();
@@ -67,25 +75,27 @@ const ItemDetails = () => {
                   <i className="isax isax-box fs-40"></i>
                 </div>
                 <h5 className="fw-bold mb-1">{item.name}</h5>
-                <span className="badge bg-soft-info text-info border-info px-3 py-2 rounded-pill fs-12 uppercase">{item.unit}</span>
+                <span className="badge bg-soft-info text-info border-info px-3 py-2 rounded-pill fs-12 uppercase">{renderValue(item.unit)}</span>
               </div>
               
               <div className="border-top pt-3">
                 <div className="d-flex justify-content-between mb-2 fs-13">
                   <span className="text-muted text-uppercase">SKU / Code</span>
-                  <span className="fw-bold text-dark">{item.sku || 'N/A'}</span>
+                  <span className="fw-bold text-dark">{renderValue(item.sku, 'code')}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2 fs-13">
                   <span className="text-muted text-uppercase">Category</span>
-                  <span className="fw-bold text-dark">{item.category || 'N/A'}</span>
+                  <span className="fw-bold text-dark">{renderValue(item.category)}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2 fs-13">
                   <span className="text-muted text-uppercase">HSN/SAC Code</span>
-                  <span className="fw-bold text-dark">{item.hsn_code || 'N/A'}</span>
+                  <span className="fw-bold text-dark">{renderValue(item.hsn_code, 'code')}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2 fs-13">
                   <span className="text-muted text-uppercase">GST Rate</span>
-                  <span className="fw-bold text-success">{item.gst_rate || item.tax_rate}%</span>
+                  <span className="fw-bold text-success">
+                    {parseFloat(item.gst_rate ?? item.tax_rate ?? 0)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -96,7 +106,7 @@ const ItemDetails = () => {
               <div className="d-flex align-items-center justify-content-between">
                 <div>
                   <h6 className="opacity-75 mb-1 fs-12 uppercase tracking-wide">Total Available Stock</h6>
-                  <h2 className="fw-bold mb-0">{totalStockCount || item.current_stock || 0} <small className="fs-13 fw-normal opacity-75">{item.unit}</small></h2>
+                  <h2 className="fw-bold mb-0">{totalStockCount || item.current_stock || 0} <small className="fs-13 fw-normal opacity-75">{renderValue(item.unit)}</small></h2>
                 </div>
                 <i className="isax isax-box-1 fs-40 opacity-25"></i>
               </div>
@@ -116,7 +126,7 @@ const ItemDetails = () => {
               </div>
               <div className="d-flex justify-content-between mb-2 fs-13 text-muted">
                 <span>Reorder Level</span>
-                <span className="fw-bold text-danger text-nowrap">{item.reorder_level || 0} {item.unit}</span>
+                <span className="fw-bold text-danger text-nowrap">{item.reorder_level || 0} {renderValue(item.unit)}</span>
               </div>
               <div className="d-flex justify-content-between mt-3 pt-2 border-top">
                 <span className="text-muted fs-13">Tracking Status</span>
@@ -191,7 +201,7 @@ const ItemDetails = () => {
                 </div>
                 <div className="col-sm-6">
                   <span className="d-block text-muted text-uppercase fs-10 fw-bold mb-1">Taxation Compliance</span>
-                  <div className="fw-semibold">GST {item.gst_rate || item.tax_rate}% (HSN: {item.hsn_code || 'None'})</div>
+                  <div className="fw-semibold">GST {parseFloat(item.gst_rate ?? item.tax_rate ?? 0)}% (HSN: {renderValue(item.hsn_code, 'code')})</div>
                 </div>
               </div>
             </div>

@@ -9,14 +9,20 @@ const CollectPaymentModal = forwardRef(({ invoice, onSuccess }, ref) => {
     reference: "",
   });
 
+  const balanceAmount = invoice ? (
+    parseFloat(invoice.balance_amount) || 
+    parseFloat(invoice.balance) || 
+    (parseFloat(invoice.net_total || invoice.net_amount || 0) - parseFloat(invoice.paid_amount || 0))
+  ) : 0;
+
   useEffect(() => {
     if (invoice) {
       setFormData((prev) => ({
         ...prev,
-        amount: invoice.balance_amount || invoice.net_amount || 0,
+        amount: balanceAmount > 0 ? balanceAmount : 0,
       }));
     }
-  }, [invoice]);
+  }, [invoice, balanceAmount]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,12 +64,7 @@ const CollectPaymentModal = forwardRef(({ invoice, onSuccess }, ref) => {
                     <span>
                       Balance:{" "}
                       <strong>
-                        ₹
-                        {(
-                          invoice.balance_amount ||
-                          invoice.net_amount ||
-                          0
-                        ).toLocaleString()}
+                        ₹{balanceAmount.toLocaleString()}
                       </strong>
                     </span>
                   </div>
@@ -83,7 +84,8 @@ const CollectPaymentModal = forwardRef(({ invoice, onSuccess }, ref) => {
                       className="form-control"
                       value={formData.amount}
                       onChange={handleChange}
-                      max={invoice?.balance_amount || invoice?.net_amount}
+                      max={balanceAmount}
+                      min="0.01"
                       step="0.01"
                       required
                     />

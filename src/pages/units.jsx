@@ -12,6 +12,9 @@ const Units = () => {
   const [formData, setFormData] = useState({
     name: '',
     shortName: '',
+    isDerived: false,
+    baseUnitId: '',
+    conversionFactor: '',
     active: true,
   });
 
@@ -72,7 +75,14 @@ const Units = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', shortName: '', active: true });
+    setFormData({ 
+      name: '', 
+      shortName: '', 
+      isDerived: false, 
+      baseUnitId: '', 
+      conversionFactor: '', 
+      active: true 
+    });
     setEditingId(null);
     setShowForm(false);
   };
@@ -168,8 +178,65 @@ const Units = () => {
                     />
                   </div>
                 </div>
-                <div className="col-md-2 d-flex align-items-center">
-                  <div className="form-check form-switch mt-3">
+              </div>
+              <div className="row mb-3">
+                <div className="col-md-5">
+                  <div className="form-check form-switch mt-2">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      name="isDerived"
+                      checked={formData.isDerived}
+                      onChange={handleInputChange}
+                      id="isDerivedSwitch"
+                    />
+                    <label className="form-check-label fw-medium ms-2" htmlFor="isDerivedSwitch">
+                      This is a Secondary Unit (e.g. Box, KG)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {formData.isDerived && (
+                <div className="row mb-3 p-3 bg-light rounded border mx-1">
+                  <div className="col-md-5">
+                    <label className="form-label">Base Unit (Smallest Unit)</label>
+                    <select 
+                      className="form-control"
+                      name="baseUnitId"
+                      value={formData.baseUnitId}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Select Base Unit</option>
+                      {units.filter(u => u.id !== editingId && !u.isDerived).map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.shortName})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-5">
+                    <label className="form-label">Conversion Factor (Multiplier)</label>
+                    <div className="input-group">
+                      <span className="input-group-text">1 {formData.name || 'Unit'} = </span>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        name="conversionFactor"
+                        value={formData.conversionFactor}
+                        onChange={handleInputChange}
+                        placeholder="e.g. 25"
+                      />
+                      <span className="input-group-text">
+                        {formData.baseUnitId ? units.find(u => u.id == formData.baseUnitId)?.shortName : 'Base Units'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="row">
+                <div className="col-md-2">
+                  <div className="form-check form-switch mt-2">
                     <input
                       className="form-check-input"
                       type="checkbox"
@@ -226,9 +293,10 @@ const Units = () => {
               <thead className="table-light">
                 <tr>
                   <th>Unit Name</th>
-                  <th className="no-sort">Short Name</th>
-                  <th className="no-sort">Active</th>
-                  <th className="no-sort">Actions</th>
+                  <th>Short Name</th>
+                  <th>Conversion Relationship</th>
+                  <th className="no-sort text-center">Active</th>
+                  <th className="no-sort text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +307,16 @@ const Units = () => {
                     </td>
                     <td>{unit.shortName}</td>
                     <td>
-                      <div className="form-check form-switch">
+                      {unit.isDerived && unit.baseUnitId ? (
+                        <span className="badge badge-soft-info border border-info border-opacity-25 fs-12">
+                          1 {unit.shortName} = {unit.conversionFactor} {units.find(u => u.id == unit.baseUnitId)?.shortName}
+                        </span>
+                      ) : (
+                        <span className="text-muted fs-12 italic">Base Unit</span>
+                      )}
+                    </td>
+                    <td className="text-center">
+                      <div className="form-check form-switch d-inline-block">
                         <input
                           className="form-check-input"
                           type="checkbox"
@@ -249,21 +326,21 @@ const Units = () => {
                         />
                       </div>
                     </td>
-                    <td className="action-item">
-                      <div className="d-flex gap-2">
-                        <button
-                          className="btn btn-sm btn-icon btn-soft-primary"
+                     <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end align-items-center gap-2">
+                        <button 
+                          className="btn btn-sm btn-soft-warning border-0" 
                           onClick={() => handleEdit(unit)}
-                          title="Edit"
+                          title="Edit Unit"
                         >
-                          <i className="isax isax-edit-25"></i>
+                          <i className="isax isax-edit-2 fs-16"></i>
                         </button>
-                        <button
-                          className="btn btn-sm btn-icon btn-soft-danger"
+                        <button 
+                          className="btn btn-sm btn-soft-danger border-0" 
                           onClick={() => handleDelete(unit.id)}
-                          title="Delete"
+                          title="Delete Unit"
                         >
-                          <i className="isax isax-trash"></i>
+                          <i className="isax isax-trash fs-16"></i>
                         </button>
                       </div>
                     </td>

@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { getHsnSacItems } from '../services/itemService';
 
 const EditItem = () => {
   const navigate = useNavigate();
@@ -28,6 +30,19 @@ const EditItem = () => {
   });
   const [loading, setLoading] = useState(true);
   const [originalSku, setOriginalSku] = useState('');
+  const [hsnResults, setHsnResults] = useState([]);
+  const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+
+  // Click outside listener for HSN dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showHsnDropdown && !event.target.closest('.hsn-dropdown-container')) {
+        setShowHsnDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showHsnDropdown]);
 
   useEffect(() => {
     loadItem();
@@ -53,6 +68,30 @@ const EditItem = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+
+    if (name === 'hsn_code') {
+      searchHsn(value);
+    }
+  };
+
+  const searchHsn = async (query) => {
+    try {
+      const response = await getHsnSacItems(query);
+      const items = response.data?.items || response.data || [];
+      setHsnResults(items);
+      setShowHsnDropdown(true);
+    } catch (error) {
+      console.error('HSN search error:', error);
+    }
+  };
+
+  const selectHsn = (hsn) => {
+    setFormData(prev => ({
+      ...prev,
+      hsn_code: hsn.code,
+      gst_rate: hsn.gst_rate ? String(parseInt(hsn.gst_rate)) : prev.gst_rate
+    }));
+    setShowHsnDropdown(false);
   };
 
   const handleSubmit = (e) => {
@@ -213,7 +252,7 @@ const EditItem = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-6 hsn-dropdown-container position-relative">
                     <div className="mb-3">
                       <label className="form-label">HSN/SAC Code *</label>
                       <input
@@ -222,9 +261,28 @@ const EditItem = () => {
                         name="hsn_code"
                         value={formData.hsn_code}
                         onChange={handleInputChange}
+                        onFocus={() => searchHsn(formData.hsn_code)}
                         placeholder="For GST"
+                        autoComplete="off"
                         required
                       />
+                      {showHsnDropdown && hsnResults.length > 0 && (
+                        <div className="position-absolute w-100 shadow-sm bg-white border rounded-3 mt-1" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                          {hsnResults.map(h => (
+                            <div 
+                              key={h.id} 
+                              className="p-2 border-bottom hover-bg-light cursor-pointer fs-13 d-flex justify-content-between align-items-center" 
+                              onClick={() => selectHsn(h)}
+                            >
+                              <div>
+                                  <strong className="text-primary">{h.code}</strong>
+                                  <div className="text-muted text-truncate" style={{ maxWidth: '200px' }}>{h.description}</div>
+                              </div>
+                              <span className="badge bg-soft-info text-info border border-info border-opacity-25">{h.gst_rate}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

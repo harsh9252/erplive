@@ -17,7 +17,7 @@ const BudgetVariance = () => {
         setLoading(true);
         const response = await budgetService.getBudgetVariance(id);
         if (response?.data) {
-          setVarianceData(response.data);
+          setVarianceData(response.data.variance || (Array.isArray(response.data) ? response.data : []));
         }
 
         // Also get budget details for header
@@ -74,7 +74,7 @@ const BudgetVariance = () => {
 
   return (
     <div className="content">
-      <div className="page-header">
+      <div className="page-header d-print-none">
         <div className="add-item d-flex">
           <div className="page-title">
             <h4>Budget Variance Report</h4>
@@ -97,7 +97,7 @@ const BudgetVariance = () => {
             <div className="col-md-6">
               <h5 className="card-title mb-0">Variance Analysis</h5>
               <small className="text-muted">
-                Period: {budget?.period_type} |
+                Period: <span className="text-capitalize">{budget?.period_type}</span> |
                 {budget?.from_date &&
                   budget?.to_date &&
                   `${new Date(budget.from_date).toLocaleDateString()} - ${new Date(budget.to_date).toLocaleDateString()}`}
@@ -126,22 +126,22 @@ const BudgetVariance = () => {
           <div className="table-responsive">
             <table className="table table-striped datanew">
               <thead className="table-dark">
-                <tr>
-                  <th>Ledger Account</th>
-                  <th>Period Label</th>
-                  <th className="text-end">Budgeted Amount</th>
-                  <th className="text-end">Actual Amount</th>
-                  <th className="text-end">Variance</th>
-                  <th className="text-end">Variance %</th>
-                  <th className="text-center">Status</th>
+                <tr className="text-white">
+                  <th className="text-white">Ledger Account</th>
+                  <th className="text-white">Period Label</th>
+                  <th className="text-end text-white">Budgeted Amount</th>
+                  <th className="text-end text-white">Actual Amount</th>
+                  <th className="text-end text-white">Variance</th>
+                  <th className="text-end text-white">Variance %</th>
+                  <th className="text-center text-white">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {varianceData.length > 0 ? (
                   varianceData.map((item, index) => {
                     const { variance, variancePercent } = calculateVariance(
-                      item.budgeted_amount,
-                      item.actual_amount,
+                      item.budgeted,
+                      item.actual,
                     );
                     const varianceClass = getVarianceClass(variancePercent);
 
@@ -152,10 +152,10 @@ const BudgetVariance = () => {
                         </td>
                         <td>{item.period_label}</td>
                         <td className="text-end fw-medium">
-                          {formatCurrency(item.budgeted_amount)}
+                          {formatCurrency(item.budgeted)}
                         </td>
                         <td className="text-end fw-medium">
-                          {formatCurrency(item.actual_amount)}
+                          {formatCurrency(item.actual)}
                         </td>
                         <td
                           className={`text-end ${variance >= 0 ? "text-danger" : "text-success"}`}
@@ -204,7 +204,7 @@ const BudgetVariance = () => {
                       {formatCurrency(
                         varianceData.reduce(
                           (sum, item) =>
-                            sum + (parseFloat(item.budgeted_amount) || 0),
+                            sum + (parseFloat(item.budgeted) || 0),
                           0,
                         ),
                       )}
@@ -216,7 +216,7 @@ const BudgetVariance = () => {
                       {formatCurrency(
                         varianceData.reduce(
                           (sum, item) =>
-                            sum + (parseFloat(item.actual_amount) || 0),
+                            sum + (parseFloat(item.actual) || 0),
                           0,
                         ),
                       )}
@@ -230,12 +230,12 @@ const BudgetVariance = () => {
                   {(() => {
                     const totalBudgeted = varianceData.reduce(
                       (sum, item) =>
-                        sum + (parseFloat(item.budgeted_amount) || 0),
+                        sum + (parseFloat(item.budgeted) || 0),
                       0,
                     );
                     const totalActual = varianceData.reduce(
                       (sum, item) =>
-                        sum + (parseFloat(item.actual_amount) || 0),
+                        sum + (parseFloat(item.actual) || 0),
                       0,
                     );
                     const overallVariance = totalActual - totalBudgeted;

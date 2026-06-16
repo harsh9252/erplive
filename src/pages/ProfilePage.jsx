@@ -33,7 +33,7 @@ const InfoCard = ({ label, value, icon: Icon, color = "blue", monospace = false 
 };
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const [activeTab, setActiveTab] = useState('basic');
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -136,9 +136,9 @@ export default function ProfilePage() {
                         {profileData.first_name}
                       </h1>
                       <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-medium">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-medium text-capitalize">
                           <FiShield size={14} />
-                          {profileData.role}
+                          {profileData.role || (roles?.length > 0 ? roles.map(r => r.name).join(', ') : 'User')}
                         </div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-medium">
                           <FiCheckCircle size={14} />
@@ -183,7 +183,7 @@ export default function ProfilePage() {
                       <InfoCard label="EMAIL" value={profileData.email} icon={FiMail} color="purple" />
                       <InfoCard label="PHONE" value={profileData.phone} icon={FiPhone} color="orange" />
                       <InfoCard label="USERNAME" value={profileData.username} icon={FiUser} color="blue" />
-                      <InfoCard label="ROLE" value={profileData.role} icon={FiShield} color="green" />
+                      <InfoCard label="ROLE" value={profileData.role || (roles?.length > 0 ? roles.map(r => r.name).join(', ') : 'User')} icon={FiShield} color="green" />
                       <InfoCard label="STATUS" value={profileData.status} icon={FiCheckCircle} color="blue" />
                       <InfoCard label="JOINING DATE" value={formatDate(profileData.created_at)} icon={FiCalendar} color="purple" />
                     </div>

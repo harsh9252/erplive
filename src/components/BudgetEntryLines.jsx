@@ -8,6 +8,8 @@ const BudgetEntryLines = ({
   periodType,
   fromDate,
   toDate,
+  errors = {},
+  setErrors
 }) => {
   const [nextId, setNextId] = useState(Date.now() + Math.random());
 
@@ -16,12 +18,21 @@ const BudgetEntryLines = ({
     [ledgers],
   );
 
-  const handleEntryChange = (id, field, value) => {
+  const handleEntryChange = (id, field, value, index) => {
     setEntries((prev) =>
       prev.map((entry) =>
         entry.id === id ? { ...entry, [field]: value } : entry,
       ),
     );
+    if (setErrors && index !== undefined) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (field === "ledger_id") delete newErrors[`ledger_${index}`];
+        if (field === "period_label") delete newErrors[`period_${index}`];
+        if (field === "amount") delete newErrors[`amount_${index}`];
+        return newErrors;
+      });
+    }
   };
 
   const handleAddEntry = () => {
@@ -48,10 +59,10 @@ const BudgetEntryLines = ({
     const end = new Date(toDate);
     const labels = [];
 
-    if (periodType === "ANNUAL") {
+    if (periodType?.toLowerCase() === "yearly" || periodType?.toLowerCase() === "annual") {
       const year = start.getFullYear();
       labels.push(`FY${year}-${year + 1}`);
-    } else if (periodType === "QUARTERLY") {
+    } else if (periodType?.toLowerCase() === "quarterly") {
       const quarters = ["Q1", "Q2", "Q3", "Q4"];
       let current = new Date(start);
       while (current <= end) {
@@ -60,7 +71,7 @@ const BudgetEntryLines = ({
         labels.push(`${quarters[quarter - 1]} ${year}`);
         current.setMonth(current.getMonth() + 3);
       }
-    } else if (periodType === "MONTHLY") {
+    } else if (periodType?.toLowerCase() === "monthly") {
       let current = new Date(start);
       while (current <= end) {
         const month = current.toLocaleString("default", { month: "short" });
@@ -108,66 +119,79 @@ const BudgetEntryLines = ({
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {entries.map((entry, index) => (
                 <tr key={entry.id}>
                   <td>
                     <SearchableSelect
                       options={ledgerOptions}
                       value={entry.ledger_id}
                       onChange={(val) =>
-                        handleEntryChange(entry.id, "ledger_id", val)
+                        handleEntryChange(entry.id, "ledger_id", val, index)
                       }
                       placeholder="Search Ledger Name..."
+                      className={errors[`ledger_${index}`] ? "is-invalid border border-danger rounded" : ""}
                     />
+                    {errors[`ledger_${index}`] && <div className="text-danger small mt-1">{errors[`ledger_${index}`]}</div>}
                   </td>
                   <td>
-                    {periodType === "ANNUAL" ? (
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="e.g. FY2025-26"
-                        value={entry.period_label}
-                        onChange={(e) =>
-                          handleEntryChange(
-                            entry.id,
-                            "period_label",
-                            e.target.value,
-                          )
-                        }
-                      />
+                    {periodType?.toLowerCase() === "yearly" || periodType?.toLowerCase() === "annual" ? (
+                      <div>
+                        <input
+                          type="text"
+                          className={`form-control form-control-sm ${errors[`period_${index}`] ? "is-invalid" : ""}`}
+                          placeholder="e.g. FY2025-26"
+                          value={entry.period_label}
+                          onChange={(e) =>
+                            handleEntryChange(
+                              entry.id,
+                              "period_label",
+                              e.target.value,
+                              index
+                            )
+                          }
+                        />
+                        {errors[`period_${index}`] && <div className="invalid-feedback">{errors[`period_${index}`]}</div>}
+                      </div>
                     ) : (
-                      <select
-                        className="form-select form-select-sm"
-                        value={entry.period_label}
-                        onChange={(e) =>
-                          handleEntryChange(
-                            entry.id,
-                            "period_label",
-                            e.target.value,
-                          )
-                        }
-                      >
-                        <option value="">Select Period</option>
-                        {periodLabels.map((label) => (
-                          <option key={label} value={label}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
+                      <div>
+                        <select
+                          className={`form-select form-select-sm ${errors[`period_${index}`] ? "is-invalid" : ""}`}
+                          value={entry.period_label}
+                          onChange={(e) =>
+                            handleEntryChange(
+                              entry.id,
+                              "period_label",
+                              e.target.value,
+                              index
+                            )
+                          }
+                        >
+                          <option value="">Select Period</option>
+                          {periodLabels.map((label) => (
+                            <option key={label} value={label}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                        {errors[`period_${index}`] && <div className="invalid-feedback">{errors[`period_${index}`]}</div>}
+                      </div>
                     )}
                   </td>
                   <td>
-                    <input
-                      type="number"
-                      className="form-control form-control-sm text-end fw-600"
-                      placeholder="0.00"
-                      value={entry.amount}
-                      onChange={(e) =>
-                        handleEntryChange(entry.id, "amount", e.target.value)
-                      }
-                      step="0.01"
-                      min="0"
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        className={`form-control form-control-sm text-end fw-600 ${errors[`amount_${index}`] ? "is-invalid" : ""}`}
+                        placeholder="0.00"
+                        value={entry.amount}
+                        onChange={(e) =>
+                          handleEntryChange(entry.id, "amount", e.target.value, index)
+                        }
+                        step="0.01"
+                        min="0"
+                      />
+                      {errors[`amount_${index}`] && <div className="invalid-feedback">{errors[`amount_${index}`]}</div>}
+                    </div>
                   </td>
                   <td className="text-center">
                     {entries.length > 1 && (

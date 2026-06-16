@@ -17,10 +17,16 @@ html {
   overflow-x: hidden !important;
   width: 100% !important;
   max-width: 100% !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 * {
   box-sizing: border-box !important;
+}
+
+/* Fix SweetAlert2 Icons corrupted by global box-sizing !important */
+.swal2-icon, .swal2-icon * {
+  box-sizing: content-box !important;
 }
 
 a {
@@ -110,4 +116,95 @@ button:focus-visible {
 .badge-soft-blue {
   background-color: rgba(13, 202, 240, 0.1) !important;
   color: #0dcaf0 !important;
+}
+
+@media (min-width: 992px) {
+  .header .profile-dropdown .dropdown-menu,
+  .header .dropdown.position-relative .dropdown-menu {
+    top: 31px !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .header,
+  .header .main-header,
+  .header .header-user,
+  .header .header-user .user-menu,
+  .header .header-user .user-menu .dropdown,
+  .header .header-user .user-menu .profile-dropdown {
+    overflow: visible !important;
+  }
+
+  .header .header-user .user-menu .dropdown .dropdown-menu,
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu {
+    position: fixed !important;
+    top: 56px !important;
+    right: 12px !important;
+    left: auto !important;
+    z-index: 2200 !important;
+    margin: 0 !important;
+    transform: none !important;
+    max-width: calc(100vw - 24px) !important;
+    width: auto !important;
+  }
+
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu.show {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Fix Table Responsiveness and Dropdown Clipping */
+.table-responsive {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-bottom: 60px; /* Space for dropdowns at the bottom of the table */
+  margin-bottom: -60px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure the card or container doesn't clip the overflow */
+.card-body {
+  overflow: visible !important;
+}
+
+.dropdown-menu {
+  z-index: 9999 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Ensure table rows don't create new stacking contexts that hide dropdowns */
+.table td {
+  position: relative !important;
+}
+
+.table tr:hover,
+.table tr:focus-within,
+.table tr:has(.dropdown.show) {
+  z-index: 100 !important;
+  position: relative !important;
+}
+
+/* Standardize Sidebar Active Colors to match Theme Orange */
+.sidebar-menu ul li a.active,
+.sidebar-menu ul li.active > a,
+.sidebar-menu ul li a.active i,
+.sidebar-menu ul li.active > a i {
+  color: #fd7e14 !important;
+}
+
+.sidebar-menu ul li a.active::before,
+.sidebar-menu ul li.active > a::before,
+.sidebar-menu ul li a.active::after,
+.sidebar-menu ul li.active > a::after {
+  background-color: #fd7e14 !important;
+  border-color: #fd7e14 !important;
+}
+
+.sidebar-menu ul li ul li a.active {
+  color: #fd7e14 !important;
+  font-weight: 600 !important;
+}
+.sidebar-menu ul li ul li a.active::before {
+  color: #fd7e14 !important;
 }

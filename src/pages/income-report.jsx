@@ -38,7 +38,7 @@ const IncomeReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Total Income</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$250,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹2,50,000</h6>
                 </div>
                 <div>
                   <span className="badge badge-soft-primary border border-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center">
@@ -66,7 +66,7 @@ const IncomeReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Product Sales</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$100,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹1,00,000</h6>
                 </div>
                 <div>
                   <span className="badge badge-soft-success border border-success rounded-circle p-2 d-inline-flex align-items-center justify-content-center">
@@ -94,7 +94,7 @@ const IncomeReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Service Revenue</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$400,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹4,00,000</h6>
                 </div>
                 <div>
                   <span className="badge badge-soft-warning border border-warning rounded-circle p-2 d-inline-flex align-items-center justify-content-center">
@@ -122,7 +122,7 @@ const IncomeReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Other Income</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$300,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹3,00,000</h6>
                 </div>
                 <div>
                   <span className="badge badge-soft-danger border border-danger rounded-circle p-2 d-inline-flex align-items-center justify-content-center">
@@ -266,7 +266,7 @@ const IncomeReport = () => {
               <td>22 Feb 2025</td>
               <td>REF17420</td>
               <td>Sale of laptops</td>
-              <td className="text-dark">$10,000</td>
+              <td className="text-dark">₹10,000</td>
               <td className="text-dark">Cash</td>
             </tr>
             <tr>
@@ -283,7 +283,7 @@ const IncomeReport = () => {
               <td>07 Feb 2025</td>
               <td>REF16512</td>
               <td>Website development</td>
-              <td className="text-dark">$25,750</td>
+              <td className="text-dark">₹25,750</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -300,7 +300,7 @@ const IncomeReport = () => {
               <td>30 Jan 2025</td>
               <td>REF16418</td>
               <td>Cloud migration service</td>
-              <td className="text-dark">$50,125</td>
+              <td className="text-dark">₹50,125</td>
               <td className="text-dark">Cash</td>
             </tr>
             <tr>
@@ -317,7 +317,7 @@ const IncomeReport = () => {
               <td>17 Jan 2025</td>
               <td>REF16317</td>
               <td>Sale of smartphones</td>
-              <td className="text-dark">$75,900</td>
+              <td className="text-dark">₹75,900</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -334,7 +334,7 @@ const IncomeReport = () => {
               <td>04 Jan 2025</td>
               <td>REF15294</td>
               <td>Monthly premium plan</td>
-              <td className="text-dark">$99,999</td>
+              <td className="text-dark">₹99,999</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -351,7 +351,7 @@ const IncomeReport = () => {
               <td>09 Dec 2025</td>
               <td>REF15420</td>
               <td>IT consulting services</td>
-              <td className="text-dark">$1,20,500</td>
+              <td className="text-dark">₹1,20,500</td>
               <td className="text-dark">Cash</td>
             </tr>
             <tr>
@@ -385,7 +385,7 @@ const IncomeReport = () => {
               <td>15 Nov 2024</td>
               <td>REF15405</td>
               <td>Online training session</td>
-              <td className="text-dark">$5,00,750</td>
+              <td className="text-dark">₹5,00,750</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -402,7 +402,7 @@ const IncomeReport = () => {
               <td>30 Nov 2024</td>
               <td>REF15754</td>
               <td>Software maintenance</td>
-              <td className="text-dark">$7,50,300</td>
+              <td className="text-dark">₹7,50,300</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -419,7 +419,7 @@ const IncomeReport = () => {
               <td>12 Oct 2024</td>
               <td>REF14947</td>
               <td>Cloud storage solutions</td>
-              <td className="text-dark">$9,99,999</td>
+              <td className="text-dark">₹9,99,999</td>
               <td className="text-dark">cash</td>
             </tr>
             <tr>
@@ -436,7 +436,7 @@ const IncomeReport = () => {
               <td>05 Oct 2024</td>
               <td>REF13302</td>
               <td>Sale of smart devices</td>
-              <td className="text-dark">$87,650</td>
+              <td className="text-dark">₹87,650</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -453,7 +453,7 @@ const IncomeReport = () => {
               <td>09 Sep 2024</td>
               <td>REF13035</td>
               <td>Software Maintenance</td>
-              <td className="text-dark">$69,420</td>
+              <td className="text-dark">₹69,420</td>
               <td className="text-dark">Cash</td>
             </tr>
             <tr>
@@ -470,7 +470,7 @@ const IncomeReport = () => {
               <td>02 Sep 2024</td>
               <td>REF12710</td>
               <td>Server Maintenance</td>
-              <td className="text-dark">$33,210</td>
+              <td className="text-dark">₹33,210</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
             <tr>
@@ -487,7 +487,7 @@ const IncomeReport = () => {
               <td>07 Aug 2024</td>
               <td>REF12831</td>
               <td>Bulk order freight costs</td>
-              <td className="text-dark">$2,10,000</td>
+              <td className="text-dark">₹2,10,000</td>
               <td className="text-dark fw-medium">Cheque</td>
             </tr>
           </tbody>
@@ -536,7 +536,7 @@ const IncomeReport = () => {
                   <div className="filter-range">
                     <input type="text" id="range_03" />
                     <p>
-                      Range : <span className="text-gray-9">$200 - $5695</span>
+                      Range : <span className="text-gray-9">₹200 - ₹5,695</span>
                     </p>
                   </div>
                 </div>

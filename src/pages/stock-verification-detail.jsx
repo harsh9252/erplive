@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import { getVerification, submitCounts, getVariance, postAdjustments } from '../services/stockVerificationService';
 
 const StockVerificationDetail = () => {
@@ -22,8 +23,8 @@ const StockVerificationDetail = () => {
             const items = res.data?.items || res.items || [];
             setCounts(items.map(item => ({
                 item_id: item.item_id,
-                name: item.item_name || item.name,
-                sku: item.sku,
+                name: item.item?.name || item.item_name || item.name || 'Unknown Item',
+                sku: item.item?.sku || item.sku || '-',
                 system_qty: item.system_qty || 0,
                 physical_qty: item.physical_qty !== null && item.physical_qty !== undefined ? item.physical_qty : item.system_qty
             })));
@@ -80,7 +81,17 @@ const StockVerificationDetail = () => {
     };
 
     const handlePost = async () => {
-        if (!window.confirm('Are you sure you want to post adjustments? This will create Stock Ledger entries to reconcile differences.')) return;
+        const result = await Swal.fire({
+            title: 'Post Adjustments?',
+            text: 'Are you sure you want to post adjustments? This will create Stock Ledger entries to reconcile differences.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, post it!'
+        });
+
+        if (!result.isConfirmed) return;
         
         setSaving(true);
         try {
@@ -122,11 +133,11 @@ const StockVerificationDetail = () => {
                 <div className="d-flex gap-2">
                     {!isPosted && (
                         <>
-                            <button className="btn btn-primary rounded-pill px-4 d-flex align-items-center" onClick={handleSaveCounts} disabled={saving}>
+                            <button className="btn btn-primary rounded-pill px-4" onClick={handleSaveCounts} disabled={saving}>
                                 {saving ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="isax isax-save-2 me-2 fs-18"></i>}
-                                Save Draft Counts
+                                Save Draft
                             </button>
-                            <button className="btn btn-success rounded-pill px-4 d-flex align-items-center" onClick={handlePost} disabled={saving}>
+                            <button className="btn btn-success rounded-pill px-4" onClick={handlePost} disabled={saving}>
                                 <i className="isax isax-tick-circle me-2 fs-18"></i>
                                 Post Adjustments
                             </button>
@@ -146,7 +157,7 @@ const StockVerificationDetail = () => {
                     <div className="card border-0 shadow-sm rounded-4 h-100">
                         <div className="card-body p-3">
                             <p className="text-muted fs-11 mb-1 text-uppercase fw-600">Warehouse</p>
-                            <h6 className="mb-0 fw-bold text-dark">{verification.warehouse_name || `Warehouse #${verification.warehouse_id}`}</h6>
+                            <h6 className="mb-0 fw-bold text-dark">{verification.warehouse?.name || verification.warehouse_name || `Warehouse #${verification.warehouse_id}`}</h6>
                         </div>
                     </div>
                 </div>
@@ -259,7 +270,7 @@ const StockVerificationDetail = () => {
                                         const variance = (Number(item.physical_qty) || 0) - (Number(item.system_qty) || 0);
                                         return (
                                             <tr key={item.item_id || idx}>
-                                                <td className="ps-4 py-3 fw-500 text-dark">{item.item_name || item.name}</td>
+                                                <td className="ps-4 py-3 fw-500 text-dark">{item.item?.name || item.item_name || item.name || 'Unknown Item'}</td>
                                                 <td className="text-center">{item.system_qty || 0}</td>
                                                 <td className="text-center">{item.physical_qty || 0}</td>
                                                 <td className="pe-4 text-end">

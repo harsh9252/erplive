@@ -79,6 +79,14 @@ const getRoles = async () =>
     }),
   );
 
+const grantCompanyAccess = async (email, companyId, role) =>
+  apiRequest({
+    url: '/api/users/grant-company-access',
+    method: 'POST',
+    headers: { 'x-company-id': String(companyId) },
+    data: { email, role },
+  });
+
 export const userService = {
   getUsers,
   getUser,
@@ -91,6 +99,7 @@ export const userService = {
   getCompanies,
   getBranches,
   getRoles,
+  grantCompanyAccess,
 };
 
 export default userService;

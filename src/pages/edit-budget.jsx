@@ -38,9 +38,10 @@ const EditBudget = () => {
 
         if (budgetResp?.data) {
           const budget = budgetResp.data;
+          const period_type = budget.period_type?.toLowerCase();
           setFormData({
             name: budget.name || "",
-            period_type: budget.period_type || "",
+            period_type: period_type === "annual" ? "yearly" : (period_type || ""),
             from_date: budget.from_date ? budget.from_date.split("T")[0] : "",
             to_date: budget.to_date ? budget.to_date.split("T")[0] : "",
             notes: budget.notes || "",
@@ -57,7 +58,14 @@ const EditBudget = () => {
           }
         }
 
-        setLedgers(ledgersResp?.data || []);
+        const activeLedgers = (ledgersResp?.data || []).filter(l => 
+          l.status?.toLowerCase() !== 'deleted' && 
+          l.is_deleted !== 1 && 
+          l.is_deleted !== true && 
+          l.is_active !== 0 && 
+          l.is_active !== false
+        );
+        setLedgers(activeLedgers);
       } catch (error) {
         console.error("Error loading budget:", error);
         toast.error("Failed to load budget details");
@@ -206,9 +214,9 @@ const EditBudget = () => {
                   onChange={handleInputChange}
                 >
                   <option value="">Select Period Type</option>
-                  <option value="ANNUAL">Annual</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="MONTHLY">Monthly</option>
+                  <option value="yearly">Annual</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
                 {errors.period_type && (
                   <div className="invalid-feedback">{errors.period_type}</div>
@@ -269,7 +277,7 @@ const EditBudget = () => {
               toDate={formData.to_date}
             />
 
-            <div className="d-flex justify-content-end gap-3 mt-4">
+            <div className="d-flex justify-content-end gap-3 mt-4" style={{ position: 'relative', zIndex: 10 }}>
               <Link to="/accounting/budgets" className="btn btn-cancel">
                 Cancel
               </Link>

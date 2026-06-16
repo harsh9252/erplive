@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getProductionOrder, releaseProductionOrder, completeProductionOrder } from '../services/productionOrderService';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Swal from 'sweetalert2';
 
 const ProductionOrderDetails = () => {
   const { id } = useParams();
@@ -56,8 +57,20 @@ const ProductionOrderDetails = () => {
   };
 
   const handleComplete = async () => {
-    const qty = prompt('Enter actually produced quantity:', order.qty_to_produce);
-    if (qty === null || qty === '') return;
+    const { value: qty } = await Swal.fire({
+      title: 'Complete Production Order',
+      text: 'Enter actually produced quantity:',
+      input: 'number',
+      inputValue: order.qty_to_produce,
+      showCancelButton: true,
+      confirmButtonText: 'Complete',
+      inputAttributes: {
+        step: '0.001',
+        min: '0'
+      }
+    });
+    
+    if (qty === undefined || qty === '') return;
     
     if (isNaN(parseFloat(qty))) {
       toast.error('Please enter a valid numeric quantity');
@@ -163,8 +176,8 @@ const ProductionOrderDetails = () => {
               <div className="row g-4">
                 <div className="col-md-6">
                   <label className="text-muted small text-uppercase fw-bold d-block mb-1">Finished Item</label>
-                  <h5 className="fw-bold text-primary mb-0">{order.finished_item?.name || order.finished_item_name || 'N/A'}</h5>
-                  <small className="text-muted">{order.finished_item?.sku || ''}</small>
+                  <h5 className="fw-bold text-primary mb-0">{order.finishedItem?.name || order.finished_item?.name || order.finished_item_name || 'N/A'}</h5>
+                  <small className="text-muted">{order.finishedItem?.sku || order.finished_item?.sku || ''}</small>
                 </div>
                 <div className="col-md-6 text-md-end">
                     <label className="text-muted small text-uppercase fw-bold d-block mb-1">Status</label>
@@ -193,6 +206,19 @@ const ProductionOrderDetails = () => {
                 <div className="col-md-6 border-top pt-3 text-md-end">
                   <label className="text-muted small text-uppercase fw-bold d-block mb-1">Planned End Date</label>
                   <h6>{order.planned_end ? new Date(order.planned_end).toLocaleDateString() : 'N/A'}</h6>
+                </div>
+
+                <div className="col-md-4 border-top pt-3">
+                  <label className="text-muted small text-uppercase fw-bold d-block mb-1">Batch / Lot No</label>
+                  <h6>{order.batch_number || 'N/A'}</h6>
+                </div>
+                <div className="col-md-4 border-top pt-3 text-center">
+                  <label className="text-muted small text-uppercase fw-bold d-block mb-1">Mfg Date</label>
+                  <h6>{order.mfg_date ? new Date(order.mfg_date).toLocaleDateString() : 'N/A'}</h6>
+                </div>
+                <div className="col-md-4 border-top pt-3 text-md-end">
+                  <label className="text-muted small text-uppercase fw-bold d-block mb-1">Expiry Date</label>
+                  <h6>{order.expiry_date ? new Date(order.expiry_date).toLocaleDateString() : 'N/A'}</h6>
                 </div>
               </div>
             </div>

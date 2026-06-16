@@ -96,7 +96,7 @@ const ConfirmDialog = ({
         tabIndex="-1"
       >
         <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content border-0 shadow-lg">
+          <div className="modal-content border-0 shadow-lg bg-white">
             <div className="modal-body text-center p-4">
               {getIcon()}
               

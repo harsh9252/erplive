@@ -1,21 +1,33 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import SettingsSidebar from '../components/SettingsSidebar';
 
 const AppearanceSettings = () => {
+  const { theme, setTheme } = useTheme();
+  
   useEffect(() => {
     console.log('AppearanceSettings component mounted');
     return () => console.log('AppearanceSettings component unmounted');
   }, []);
 
   const [appearance, setAppearance] = useState({
-    theme: 'light',
+    theme: theme || 'light',
     primaryColor: '#007bff',
     fontSize: 'medium'
   });
 
+  // Keep local state in sync with global theme changes
+  useEffect(() => {
+    setAppearance(prev => ({ ...prev, theme: theme }));
+  }, [theme]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setAppearance(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'theme') {
+      setTheme(value);
+    }
   };
 
   return (

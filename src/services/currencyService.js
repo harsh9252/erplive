@@ -14,11 +14,11 @@ export const createCurrency = async (data) =>
     data,
   });
 
-export const updateExchangeRate = async (id, exchange_rate) =>
+export const updateExchangeRate = async (code, exchange_rate) =>
   apiRequest({
-    url: `/api/currencies/${id}/rate`,
-    method: 'PATCH',
-    data: { exchange_rate },
+    url: '/api/currencies/rate',
+    method: 'PUT',
+    data: { code, exchange_rate },
   });
 
 export const convertCurrency = async (from_currency, to_currency, amount) =>

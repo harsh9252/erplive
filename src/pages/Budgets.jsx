@@ -38,22 +38,39 @@ const Budgets = () => {
       };
 
       const response = await budgetService.getBudgets(params);
-      console.log("Budgets API Response:", response);
+      // Debug log removed (B-3 fix)
 
       const items = response.data || [];
-      setBudgets(items);
+      
+      const isBackendPaginated = !!(
+        response.pagination || 
+        response.total !== undefined || 
+        response.count !== undefined || 
+        response.total_count !== undefined
+      );
 
-      // Extract pagination info robustly
-      const totalItems =
-        response.pagination?.totalItems ||
-        response.pagination?.total ||
-        response.total ||
-        response.data?.total ||
-        response.count ||
-        response.total_count ||
-        (response.pagination?.totalPages
-          ? response.pagination?.totalPages * limit
-          : items.length);
+      let finalItems = items;
+      let totalItems = 0;
+
+      if (isBackendPaginated) {
+        finalItems = items;
+        totalItems =
+          response.pagination?.totalItems ||
+          response.pagination?.total ||
+          response.total ||
+          response.data?.total ||
+          response.count ||
+          response.total_count ||
+          (response.pagination?.totalPages
+            ? response.pagination?.totalPages * limit
+            : items.length);
+      } else {
+        totalItems = items.length;
+        const startIndex = (page - 1) * limit;
+        finalItems = items.slice(startIndex, startIndex + limit);
+      }
+
+      setBudgets(finalItems);
 
       const totalPages =
         response.pagination?.totalPages || Math.ceil(totalItems / limit) || 1;
@@ -112,8 +129,17 @@ const Budgets = () => {
         try {
           setIsDeleting(true);
           await budgetService.deleteBudget(id);
-          Swal.fire("Deleted!", "Budget has been deleted.", "success");
-          fetchBudgets();
+          Swal.fire({
+            title: "Deleted!",
+            text: "Budget has been deleted.",
+            icon: "success",
+            iconHtml: '<i class="isax isax-tick-circle text-success fs-50"></i>',
+            customClass: {
+              icon: "border-0",
+            },
+          });
+          // B-1 fix: pass current page and size so user stays on same page
+          fetchBudgets(currentPage, pageSize);
         } catch (error) {
           toast.error(error.message || "Failed to delete budget");
         } finally {
@@ -204,7 +230,7 @@ const Budgets = () => {
                   <th>Period Type</th>
                   <th>From - To</th>
                   <th className="text-center">Status</th>
-                  <th className="no-sort text-end">Action</th>
+                  <th className="no-sort text-end pe-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +247,7 @@ const Budgets = () => {
                   budgets.map((budget) => (
                     <tr key={budget.id}>
                       <td className="fw-semibold text-dark">{budget.name}</td>
-                      <td>{budget.period_type}</td>
+                      <td className="text-capitalize">{budget.period_type}</td>
                       <td>
                         {formatDateRange(budget.from_date, budget.to_date)}
                       </td>
@@ -230,28 +256,33 @@ const Budgets = () => {
                           {budget.status || "N/A"}
                         </span>
                       </td>
-                      <td className="action-table-data text-end">
-                        <div className="edit-delete-action">
-                          <button
-                            className="btn btn-sm btn-outline-info me-1"
-                            onClick={() => handleVariance(budget)}
-                            title="View Variance"
-                          >
-                            <i className="isax isax-chart-square"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-primary me-2"
-                            onClick={() => handleEdit(budget)}
-                          >
-                            <i className="isax isax-edit"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(budget.id)}
-                            disabled={isDeleting}
-                          >
-                            <i className="isax isax-trash"></i>
-                          </button>
+                       <td className="text-end pe-4">
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                           {/* B-4 fix: disable Edit and Variance while deleting to prevent navigation mid-delete */}
+                           <button 
+                             className="btn btn-sm btn-soft-info border-0" 
+                             onClick={() => handleVariance(budget)}
+                             title="View Variance"
+                             disabled={isDeleting}
+                           >
+                             <i className="isax isax-chart-square fs-16"></i>
+                           </button>
+                           <button 
+                             className="btn btn-sm btn-soft-warning border-0" 
+                             onClick={() => handleEdit(budget)}
+                             title="Edit Budget"
+                             disabled={isDeleting}
+                           >
+                             <i className="isax isax-edit-2 fs-16"></i>
+                           </button>
+                           <button 
+                             className="btn btn-sm btn-soft-danger border-0" 
+                             onClick={() => handleDelete(budget.id)}
+                             disabled={isDeleting}
+                             title="Delete Budget"
+                           >
+                             <i className="isax isax-trash fs-16"></i>
+                           </button>
                         </div>
                       </td>
                     </tr>

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getDebitNotes, cancelDebitNote } from '../services/debitNoteService';
 import vendorService from '../services/vendorService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const DebitNotes = () => {
+  const navigate = useNavigate();
   const [debitNotes, setDebitNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState([]);
@@ -17,18 +19,21 @@ const DebitNotes = () => {
   });
   const [totalDN, setTotalDN] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
 
   const fetchDebitNotes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getDebitNotes(
-        currentPage, 
-        itemsPerPage, 
-        filters.search, 
-        filters.status
+        currentPage,
+        itemsPerPage,
+        filters.search,
+        filters.status,
+        filters.vendor_id,
+        filters.from_date,
+        filters.to_date
       );
-      
+
       const dnData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
       setDebitNotes(dnData);
       setTotalDN(response.total || response.data?.total || dnData.length || 0);
@@ -38,7 +43,7 @@ const DebitNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, filters.search, filters.status]);
+  }, [currentPage, itemsPerPage, filters.search, filters.status, filters.vendor_id, filters.from_date, filters.to_date]);
 
   const fetchVendors = async () => {
     try {
@@ -46,6 +51,7 @@ const DebitNotes = () => {
       setVendors(Array.isArray(res.data) ? res.data : (res.data?.rows || []));
     } catch (error) {
       console.error('Error fetching vendors:', error);
+      toast.error('Failed to load vendors');
     }
   };
 
@@ -84,7 +90,17 @@ const DebitNotes = () => {
   };
 
   const handleCancelClick = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this debit note?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to cancel this debit note?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, cancel it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await cancelDebitNote(id);
         toast.success('Debit note cancelled successfully');
@@ -105,7 +121,7 @@ const DebitNotes = () => {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-0 fs-13">
               <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-              <li className="breadcrumb-item">Purchases</li>
+
               <li className="breadcrumb-item active">Debit Notes</li>
             </ol>
           </nav>
@@ -163,20 +179,20 @@ const DebitNotes = () => {
             </div>
             <div className="col-md-4">
               <div className="d-flex align-items-center gap-2">
-                <input 
-                  type="date" 
-                  name="from_date" 
-                  className="form-control shadow-none border" 
-                  value={filters.from_date} 
-                  onChange={handleFilterChange} 
+                <input
+                  type="date"
+                  name="from_date"
+                  className="form-control shadow-none border"
+                  value={filters.from_date}
+                  onChange={handleFilterChange}
                 />
                 <span className="text-muted">to</span>
-                <input 
-                  type="date" 
-                  name="to_date" 
-                  className="form-control shadow-none border" 
-                  value={filters.to_date} 
-                  onChange={handleFilterChange} 
+                <input
+                  type="date"
+                  name="to_date"
+                  className="form-control shadow-none border"
+                  value={filters.to_date}
+                  onChange={handleFilterChange}
                 />
               </div>
             </div>
@@ -214,59 +230,60 @@ const DebitNotes = () => {
                   </tr>
                 ) : debitNotes.length > 0 ? (
                   debitNotes.map((dn) => (
-                    <tr key={dn.id}>
+                    <tr key={dn.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoicing/debit-notes/${dn.id}`)}>
                       <td className="ps-4">
                         <Link to={`/invoicing/debit-notes/${dn.id}`} className="fw-bold text-dark text-nowrap">
                           {dn.debit_number || dn.invoice_number || `DN-${dn.id}`}
                         </Link>
                       </td>
-                      <td>{dn.debit_date || dn.date}</td>
+                      <td>{dn.debit_note_date || dn.debit_date || dn.date}</td>
                       <td>
                         <div className="d-flex align-items-center">
                           <span className="fw-semibold text-dark">{dn.vendor?.name}</span>
                         </div>
                       </td>
                       <td>
-                        {dn.original_invoice_id ? (
-                          <Link to={`/invoicing/purchases/${dn.original_invoice_id}`} className="text-primary fs-12 fw-medium bg-soft-primary px-2 py-1 rounded">
-                            {dn.original_invoice_number || `INV-${dn.original_invoice_id}`}
+                        {dn.original_invoice_id || dn.purchase_invoice_id ? (
+                          <Link to={`/invoicing/purchases/${dn.original_invoice_id || dn.purchase_invoice_id}`} className="text-primary fs-12 fw-medium bg-soft-primary px-2 py-1 rounded">
+                            {dn.original_invoice_number || `INV-${dn.original_invoice_id || dn.purchase_invoice_id}`}
                           </Link>
                         ) : (
                           <span className="text-muted fs-12">Direct Return</span>
                         )}
                       </td>
-                      <td className="fw-bold text-dark">₹{Number(dn.net_amount || 0).toLocaleString()}</td>
+                      <td className="fw-bold text-dark">₹{Number(dn.net_total || dn.net_amount || 0).toLocaleString()}</td>
                       <td>
                         <span className={`badge badge-sm rounded-pill ${getStatusBadge(dn.status)}`}>
                           {dn.status}
                         </span>
                       </td>
-                      <td className="text-end pe-4">
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown">
-                            <i className="isax isax-more fs-18"></i>
-                          </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-12">
-                            <li>
-                              <Link className="dropdown-item py-2" to={`/invoicing/debit-notes/${dn.id}`}>
-                                <i className="isax isax-eye me-2 text-primary"></i>View Details
-                              </Link>
-                            </li>
-                            {dn.status === 'DRAFT' && (
-                              <li>
-                                <Link className="dropdown-item py-2" to={`/invoicing/debit-notes/edit/${dn.id}`}>
-                                  <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Draft
-                                </Link>
-                              </li>
-                            )}
-                            {(dn.status === 'DRAFT' || dn.status === 'POSTED') && (
-                              <li>
-                                <button className="dropdown-item py-2 text-danger" onClick={() => handleCancelClick(dn.id)}>
-                                  <i className="isax isax-trash me-2"></i>Cancel Return
-                                </button>
-                              </li>
-                            )}
-                          </ul>
+                      <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link
+                            className="btn btn-sm btn-soft-primary border-0"
+                            to={`/invoicing/debit-notes/${dn.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          {dn.status === 'DRAFT' && (
+                            <Link
+                              className="btn btn-sm btn-soft-warning border-0"
+                              to={`/invoicing/debit-notes/edit/${dn.id}`}
+                              title="Edit Draft"
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </Link>
+                          )}
+                          {(dn.status === 'DRAFT' || dn.status === 'POSTED') && (
+                            <button
+                              className="btn btn-sm btn-soft-danger border-0"
+                              onClick={() => handleCancelClick(dn.id)}
+                              title="Cancel Return"
+                            >
+                              <i className="isax isax-trash fs-16"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

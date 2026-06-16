@@ -67,7 +67,7 @@ const CustomerDueReport = () => {
                   </div>
                   <div>
                     <p className="mb-1 text-truncate">Outstanding Amount</p>
-                    <h6 className="fs-16 fw-semibold mb-0">$3,500,000</h6>
+                    <h6 className="fs-16 fw-semibold mb-0">₹35,00,000</h6>
                   </div>
                 </div>
                 <p className="fs-13 mb-0">
@@ -90,7 +90,7 @@ const CustomerDueReport = () => {
                   </div>
                   <div>
                     <p className="mb-1 text-truncate">Overdue Payments</p>
-                    <h6 className="fs-16 fw-semibold mb-0">$1,200,000</h6>
+                    <h6 className="fs-16 fw-semibold mb-0">₹12,00,000</h6>
                   </div>
                 </div>
                 <p className="fs-13 mb-0">
@@ -276,8 +276,8 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$10,000</td>
-              <td>$5,000</td>
+              <td>₹10,000</td>
+              <td>₹5,000</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
                   Paid <i className="isax isax-tick-circle ms-1"></i>
@@ -312,14 +312,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$15,000</td>
-              <td>$10,750</td>
+              <td>₹15,000</td>
+              <td>₹10,750</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
                   Pending <i className="isax isax-timer ms-1"></i>
                 </span>
               </td>
-              <td>$100</td>
+              <td>₹100</td>
             </tr>
             <tr>
               <td>
@@ -348,14 +348,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$20,000</td>
-              <td>$20,000</td>
+              <td>₹20,000</td>
+              <td>₹20,000</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
                   Cancelled <i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td>$200</td>
+              <td>₹200</td>
             </tr>
             <tr>
               <td>
@@ -384,14 +384,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$9,000</td>
-              <td>$50,000</td>
+              <td>₹9,000</td>
+              <td>₹50,000</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
                   Paid <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td>$500</td>
+              <td>₹500</td>
             </tr>
             <tr>
               <td>
@@ -420,14 +420,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$12,000</td>
-              <td>$80,000</td>
+              <td>₹12,000</td>
+              <td>₹80,000</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
                   Pending <i className="isax isax-timer ms-1"></i>
                 </span>
               </td>
-              <td>$800</td>
+              <td>₹800</td>
             </tr>
             <tr>
               <td>
@@ -456,14 +456,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$17,000</td>
-              <td>$60,000</td>
+              <td>₹17,000</td>
+              <td>₹60,000</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
                   Cancelled <i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td>$600</td>
+              <td>₹600</td>
             </tr>
             <tr>
               <td>
@@ -492,14 +492,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$23,000</td>
-              <td>$1,25,000</td>
+              <td>₹23,000</td>
+              <td>₹1,25,000</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
                   Paid <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td>$125</td>
+              <td>₹125</td>
             </tr>
             <tr>
               <td>
@@ -528,14 +528,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$25,000</td>
-              <td>$5,00,000</td>
+              <td>₹25,000</td>
+              <td>₹5,00,000</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
                   Pending <i className="isax isax-timer ms-1"></i>
                 </span>
               </td>
-              <td>$50000</td>
+              <td>₹50000</td>
             </tr>
             <tr>
               <td>
@@ -564,14 +564,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$18,000</td>
-              <td>$2,50,500</td>
+              <td>₹18,000</td>
+              <td>₹2,50,500</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
                   Cancelled <i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td>$25000</td>
+              <td>₹25,000</td>
             </tr>
             <tr>
               <td>
@@ -600,14 +600,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$13,000</td>
-              <td>$4,00,000</td>
+              <td>₹13,000</td>
+              <td>₹4,00,000</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
                   Paid <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td>$40000</td>
+              <td>₹40,000</td>
             </tr>
             <tr>
               <td>
@@ -636,14 +636,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$27,000</td>
-              <td>$40,000</td>
+              <td>₹27,000</td>
+              <td>₹40,000</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
                   Pending <i className="isax isax-timer ms-1"></i>
                 </span>
               </td>
-              <td>$40,000</td>
+              <td>₹40,000</td>
             </tr>
             <tr>
               <td>
@@ -672,14 +672,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$23,500</td>
-              <td>$30,000</td>
+              <td>₹23,500</td>
+              <td>₹30,000</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
                   Cancelled <i className="isax isax-close-circle ms-1"></i>
                 </span>
               </td>
-              <td>$3355</td>
+              <td>₹3,355</td>
             </tr>
             <tr>
               <td>
@@ -708,14 +708,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$24,000</td>
-              <td>$15,000</td>
+              <td>₹24,000</td>
+              <td>₹15,000</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
                   Paid <i className="isax isax-tick-circle ms-1"></i>
                 </span>
               </td>
-              <td>$1500</td>
+              <td>₹1,500</td>
             </tr>
             <tr>
               <td>
@@ -744,14 +744,14 @@ const CustomerDueReport = () => {
                   </div>
                 </div>
               </td>
-              <td>$35,000</td>
-              <td>$1,50,000</td>
+              <td>₹35,000</td>
+              <td>₹1,50,000</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
                   Pending <i className="isax isax-timer ms-1"></i>
                 </span>
               </td>
-              <td>$1450</td>
+              <td>₹1,450</td>
             </tr>
           </tbody>
         </table>
@@ -902,7 +902,7 @@ const CustomerDueReport = () => {
                   <div className="filter-range">
                     <input type="text" id="range_03" />
                     <p>
-                      Range : <span className="text-gray-9">Range : $200 - $5695</span>
+                      Range : <span className="text-gray-9">Range : ₹200 - $5695</span>
                     </p>
                   </div>
                 </div>

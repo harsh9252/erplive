@@ -4,6 +4,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
 
 import { userService } from '../services/userService';
+import { toNumberOrValue } from '../services/apiUtils';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -35,6 +36,7 @@ const Users = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -88,25 +90,55 @@ const Users = () => {
     e.preventDefault();
     try {
       setIsSaving(true);
-      await userService.createUser(formData);
+      
+      // Basic validation check
+      if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+        toast.error('Name, Email and Password are required');
+        return;
+      }
+
+      const payload = { ...formData, role_ids: formData.role_ids.map(id => Number(id)) };
+      await userService.createUser(payload);
       toast.success('User created successfully!');
       fetchUsers();
       setShowAddModal(false);
     } catch (err) {
       console.error('Error creating user:', err);
-      toast.error(err.message || 'Failed to create user');
+      // Try to extract detailed error messages from backend
+      const errorData = err.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || err.message || 'Failed to create user';
+      
+      if (errorData?.errors) {
+        // If there are field-specific errors, show them
+        const fieldErrors = Object.values(errorData.errors).flat().join(', ');
+        toast.error(`${errorMessage}: ${fieldErrors}`);
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleEdit = (user) => {
+    // Resolve role IDs from the master roles list to ensure we're using correct identifiers and de-duplicate
+    const resolvedRoleIds = Array.from(new Set(user.roles?.map(r => {
+      const currentId = toNumberOrValue(r.id || r);
+      // Search master roles for a match on id, slug, or name
+      const roleMatch = roles.find(role => 
+        role.id === currentId || 
+        role.slug === currentId || 
+        role.name === currentId
+      );
+      return roleMatch ? roleMatch.id : currentId;
+    }) || []));
+
     setFormData({
       id: user.id,
       name: user.name,
       email: user.email || '',
       phone: user.phone || '',
-      role_ids: user.roles?.map(r => r.id) || [],
+      role_ids: resolvedRoleIds,
       status: user.status,
     });
     setShowEditModal(true);
@@ -116,15 +148,21 @@ const Users = () => {
     e.preventDefault();
     try {
       setIsSaving(true);
-      const { id, ...updateData } = formData;
-      // roles are updated via assignRoles API if needed, or included in update if backend supports it
-      // Based on userService.js, assignRoles is a separate call.
-      // But updateUser might also accept it. Let's try updateUser first.
-      await userService.updateUser(id, updateData);
       
-      // If roles changed, assign them
+      if (!formData.name.trim() || !formData.email.trim()) {
+        toast.error('Name and Email are required');
+        return;
+      }
+
+      const { id, password, ...updateData } = formData;
+      // Filter out empty password if not being changed
+      const finalUpdateData = { ...updateData };
+      if (!password) delete finalUpdateData.password;
+
+      await userService.updateUser(id, finalUpdateData);
+      
       if (formData.role_ids.length > 0) {
-        await userService.assignRoles(id, formData.role_ids);
+        await userService.assignRoles(id, formData.role_ids.map(roleId => Number(roleId)));
       }
 
       toast.success('User updated successfully!');
@@ -132,7 +170,9 @@ const Users = () => {
       setShowEditModal(false);
     } catch (err) {
       console.error('Error updating user:', err);
-      toast.error(err.message || 'Failed to update user');
+      const errorData = err.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || err.message || 'Failed to update user';
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -297,7 +337,7 @@ const Users = () => {
               {columns.activity && <th className="no-sort">Last Activity</th>}
               {columns.created && <th style={{ cursor: 'pointer' }} onClick={() => requestSort('createdAt')}>Created On {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>}
               {columns.status && <th className="no-sort" style={{ cursor: 'pointer' }} onClick={() => requestSort('status')}>Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>}
-              <th className="no-sort"></th>
+              <th className="no-sort text-end pe-4">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -334,7 +374,7 @@ const Users = () => {
                 {columns.phone && <td>{item.phone || '-'}</td>}
                 {columns.role && (
                   <td className="text-dark">
-                    {item.roles?.map(r => r.name).join(', ') || 'No Role'}
+                    {item.roles && item.roles.length > 0 ? Array.from(new Set(item.roles.map(r => r.name).filter(Boolean))).join(', ') : 'No Role'}
                   </td>
                 )}
                 {columns.activity && <td className="text-dark">{item.last_login_at ? new Date(item.last_login_at).toLocaleString() : 'Never'}</td>}
@@ -352,7 +392,7 @@ const Users = () => {
                         {item.status}
                         <i className={`isax isax-${item.status === 'ACTIVE' ? 'tick' : 'close'}-circle ms-1`}></i>
                       </Link>
-                      <ul className="dropdown-menu dropdown-menu-end" style={{ zIndex: 1000 }}>
+                      <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12" style={{ zIndex: 1000 }}>
                         <li>
                           <button 
                             className="dropdown-item d-flex align-items-center" 
@@ -377,21 +417,21 @@ const Users = () => {
                     </div>
                   </td>
                 )}
-                <td className="action-item">
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-sm btn-outline-primary"
+                <td className="text-end pe-4">
+                  <div className="d-flex justify-content-end align-items-center gap-2">
+                    <button 
+                      className="btn btn-sm btn-soft-warning border-0" 
                       onClick={() => handleEdit(item)}
-                      title="Edit"
+                      title="Edit User"
                     >
-                      <i className="isax isax-edit"></i>
+                      <i className="isax isax-edit-2 fs-16"></i>
                     </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
+                    <button 
+                      className="btn btn-sm btn-soft-danger border-0" 
                       onClick={() => handleDeleteClick(item.id, item.name)}
-                      title="Delete"
+                      title="Delete User"
                     >
-                      <i className="isax isax-trash"></i>
+                      <i className="isax isax-trash fs-16"></i>
                     </button>
                   </div>
                 </td>
@@ -417,24 +457,40 @@ const Users = () => {
                   <i className="fa-solid fa-x"></i>
                 </button>
               </div>
-              <form onSubmit={handleCreate}>
+              <form onSubmit={handleCreate} autoComplete="off">
                 <div className="modal-body">
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Full Name</label>
-                      <input type="text" className="form-control" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="Enter user name" />
+                      <input type="text" className="form-control" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="Enter user name" autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Email</label>
-                      <input type="email" className="form-control" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required placeholder="user@example.com" />
+                      <input type="email" className="form-control" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required placeholder="user@example.com" autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Phone</label>
-                      <input type="text" className="form-control" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+91 XXXX XXXX" />
+                      <input type="text" className="form-control" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+91 XXXX XXXX" autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Password</label>
-                      <input type="password" name="password" className="form-control" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required placeholder="Enter password" />
+                      <div className="pass-group input-group">
+                        <input 
+                          type={showCreatePassword ? "text" : "password"} 
+                          name="password" 
+                          className="form-control" 
+                          value={formData.password} 
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                          required 
+                          placeholder="Enter password" 
+                          autoComplete="new-password" 
+                        />
+                        <span 
+                          className={`isax toggle-password ${showCreatePassword ? 'isax-eye' : 'isax-eye-slash'}`} 
+                          onClick={() => setShowCreatePassword(!showCreatePassword)} 
+                          style={{ cursor: 'pointer' }}
+                        ></span>
+                      </div>
                     </div>
                     <div className="col-md-12 mb-3">
                       <label className="form-label text-dark fw-medium">Roles</label>
@@ -443,7 +499,7 @@ const Users = () => {
                         multiple 
                         value={formData.role_ids} 
                         onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                          const values = Array.from(e.target.selectedOptions, option => toNumberOrValue(option.value));
                           setFormData({ ...formData, role_ids: values });
                         }}
                       >
@@ -478,20 +534,20 @@ const Users = () => {
                   <i className="fa-solid fa-x"></i>
                 </button>
               </div>
-              <form onSubmit={handleUpdate}>
+              <form onSubmit={handleUpdate} autoComplete="off">
                 <div className="modal-body">
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Full Name</label>
-                      <input type="text" className="form-control" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                      <input type="text" className="form-control" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Email</label>
-                      <input type="email" className="form-control" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                      <input type="email" className="form-control" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label text-dark fw-medium">Phone</label>
-                      <input type="text" className="form-control" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                      <input type="text" className="form-control" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} autoComplete="one-time-code" />
                     </div>
                     <div className="col-md-12 mb-3">
                       <label className="form-label text-dark fw-medium">Roles</label>
@@ -500,7 +556,7 @@ const Users = () => {
                         multiple 
                         value={formData.role_ids} 
                         onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                          const values = Array.from(e.target.selectedOptions, option => toNumberOrValue(option.value));
                           setFormData({ ...formData, role_ids: values });
                         }}
                       >

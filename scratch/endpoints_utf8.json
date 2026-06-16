@@ -1,0 +1,1482 @@
+﻿[
+  {
+    "name": "≡ƒÜÇ ONBOARDING (Start Here) > 01 Register Owner (Step 1)",
+    "method": "POST",
+    "url": "{{base_url}}/api/onboarding/register-owner"
+  },
+  {
+    "name": "≡ƒÜÇ ONBOARDING (Start Here) > 02 Login (Step 2 - saves token automatically)",
+    "method": "POST",
+    "url": "{{base_url}}/api/auth/login"
+  },
+  {
+    "name": "≡ƒÜÇ ONBOARDING (Start Here) > 03 Create Company (Step 3 - seeds all data)",
+    "method": "POST",
+    "url": "{{base_url}}/api/onboarding/company"
+  },
+  {
+    "name": "≡ƒöÉ AUTH > Get Profile",
+    "method": "GET",
+    "url": "{{base_url}}/api/auth/profile"
+  },
+  {
+    "name": "≡ƒöÉ AUTH > Refresh Token",
+    "method": "POST",
+    "url": "{{base_url}}/api/auth/refresh"
+  },
+  {
+    "name": "≡ƒöÉ AUTH > Logout",
+    "method": "POST",
+    "url": "{{base_url}}/api/auth/logout"
+  },
+  {
+    "name": "≡ƒöÉ AUTH > Switch Active Company",
+    "method": "POST",
+    "url": "{{base_url}}/api/auth/switch-company"
+  },
+  {
+    "name": "≡ƒÅó COMPANY > List My Companies",
+    "method": "GET",
+    "url": "{{base_url}}/api/company/my-companies"
+  },
+  {
+    "name": "≡ƒÅó COMPANY > Get Company",
+    "method": "GET",
+    "url": "{{base_url}}/api/company"
+  },
+  {
+    "name": "≡ƒÅó COMPANY > Create Additional Company",
+    "method": "POST",
+    "url": "{{base_url}}/api/company"
+  },
+  {
+    "name": "≡ƒÅó COMPANY > Update Company",
+    "method": "PUT",
+    "url": "{{base_url}}/api/company/{{active_company_id}}"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > List Users",
+    "method": "GET",
+    "url": "{{base_url}}/api/users"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Create Sub-User",
+    "method": "POST",
+    "url": "{{base_url}}/api/users"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Get User by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/users/{{created_user_id}}"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Update User",
+    "method": "PUT",
+    "url": "{{base_url}}/api/users/{{created_user_id}}"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > List Roles",
+    "method": "GET",
+    "url": "{{base_url}}/api/roles"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Update Role Permissions",
+    "method": "PUT",
+    "url": "{{base_url}}/api/roles/{{role_id}}/permissions"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Create Custom Role",
+    "method": "POST",
+    "url": "{{base_url}}/api/roles"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Update Role",
+    "method": "PUT",
+    "url": "{{base_url}}/api/roles/{{role_id}}"
+  },
+  {
+    "name": "≡ƒæÑ USERS & ROLES > Delete Role",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/roles/{{role_id}}"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > Search Customers (Autocomplete)",
+    "method": "GET",
+    "url": "{{base_url}}/api/customers/search?q=ABC&limit=20"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > List Customers",
+    "method": "GET",
+    "url": "{{base_url}}/api/customers?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > Create Customer",
+    "method": "POST",
+    "url": "{{base_url}}/api/customers"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > Get Customer by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/customers/1"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > Update Customer",
+    "method": "PUT",
+    "url": "{{base_url}}/api/customers/1"
+  },
+  {
+    "name": "≡ƒæñ CUSTOMERS > Delete Customer",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/customers/1"
+  },
+  {
+    "name": "≡ƒÅ¡ VENDORS > Search Vendors (Autocomplete)",
+    "method": "GET",
+    "url": "{{base_url}}/api/vendors/search?q=XYZ&limit=20"
+  },
+  {
+    "name": "≡ƒÅ¡ VENDORS > List Vendors",
+    "method": "GET",
+    "url": "{{base_url}}/api/vendors?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒÅ¡ VENDORS > Create Vendor",
+    "method": "POST",
+    "url": "{{base_url}}/api/vendors"
+  },
+  {
+    "name": "≡ƒÅ¡ VENDORS > Get Vendor by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/vendors/1"
+  },
+  {
+    "name": "≡ƒÅ¡ VENDORS > Update Vendor",
+    "method": "PUT",
+    "url": "{{base_url}}/api/vendors/1"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Search Items (Autocomplete for Invoice)",
+    "method": "GET",
+    "url": "{{base_url}}/api/items/search?q=laptop&limit=30"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > List Items",
+    "method": "GET",
+    "url": "{{base_url}}/api/items?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Create Item",
+    "method": "POST",
+    "url": "{{base_url}}/api/items"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Get Item by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/items/1"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Update Item",
+    "method": "PUT",
+    "url": "{{base_url}}/api/items/1"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Delete Item",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/items/1"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Stock Ageing Report",
+    "method": "GET",
+    "url": "{{base_url}}/api/items/reports/stock-ageing?warehouse_id=1"
+  },
+  {
+    "name": "≡ƒôª ITEMS (Products) > Expiry Management Report",
+    "method": "GET",
+    "url": "{{base_url}}/api/items/reports/expiry?days_ahead=90"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > Get Cash & Bank Ledgers (for Voucher Dropdowns)",
+    "method": "GET",
+    "url": "{{base_url}}/api/ledgers/by-type?type=cash_bank"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > Get Bank Ledgers Only",
+    "method": "GET",
+    "url": "{{base_url}}/api/ledgers/by-type?type=bank"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > List Ledger Groups",
+    "method": "GET",
+    "url": "{{base_url}}/api/ledger-groups"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > Create Ledger Group",
+    "method": "POST",
+    "url": "{{base_url}}/api/ledger-groups"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > List Ledgers",
+    "method": "GET",
+    "url": "{{base_url}}/api/ledgers"
+  },
+  {
+    "name": "≡ƒôÆ LEDGERS > Create Ledger",
+    "method": "POST",
+    "url": "{{base_url}}/api/ledgers"
+  },
+  {
+    "name": "≡ƒô¥ VOUCHERS > List Vouchers",
+    "method": "GET",
+    "url": "{{base_url}}/api/vouchers?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒô¥ VOUCHERS > Create Voucher (Payment)",
+    "method": "POST",
+    "url": "{{base_url}}/api/vouchers"
+  },
+  {
+    "name": "≡ƒô¥ VOUCHERS > Get Voucher by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/vouchers/{{created_voucher_id}}"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > List Sales Invoices",
+    "method": "GET",
+    "url": "{{base_url}}/api/sales-invoices?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Create Sales Invoice (DRAFT)",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-invoices"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Get Sales Invoice by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/sales-invoices/1"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Update Sales Invoice (DRAFT only)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/sales-invoices/1"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Post Sales Invoice (DRAFT ΓåÆ POSTED)",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-invoices/1/post"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Collect Payment",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-invoices/1/payment"
+  },
+  {
+    "name": "≡ƒº╛ SALES INVOICES > Cancel Sales Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-invoices/1/cancel"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > List Purchase Invoices",
+    "method": "GET",
+    "url": "{{base_url}}/api/purchase-invoices?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Create Purchase Invoice (DRAFT)",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-invoices"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Get Purchase Invoice by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/purchase-invoices/1"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Update Purchase Invoice (DRAFT only)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/purchase-invoices/1"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Post Purchase Invoice (DRAFT ΓåÆ POSTED)",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-invoices/1/post"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Record Payment",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-invoices/1/payment"
+  },
+  {
+    "name": "≡ƒ¢Æ PURCHASE INVOICES > Cancel Purchase Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-invoices/1/cancel"
+  },
+  {
+    "name": "≡ƒôï SALES ORDERS > List Sales Orders",
+    "method": "GET",
+    "url": "{{base_url}}/api/sales-orders?page=1&limit=20"
+  },
+  {
+    "name": "≡ƒôï SALES ORDERS > Create Sales Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-orders"
+  },
+  {
+    "name": "≡ƒôï SALES ORDERS > Get Sales Order by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/sales-orders/1"
+  },
+  {
+    "name": "≡ƒôï SALES ORDERS > Update Sales Order",
+    "method": "PUT",
+    "url": "{{base_url}}/api/sales-orders/1"
+  },
+  {
+    "name": "≡ƒôï SALES ORDERS > Cancel Sales Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/sales-orders/1/cancel"
+  },
+  {
+    "name": "≡ƒÅ¬ INVENTORY > Stock Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/inventory?type=stock-summary"
+  },
+  {
+    "name": "≡ƒÅ¬ INVENTORY > Stock Ledger (Item History)",
+    "method": "GET",
+    "url": "{{base_url}}/api/inventory?type=stock-ledger&item_id=1"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Trial Balance",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/trial-balance?as_on_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Profit & Loss",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/profit-loss?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Balance Sheet",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/balance-sheet?as_on_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Outstanding Receivables",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/outstanding-receivables"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Outstanding Payables",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/outstanding-payables"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Stock Summary Report",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/stock-summary"
+  },
+  {
+    "name": "≡ƒôè REPORTS > GST Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/gst-summary?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Cash Flow Report Γ£¿ NEW",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/cash-flow?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Fund Flow Report Γ£¿ NEW",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/fund-flow?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Cash/Bank Book Report Γ£¿ NEW",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/cash-bank-book?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôè REPORTS > Day Book Report Γ£¿ NEW",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/day-book?from_date=2026-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒÅª BANK ACCOUNTS > List Bank Accounts",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-accounts"
+  },
+  {
+    "name": "≡ƒÅª BANK ACCOUNTS > Create Bank Account",
+    "method": "POST",
+    "url": "{{base_url}}/api/bank-accounts"
+  },
+  {
+    "name": "≡ƒÅª BANK ACCOUNTS > Get Bank Account by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-accounts/1"
+  },
+  {
+    "name": "≡ƒÅª BANK ACCOUNTS > Update Bank Account",
+    "method": "PUT",
+    "url": "{{base_url}}/api/bank-accounts/1"
+  },
+  {
+    "name": "≡ƒÅª BANK ACCOUNTS > Delete Bank Account",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/bank-accounts/1"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Create Reconciliation",
+    "method": "POST",
+    "url": "{{base_url}}/api/bank-reconciliations"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > List Reconciliations",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-reconciliations?bank_account_id=1&status=PENDING&limit=10&offset=0"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Get Reconciliation by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-reconciliations/1"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Get Unmatched Transactions",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-reconciliations/1/unmatched"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Get Matched Transactions",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-reconciliations/1/matched"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Match Transaction to Voucher",
+    "method": "POST",
+    "url": "{{base_url}}/api/bank-reconciliations/match-transaction"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Unmatch Transaction",
+    "method": "POST",
+    "url": "{{base_url}}/api/bank-reconciliations/unmatch-transaction"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Finalize Reconciliation",
+    "method": "POST",
+    "url": "{{base_url}}/api/bank-reconciliations/1/finalize"
+  },
+  {
+    "name": "≡ƒÅª BANK RECONCILIATION Γ£¿ NEW > Get Reconciliation Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/bank-reconciliations/account/1/summary"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get System Settings",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/system"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Company Settings",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/company"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Update Company Settings",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/company"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Financial Years",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/financial-years"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Create Financial Year",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/financial-years"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Voucher Types",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/voucher-types"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Warehouses",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/warehouses"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Create Warehouse",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/warehouses"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Update Warehouse",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/warehouses/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] PUT Financial Year (Update)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/financial-years/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] DELETE Financial Year",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/settings/financial-years/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] Switch Active Financial Year",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/financial-years/1/switch"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] GET Business Natures",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/business-natures"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] POST Business Nature (Create)",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/business-natures"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] PUT Business Nature (Update)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/business-natures/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] DELETE Business Nature",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/settings/business-natures/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] GET Backups List",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/backups?fy_id=1&limit=50"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] POST Create Backup",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/backups"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] GET Backup Details",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/backups/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] POST Restore Backup",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/backups/1/restore"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > [NEW 2026-04-07] DELETE Backup",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/settings/backups/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Voucher Number Series",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/voucher-series"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Create Voucher Number Series",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/voucher-series"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Update Voucher Number Series",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/voucher-series/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Delete Voucher Number Series",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/settings/voucher-series/1"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Get Payroll Settings",
+    "method": "GET",
+    "url": "{{base_url}}/api/settings/payroll"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Update Payroll Settings",
+    "method": "PUT",
+    "url": "{{base_url}}/api/settings/payroll"
+  },
+  {
+    "name": "ΓÜÖ∩╕Å SETTINGS > Close Financial Year",
+    "method": "POST",
+    "url": "{{base_url}}/api/settings/financial-years/1/close"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > List Credit Notes",
+    "method": "GET",
+    "url": "{{base_url}}/api/credit-notes"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > Create Credit Note (DRAFT)",
+    "method": "POST",
+    "url": "{{base_url}}/api/credit-notes"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > Get Credit Note by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/credit-notes/1"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > Update Credit Note",
+    "method": "PUT",
+    "url": "{{base_url}}/api/credit-notes/1"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > Post Credit Note",
+    "method": "POST",
+    "url": "{{base_url}}/api/credit-notes/1/post"
+  },
+  {
+    "name": "Γå⌐∩╕Å CREDIT NOTES (Sales Returns) > Cancel Credit Note",
+    "method": "POST",
+    "url": "{{base_url}}/api/credit-notes/1/cancel"
+  },
+  {
+    "name": "Γå¬∩╕Å DEBIT NOTES (Purchase Returns) > List Debit Notes",
+    "method": "GET",
+    "url": "{{base_url}}/api/debit-notes"
+  },
+  {
+    "name": "Γå¬∩╕Å DEBIT NOTES (Purchase Returns) > Create Debit Note (DRAFT)",
+    "method": "POST",
+    "url": "{{base_url}}/api/debit-notes"
+  },
+  {
+    "name": "Γå¬∩╕Å DEBIT NOTES (Purchase Returns) > Get Debit Note by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/debit-notes/1"
+  },
+  {
+    "name": "Γå¬∩╕Å DEBIT NOTES (Purchase Returns) > Post Debit Note",
+    "method": "POST",
+    "url": "{{base_url}}/api/debit-notes/1/post"
+  },
+  {
+    "name": "Γå¬∩╕Å DEBIT NOTES (Purchase Returns) > Cancel Debit Note",
+    "method": "POST",
+    "url": "{{base_url}}/api/debit-notes/1/cancel"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > List Purchase Orders",
+    "method": "GET",
+    "url": "{{base_url}}/api/purchase-orders"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > Create Purchase Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-orders"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > Get Purchase Order by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/purchase-orders/1"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > Update Purchase Order",
+    "method": "PUT",
+    "url": "{{base_url}}/api/purchase-orders/1"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > Confirm Purchase Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-orders/1/confirm"
+  },
+  {
+    "name": "≡ƒùÆ∩╕Å PURCHASE ORDERS > Cancel Purchase Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/purchase-orders/1/cancel"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > List Proforma Invoices",
+    "method": "GET",
+    "url": "{{base_url}}/api/proforma-invoices"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Create Proforma Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/proforma-invoices"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Get Proforma Invoice by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/proforma-invoices/1"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Send Proforma Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/proforma-invoices/1/send"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Accept Proforma Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/proforma-invoices/1/accept"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Reject Proforma Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/proforma-invoices/1/reject"
+  },
+  {
+    "name": "≡ƒôä PROFORMA INVOICES > Convert to Sales Invoice",
+    "method": "POST",
+    "url": "{{base_url}}/api/proforma-invoices/1/convert"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > List Cost Categories",
+    "method": "GET",
+    "url": "{{base_url}}/api/cost-centres/categories"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Create Cost Category",
+    "method": "POST",
+    "url": "{{base_url}}/api/cost-centres/categories"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > List Cost Centres",
+    "method": "GET",
+    "url": "{{base_url}}/api/cost-centres"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Create Cost Centre",
+    "method": "POST",
+    "url": "{{base_url}}/api/cost-centres"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > List Budgets",
+    "method": "GET",
+    "url": "{{base_url}}/api/budgets"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Create Budget",
+    "method": "POST",
+    "url": "{{base_url}}/api/budgets"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Get Budget Variance",
+    "method": "GET",
+    "url": "{{base_url}}/api/budgets/1/variance"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Update Budget",
+    "method": "PUT",
+    "url": "{{base_url}}/api/budgets/1"
+  },
+  {
+    "name": "≡ƒÆ░ COST CENTRES & BUDGET > Delete Budget",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/budgets/1"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > List HSN/SAC Codes",
+    "method": "GET",
+    "url": "{{base_url}}/api/hsn-sac?type=HSN&search=8471&page=1&limit=20"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > Create HSN/SAC Code",
+    "method": "POST",
+    "url": "{{base_url}}/api/hsn-sac"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > Update HSN/SAC Code",
+    "method": "PUT",
+    "url": "{{base_url}}/api/hsn-sac/1"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > Get Effective Rate on Date",
+    "method": "GET",
+    "url": "{{base_url}}/api/hsn-sac/1/rate?date=2025-08-01"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > List Rate History",
+    "method": "GET",
+    "url": "{{base_url}}/api/hsn-sac/1/rates"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å HSN / SAC CODES > Add Rate History (Date-Effective Change)",
+    "method": "POST",
+    "url": "{{base_url}}/api/hsn-sac/1/rates"
+  },
+  {
+    "name": "ΓÖ╗∩╕Å WASTAGE > List Wastage Records",
+    "method": "GET",
+    "url": "{{base_url}}/api/wastage"
+  },
+  {
+    "name": "ΓÖ╗∩╕Å WASTAGE > Create Wastage Record",
+    "method": "POST",
+    "url": "{{base_url}}/api/wastage"
+  },
+  {
+    "name": "ΓÖ╗∩╕Å WASTAGE > Get Wastage by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/wastage/1"
+  },
+  {
+    "name": "ΓÖ╗∩╕Å WASTAGE > Approve Wastage",
+    "method": "POST",
+    "url": "{{base_url}}/api/wastage/1/approve"
+  },
+  {
+    "name": "ΓÖ╗∩╕Å WASTAGE > Reject Wastage",
+    "method": "POST",
+    "url": "{{base_url}}/api/wastage/1/reject"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > List Stock Verifications",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-verification"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > Create Stock Verification",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-verification"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > Get Verification by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-verification/1"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > Submit Physical Count",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-verification/1/count"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > Get Variance Report",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-verification/1/variance"
+  },
+  {
+    "name": "≡ƒöì STOCK VERIFICATION > Post Adjustments",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-verification/1/post"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > List Cheques",
+    "method": "GET",
+    "url": "{{base_url}}/api/cheques?status=PENDING&type=RECEIVED"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > Create Post-Dated Cheque",
+    "method": "POST",
+    "url": "{{base_url}}/api/cheques"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > Clear Cheque",
+    "method": "POST",
+    "url": "{{base_url}}/api/cheques/1/clear"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > Bounce Cheque",
+    "method": "POST",
+    "url": "{{base_url}}/api/cheques/1/bounce"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > Cancel Cheque",
+    "method": "POST",
+    "url": "{{base_url}}/api/cheques/1/cancel"
+  },
+  {
+    "name": "≡ƒÅª POST-DATED CHEQUES > Get Due Soon Cheques",
+    "method": "GET",
+    "url": "{{base_url}}/api/cheques/due-soon?days=7"
+  },
+  {
+    "name": "≡ƒôÉ INTEREST CALCULATION > Interest on Receivables",
+    "method": "GET",
+    "url": "{{base_url}}/api/interest/receivables?rate=18&as_of_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôÉ INTEREST CALCULATION > Interest on Payables",
+    "method": "GET",
+    "url": "{{base_url}}/api/interest/payables?rate=18&as_of_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > List BOMs",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/bom"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > Create BOM",
+    "method": "POST",
+    "url": "{{base_url}}/api/manufacturing/bom"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > Get BOM by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/bom/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > Explode BOM (Material Requirement)",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/bom/1/explode?qty=100"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > Update BOM",
+    "method": "PUT",
+    "url": "{{base_url}}/api/manufacturing/bom/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö BILL OF MATERIALS (BOM) ΓÇö > Delete BOM",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/manufacturing/bom/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö PRODUCTION ORDERS ΓÇö > List Production Orders",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/production-orders"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö PRODUCTION ORDERS ΓÇö > Create Production Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/manufacturing/production-orders"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö PRODUCTION ORDERS ΓÇö > Get Production Order by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/production-orders/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö PRODUCTION ORDERS ΓÇö > Release Production Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/manufacturing/production-orders/1/release"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö PRODUCTION ORDERS ΓÇö > Complete Production Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/manufacturing/production-orders/1/complete"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö JOB WORK ΓÇö > List Job Work Orders",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/job-work"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > ΓÇö JOB WORK ΓÇö > Create Job Work Order",
+    "method": "POST",
+    "url": "{{base_url}}/api/manufacturing/job-work"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > Get Job Work by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/manufacturing/job-work/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > Update Job Work",
+    "method": "PUT",
+    "url": "{{base_url}}/api/manufacturing/job-work/1"
+  },
+  {
+    "name": "≡ƒÅ¡ MANUFACTURING > Delete Job Work",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/manufacturing/job-work/1"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö EMPLOYEES ΓÇö > List Employees",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/employees"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö EMPLOYEES ΓÇö > Create Employee",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/employees"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö EMPLOYEES ΓÇö > Get Employee by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/employees/1"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö EMPLOYEES ΓÇö > Update Employee",
+    "method": "PUT",
+    "url": "{{base_url}}/api/payroll/employees/1"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö ATTENDANCE ΓÇö > Mark Attendance",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/attendance"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö ATTENDANCE ΓÇö > Bulk Mark Attendance",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/attendance/bulk"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö ATTENDANCE ΓÇö > Get Employee Attendance",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/attendance?employee_id=1&month=2026-03"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Get Salary Structure",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/employees/1/salary-structure"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Set Salary Structure",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/salary-structure"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > List Payslips",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/payslips?month=2026-03"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Get Payslip by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/payroll/payslips/{{payslip_id}}"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Generate Payslip",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/payslips/generate"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Approve Payslip",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/payslips/1/approve"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > ΓÇö SALARY & PAYSLIP ΓÇö > Mark Payslip Paid",
+    "method": "POST",
+    "url": "{{base_url}}/api/payroll/payslips/1/pay"
+  },
+  {
+    "name": "≡ƒæ╖ PAYROLL & HR > Delete Employee",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/payroll/employees/1"
+  },
+  {
+    "name": "≡ƒÆ▒ CURRENCIES > List Currencies",
+    "method": "GET",
+    "url": "{{base_url}}/api/currencies"
+  },
+  {
+    "name": "≡ƒÆ▒ CURRENCIES > Add Currency",
+    "method": "POST",
+    "url": "{{base_url}}/api/currencies"
+  },
+  {
+    "name": "≡ƒÆ▒ CURRENCIES > Update Exchange Rate",
+    "method": "PUT",
+    "url": "{{base_url}}/api/currencies/rate"
+  },
+  {
+    "name": "≡ƒÆ▒ CURRENCIES > Convert Currency",
+    "method": "GET",
+    "url": "{{base_url}}/api/currencies/convert?from=USD&to=INR&amount=1000"
+  },
+  {
+    "name": "≡ƒôè DASHBOARD > Dashboard Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/dashboard/summary"
+  },
+  {
+    "name": "≡ƒôè DASHBOARD > Sales Chart (Monthly Trend)",
+    "method": "GET",
+    "url": "{{base_url}}/api/dashboard/sales-chart?months=6"
+  },
+  {
+    "name": "≡ƒôè DASHBOARD > Top Customers",
+    "method": "GET",
+    "url": "{{base_url}}/api/dashboard/top-customers?limit=10&from_date=2025-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôï GST: REVERSE CHARGE (RCM) > RCM Transactions",
+    "method": "GET",
+    "url": "{{base_url}}/api/rcm/transactions?from_date=2025-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôï GST: REVERSE CHARGE (RCM) > RCM Liability Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/rcm/liability?from_date=2025-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "Γ£à APPROVAL WORKFLOW > List All Approvals",
+    "method": "GET",
+    "url": "{{base_url}}/api/approvals?status=PENDING&entity_type=SALES_INVOICE"
+  },
+  {
+    "name": "Γ£à APPROVAL WORKFLOW > My Pending Approvals",
+    "method": "GET",
+    "url": "{{base_url}}/api/approvals/pending"
+  },
+  {
+    "name": "Γ£à APPROVAL WORKFLOW > Submit for Approval",
+    "method": "POST",
+    "url": "{{base_url}}/api/approvals"
+  },
+  {
+    "name": "Γ£à APPROVAL WORKFLOW > Approve Request",
+    "method": "POST",
+    "url": "{{base_url}}/api/approvals/1/approve"
+  },
+  {
+    "name": "Γ£à APPROVAL WORKFLOW > Reject Request",
+    "method": "POST",
+    "url": "{{base_url}}/api/approvals/1/reject"
+  },
+  {
+    "name": "≡ƒÆ╛ DATA BACKUP > List Backups",
+    "method": "GET",
+    "url": "{{base_url}}/api/backups"
+  },
+  {
+    "name": "≡ƒÆ╛ DATA BACKUP > Create Backup",
+    "method": "POST",
+    "url": "{{base_url}}/api/backups"
+  },
+  {
+    "name": "≡ƒÆ╛ DATA BACKUP > Download Backup",
+    "method": "GET",
+    "url": "{{base_url}}/api/backups/backup_20260327_000000.sql/download"
+  },
+  {
+    "name": "≡ƒÆ╛ DATA BACKUP > Delete Backup",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/backups/backup_20260327_000000.sql"
+  },
+  {
+    "name": "≡ƒôê REPORTS (New) > Ledger Account Report",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/ledger/1?from_date=2025-04-01&to_date=2026-03-31"
+  },
+  {
+    "name": "≡ƒôê REPORTS (New) > Sales Analysis",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/sales-analysis?from_date=2025-04-01&to_date=2026-03-31&group_by=month"
+  },
+  {
+    "name": "≡ƒôê REPORTS (New) > Purchase Analysis",
+    "method": "GET",
+    "url": "{{base_url}}/api/reports/purchase-analysis?from_date=2025-04-01&to_date=2026-03-31&group_by=month"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] GET TDS Rules",
+    "method": "GET",
+    "url": "{{base_url}}/api/compliance/tds-master?section=194J&limit=50"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] POST Create TDS Rule",
+    "method": "POST",
+    "url": "{{base_url}}/api/compliance/tds-master"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] PUT Update TDS Rule",
+    "method": "PUT",
+    "url": "{{base_url}}/api/compliance/tds-master/1"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] DELETE TDS Rule",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/compliance/tds-master/1"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] GET TCS Rules",
+    "method": "GET",
+    "url": "{{base_url}}/api/compliance/tcs-master?section=206C&limit=50"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] POST Create TCS Rule",
+    "method": "POST",
+    "url": "{{base_url}}/api/compliance/tcs-master"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] PUT Update TCS Rule",
+    "method": "PUT",
+    "url": "{{base_url}}/api/compliance/tcs-master/1"
+  },
+  {
+    "name": "≡ƒÅ¢∩╕Å COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] DELETE TCS Rule",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/compliance/tcs-master/1"
+  },
+  {
+    "name": "≡ƒôè AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Logs (List)",
+    "method": "GET",
+    "url": "{{base_url}}/api/audit-logs?module=sales_invoice&action=CREATE&limit=50&offset=0"
+  },
+  {
+    "name": "≡ƒôè AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Log Details",
+    "method": "GET",
+    "url": "{{base_url}}/api/audit-logs/1"
+  },
+  {
+    "name": "≡ƒôè AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Summary by Module",
+    "method": "GET",
+    "url": "{{base_url}}/api/audit-logs/summary/sales_invoice"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > List Stock Categories",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-categories"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > List Top-Level (Stock Groups)",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-categories"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > Create Stock Category",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-categories"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > Create Sub-Category (Stock Group child)",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-categories"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > Get Category by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-categories/1"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > Update Stock Category",
+    "method": "PUT",
+    "url": "{{base_url}}/api/stock-categories/1"
+  },
+  {
+    "name": "≡ƒôª STOCK CATEGORIES & GROUPS [2026-04-07] > Delete Stock Category",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/stock-categories/1"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > List Stock Alerts",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-alerts"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > Create / Update Stock Alert",
+    "method": "POST",
+    "url": "{{base_url}}/api/stock-alerts"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > Check Triggered Alerts",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-alerts/check"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > Get Alert by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/stock-alerts/1"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > Update Stock Alert",
+    "method": "PUT",
+    "url": "{{base_url}}/api/stock-alerts/1"
+  },
+  {
+    "name": "≡ƒöö STOCK ALERTS [2026-04-07] > Delete Stock Alert",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/stock-alerts/1"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > List Batches",
+    "method": "GET",
+    "url": "{{base_url}}/api/batches"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > List Expiring Soon",
+    "method": "GET",
+    "url": "{{base_url}}/api/batches"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > Create Batch",
+    "method": "POST",
+    "url": "{{base_url}}/api/batches"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > Get Batch by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/batches/1"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > Update Batch",
+    "method": "PUT",
+    "url": "{{base_url}}/api/batches/1"
+  },
+  {
+    "name": "≡ƒÅ╖∩╕Å BATCH TRACKING [2026-04-07] > Delete Batch",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/batches/1"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > List Serial Numbers",
+    "method": "GET",
+    "url": "{{base_url}}/api/serial-numbers"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > Lookup by Serial Number",
+    "method": "GET",
+    "url": "{{base_url}}/api/serial-numbers/lookup/SN-2026-001"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > Create Serial Number",
+    "method": "POST",
+    "url": "{{base_url}}/api/serial-numbers"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > Get Serial Number by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/serial-numbers/1"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > Update Serial Number (Mark Sold)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/serial-numbers/1"
+  },
+  {
+    "name": "≡ƒöó SERIAL NUMBER TRACKING [2026-04-07] > Update Serial Number (Warranty Claim)",
+    "method": "PUT",
+    "url": "{{base_url}}/api/serial-numbers/1"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > List All UOMs",
+    "method": "GET",
+    "url": "{{base_url}}/api/uom"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > Get UOM by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/uom/1"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > Create UOM (Base)",
+    "method": "POST",
+    "url": "{{base_url}}/api/uom"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > Create UOM (Derived)",
+    "method": "POST",
+    "url": "{{base_url}}/api/uom"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > Update UOM",
+    "method": "PUT",
+    "url": "{{base_url}}/api/uom/1"
+  },
+  {
+    "name": "≡ƒôÅ UOM (Unit of Measure) [NEW] > Delete UOM",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/uom/1"
+  },
+  {
+    "name": "≡ƒÅó BRANCHES [NEW] > List Branches",
+    "method": "GET",
+    "url": "{{base_url}}/api/branches"
+  },
+  {
+    "name": "≡ƒÅó BRANCHES [NEW] > Get Branch by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/branches/1"
+  },
+  {
+    "name": "≡ƒÅó BRANCHES [NEW] > Create Branch",
+    "method": "POST",
+    "url": "{{base_url}}/api/branches"
+  },
+  {
+    "name": "≡ƒÅó BRANCHES [NEW] > Update Branch",
+    "method": "PUT",
+    "url": "{{base_url}}/api/branches/1"
+  },
+  {
+    "name": "≡ƒÅó BRANCHES [NEW] > Delete Branch",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/branches/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > List Investment Types",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/types"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Create Investment Type",
+    "method": "POST",
+    "url": "{{base_url}}/api/investments/types"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Get Investment Type",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/types/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Update Investment Type",
+    "method": "PUT",
+    "url": "{{base_url}}/api/investments/types/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Delete Investment Type",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/investments/types/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > List Investment Masters",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/masters"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Create Investment Master",
+    "method": "POST",
+    "url": "{{base_url}}/api/investments/masters"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Get Investment Master",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/masters/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Update Investment Master",
+    "method": "PUT",
+    "url": "{{base_url}}/api/investments/masters/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Delete Investment Master",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/investments/masters/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > List Transactions",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/transactions"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Record BUY Transaction",
+    "method": "POST",
+    "url": "{{base_url}}/api/investments/transactions"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Record SELL Transaction",
+    "method": "POST",
+    "url": "{{base_url}}/api/investments/transactions"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Get Transaction by ID",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/transactions/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Update Transaction",
+    "method": "PUT",
+    "url": "{{base_url}}/api/investments/transactions/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Delete Transaction",
+    "method": "DELETE",
+    "url": "{{base_url}}/api/investments/transactions/1"
+  },
+  {
+    "name": "≡ƒÆ╣ INVESTMENTS [NEW] > Investment Holdings Summary",
+    "method": "GET",
+    "url": "{{base_url}}/api/investments/holdings"
+  }
+]

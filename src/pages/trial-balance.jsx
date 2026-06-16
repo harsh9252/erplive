@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getTrialBalanceReport } from '../services/reportService';
+import branchService from '../services/branchService';
+import { useAuth } from '../components/AuthContext';
+import { toast } from 'react-toastify';
 
 const initialData = [
   { id: 1, accountName: 'PNB - 5475878970090', credit: 22500, debit: 7500 },
@@ -16,34 +19,71 @@ const initialData = [
 ];
 
 const TrialBalance = () => {
+  const { activeCompany } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState("");
+  
+  // Filter States
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [appliedAccounts, setAppliedAccounts] = useState([]);
+  const [amountRange, setAmountRange] = useState({ min: '', max: '' });
+  const [appliedAmountRange, setAppliedAmountRange] = useState({ min: '', max: '' });
+  const [filterSearch, setFilterSearch] = useState('');
+  const [asOnDate, setAsOnDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [branches, setBranches] = useState([]);
   const [apiTotals, setApiTotals] = useState({ total_dr: 0, total_cr: 0 });
 
   useEffect(() => {
-    fetchReportData();
-  }, []);
+    const init = async () => {
+      try {
+        const branchRes = await branchService.getBranches();
+        setBranches(branchRes.data || []);
+        setSelectedBranch('');
+      } catch (err) {
+        console.error("Failed to load branches", err);
+      }
+    };
+    init();
+  }, [activeCompany?.id]);
+  
+  useEffect(() => {
+    fetchReportData({ as_on_date: asOnDate, branch_id: selectedBranch, branchId: selectedBranch });
+  }, [asOnDate, selectedBranch, activeCompany?.id]);
 
   const fetchReportData = async (params = {}) => {
     try {
       setLoading(true);
       // Ensure as_on_date is provided as it's mandatory
       const finalParams = {
-        as_on_date: new Date().toISOString().split('T')[0],
+        as_on_date: asOnDate,
         ...params
       };
       const response = await getTrialBalanceReport(finalParams);
       const reportData = response.data || response;
       const items = reportData.ledgers || (Array.isArray(reportData) ? reportData : (reportData?.rows || reportData?.items || []));
       
-      const mappedItems = items.map(item => ({
-        ...item,
-        accountName: item.ledger_name || item.account_name || item.accountName,
-        debit: item.total_dr || item.debit || 0,
-        credit: item.total_cr || item.credit || 0
-      }));
+      const mappedItems = items.map(item => {
+        let debit = Number(item.debit || 0);
+        let credit = Number(item.credit || 0);
+        
+        if (item.closing_balance !== undefined && item.balance_type) {
+          debit = item.balance_type === 'DR' ? Number(item.closing_balance) : 0;
+          credit = item.balance_type === 'CR' ? Number(item.closing_balance) : 0;
+        } else {
+          debit = Number(item.total_dr || debit);
+          credit = Number(item.total_cr || credit);
+        }
+
+        return {
+          ...item,
+          accountName: item.ledger_name || item.account_name || item.accountName,
+          debit,
+          credit
+        };
+      });
       
       setData(mappedItems);
       // Store totals if available
@@ -68,9 +108,120 @@ const TrialBalance = () => {
     setColumns(prev => ({ ...prev, [col]: !prev[col] }));
   };
 
-  const filteredData = data.filter(item =>
-    item.accountName.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const totalDebits = apiTotals.total_dr || data.reduce((sum, i) => sum + (Number(i.debit) || 0), 0);
+  const totalCredits = apiTotals.total_cr || data.reduce((sum, i) => sum + (Number(i.credit) || 0), 0);
+  const netDifference = Math.abs(totalDebits - totalCredits);
+  const totalAccounts = data.length;
+
+  const handleApplyFilter = () => {
+    setAppliedAccounts(selectedAccounts);
+    setAppliedAmountRange(amountRange);
+  };
+
+  const handleResetFilter = () => {
+    setSelectedAccounts([]);
+    setAppliedAccounts([]);
+    setAmountRange({ min: '', max: '' });
+    setAppliedAmountRange({ min: '', max: '' });
+    setFilterSearch('');
+  };
+
+  const filteredData = data.filter(item => {
+    // text search
+    if (searchText && !item.accountName.toLowerCase().includes(searchText.toLowerCase())) return false;
+    
+    // account selection filter
+    if (appliedAccounts.length > 0 && !appliedAccounts.includes(item.accountName)) return false;
+
+    // amount filter (check if either debit or credit is within range, or the balance)
+    const maxVal = Math.max(Number(item.debit) || 0, Number(item.credit) || 0);
+    if (appliedAmountRange.min && maxVal < parseFloat(appliedAmountRange.min)) return false;
+    if (appliedAmountRange.max && maxVal > parseFloat(appliedAmountRange.max)) return false;
+
+    return true;
+  });
+
+  const uniqueAccounts = [...new Set(data.map(item => item.accountName))].filter(Boolean).sort();
+
+  const downloadExcel = async () => {
+    try {
+      const { utils, writeFile } = await import('xlsx');
+      
+      const exportData = filteredData.map(item => {
+        const row = {};
+        if (columns.accountName) row['Account Name'] = item.account_name || item.accountName;
+        if (columns.credit) row['Credit'] = item.credit || 0;
+        if (columns.debit) row['Debit'] = item.debit || 0;
+        return row;
+      });
+
+      // Add totals row
+      const totalsRow = {};
+      if (columns.accountName) totalsRow['Account Name'] = 'Total';
+      if (columns.credit) totalsRow['Credit'] = filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0);
+      if (columns.debit) totalsRow['Debit'] = filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0);
+      exportData.push(totalsRow);
+
+      const ws = utils.json_to_sheet(exportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Trial Balance");
+      writeFile(wb, `trial_balance_${asOnDate}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export Excel");
+    }
+  };
+
+  const downloadPDF = async () => {
+    try {
+      const jspdfModule = await import('jspdf');
+      const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
+      
+      const autotableModule = await import('jspdf-autotable');
+      const autoTable = autotableModule.default || autotableModule;
+
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text('Trial Balance Report', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`As On Date: ${asOnDate}`, 14, 22);
+
+      const tableColumns = [];
+      if (columns.accountName) tableColumns.push('Account Name');
+      if (columns.credit) tableColumns.push('Credit');
+      if (columns.debit) tableColumns.push('Debit');
+
+      const tableRows = filteredData.map(item => {
+        const row = [];
+        if (columns.accountName) row.push(item.account_name || item.accountName);
+        if (columns.credit) row.push(`Rs. ${(item.credit || 0).toLocaleString('en-IN')}`);
+        if (columns.debit) row.push(`Rs. ${(item.debit || 0).toLocaleString('en-IN')}`);
+        return row;
+      });
+
+      // Add totals row
+      const totalsRow = [];
+      if (columns.accountName) totalsRow.push('Total');
+      if (columns.credit) totalsRow.push(`Rs. ${filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0).toLocaleString('en-IN')}`);
+      if (columns.debit) totalsRow.push(`Rs. ${filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0).toLocaleString('en-IN')}`);
+      tableRows.push(totalsRow);
+
+      autoTable(doc, {
+        startY: 28,
+        head: [tableColumns],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [62, 121, 247] }
+      });
+
+      doc.save(`trial_balance_${asOnDate}.pdf`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export PDF");
+    }
+  };
+
   return (
     <>
       <div className="d-flex d-block align-items-center justify-content-between flex-wrap gap-3 mb-3">
@@ -83,19 +234,20 @@ const TrialBalance = () => {
               href="#"
               className="btn btn-outline-white d-inline-flex align-items-center"
               data-bs-toggle="dropdown"
+              data-bs-display="static"
             >
               <i className="isax isax-export-1 me-1"></i>Export
             </Link>
-            <ul className="dropdown-menu">
+            <ul className="dropdown-menu dropdown-menu-end" style={{ right: 0, left: 'auto', transform: 'none', top: '100%', marginTop: '5px' }}>
               <li>
-                <Link className="dropdown-item" href="#">
+                <button className="dropdown-item border-0 bg-transparent" onClick={downloadPDF}>
                   Download as PDF
-                </Link>
+                </button>
               </li>
               <li>
-                <Link className="dropdown-item" href="#">
+                <button className="dropdown-item border-0 bg-transparent" onClick={downloadExcel}>
                   Download as Excel
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
@@ -116,10 +268,7 @@ const TrialBalance = () => {
                     <div className="mb-0">
                       <p className="mb-1 text-truncate">Total Debits</p>
                       <div>
-                        <h6 className="fs-16 fw-semibold me-2 mb-1">${(apiTotals.total_dr || data.reduce((sum, i) => sum + (Number(i.debit) || 0), 0)).toLocaleString()}</h6>
-                        <span className="badge badge-soft-success">
-                          +5.62%<i className="isax isax-arrow-up-15"></i>
-                        </span>
+                        <h6 className="fs-16 fw-semibold me-2 mb-1">₹{totalDebits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h6>
                       </div>
                     </div>
                   </div>
@@ -141,10 +290,7 @@ const TrialBalance = () => {
                     <div className="mb-0">
                       <p className="mb-1 text-truncate">Total Credits</p>
                       <div>
-                        <h6 className="fs-16 fw-semibold me-2 mb-1">${(apiTotals.total_cr || data.reduce((sum, i) => sum + (Number(i.credit) || 0), 0)).toLocaleString()}</h6>
-                        <span className="badge badge-soft-success">
-                          +11.4%<i className="isax isax-arrow-up-15"></i>
-                        </span>
+                        <h6 className="fs-16 fw-semibold me-2 mb-1">₹{totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h6>
                       </div>
                     </div>
                   </div>
@@ -164,12 +310,9 @@ const TrialBalance = () => {
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="d-flex align-items-center">
                     <div className="mb-0">
-                      <p className="mb-1 text-truncate">Cash & Bank Balance</p>
+                      <p className="mb-1 text-truncate">Net Difference</p>
                       <div>
-                        <h6 className="fs-16 fw-semibold me-2 mb-1">$150,000</h6>
-                        <span className="badge badge-soft-success">
-                          +8.12%<i className="isax isax-arrow-up-15"></i>
-                        </span>
+                        <h6 className="fs-16 fw-semibold me-2 mb-1">₹{netDifference.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h6>
                       </div>
                     </div>
                   </div>
@@ -189,12 +332,9 @@ const TrialBalance = () => {
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="d-flex align-items-center">
                     <div className="mb-0">
-                      <p className="mb-1 text-truncate">Cash & Bank Balance</p>
+                      <p className="mb-1 text-truncate">Total Accounts</p>
                       <div>
-                        <h6 className="fs-16 fw-semibold me-2 mb-1">$50,000</h6>
-                        <span className="badge badge-soft-success">
-                          7.45%<i className="isax isax-arrow-up-15"></i>
-                        </span>
+                        <h6 className="fs-16 fw-semibold me-2 mb-1">{totalAccounts}</h6>
                       </div>
                     </div>
                   </div>
@@ -223,10 +363,34 @@ const TrialBalance = () => {
                 </Link>
               </div>
             </div>
-            <div id="reportrange" className="reportrange-picker d-flex align-items-center">
-              <i className="isax isax-calendar text-gray-5 fs-14 me-1"></i>
-              <span className="reportrange-picker-field">16 Apr 25 - 16 Apr 25</span>
+            <div className="d-flex align-items-center bg-white border px-2 py-1 rounded">
+              <i className="isax isax-buildings-2 text-gray-5 fs-14 me-1"></i>
+              <select 
+                className="form-select form-select-sm border-0 shadow-none ps-0 fs-13" 
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                style={{ width: '150px', textOverflow: 'ellipsis' }}
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
             </div>
+            <div className="d-flex align-items-center bg-white border px-2 py-1 rounded">
+              <i className="isax isax-calendar text-gray-5 fs-14 me-1"></i>
+              <input 
+                type="date" 
+                className="form-control form-control-sm border-0 shadow-none p-0 fs-13" 
+                value={asOnDate}
+                onChange={(e) => setAsOnDate(e.target.value)}
+                style={{ width: '120px' }}
+              />
+            </div>
+            <button className="btn btn-outline-primary d-inline-flex align-items-center" onClick={() => fetchReportData()} disabled={loading}>
+              {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="isax isax-refresh me-1"></i>}
+              Refresh
+            </button>
             <Link
               className="btn btn-outline-white fw-normal d-inline-flex align-items-center"
               href="#"
@@ -236,67 +400,41 @@ const TrialBalance = () => {
               <i className="isax isax-filter me-1"></i>Filter
             </Link>
           </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown">
-              <Link
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.accountName} onChange={() => handleColumnToggle('accountName')} />
-                    <span>Account Name</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.credit} onChange={() => handleColumnToggle('credit')} />
-                    <span>Credit</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.debit} onChange={() => handleColumnToggle('debit')} />
-                    <span>Debit</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
+
+        </div>
+        {(appliedAccounts.length > 0 || appliedAmountRange.min || appliedAmountRange.max) && (
+          <div className="align-items-center gap-2 flex-wrap filter-info mt-3 d-flex">
+            <h6 className="fs-13 fw-semibold mb-0">Filters</h6>
+            {appliedAccounts.length > 0 && (
+              <span className="tag bg-light border rounded-1 fs-12 text-dark badge d-inline-flex align-items-center">
+                <span className="num-count d-inline-flex align-items-center justify-content-center bg-success text-white fs-10 me-1 px-1 rounded">
+                  {appliedAccounts.length}
+                </span>
+                Account Holders Selected
+                <span className="ms-2 tag-close" style={{ cursor: 'pointer' }} onClick={() => { setAppliedAccounts([]); setSelectedAccounts([]); }}>
+                  <i className="fa-solid fa-x fs-10"></i>
+                </span>
+              </span>
+            )}
+            {(appliedAmountRange.min || appliedAmountRange.max) && (
+              <span className="tag bg-light border rounded-1 fs-12 text-dark badge d-inline-flex align-items-center">
+                Amount: ₹{appliedAmountRange.min || '0'} - {appliedAmountRange.max ? `₹${appliedAmountRange.max}` : 'Any'}
+                <span className="ms-2 tag-close" style={{ cursor: 'pointer' }} onClick={() => { setAppliedAmountRange({min:'',max:''}); setAmountRange({min:'',max:''}); }}>
+                  <i className="fa-solid fa-x fs-10"></i>
+                </span>
+              </span>
+            )}
+            <button className="btn btn-link link-danger fw-medium text-decoration-underline ms-md-1 p-0" onClick={handleResetFilter}>
+              Clear All
+            </button>
           </div>
-        </div>
-        <div className="align-items-center gap-2 flex-wrap filter-info mt-3">
-          <h6 className="fs-13 fw-semibold">Filters</h6>
-          <span className="tag bg-light border rounded-1 fs-12 text-dark badge">
-            <span className="num-count d-inline-flex align-items-center justify-content-center bg-success fs-10 me-1">
-              6
-            </span>
-            Account Holders Selected
-            <span className="ms-1 tag-close">
-              <i className="fa-solid fa-x fs-10"></i>
-            </span>
-          </span>
-          <Link href="#" className="link-danger fw-medium text-decoration-underline ms-md-1">
-            Clear All
-          </Link>
-        </div>
+        )}
       </div>
       <div className="table-responsive">
         <table className="table table-nowrap datatable">
           <thead className="thead-light">
             <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input className="form-check-input" type="checkbox" id="select-all" />
-                </div>
-              </th>
+
               {columns.accountName && <th>Account Name</th>}
               {columns.credit && <th>Credit</th>}
               {columns.debit && <th>Debit</th>}
@@ -323,14 +461,16 @@ const TrialBalance = () => {
             ) : (
               filteredData.map((item, index) => (
                 <tr key={item.id || index}>
-                  <td>
-                    <div className="form-check form-check-md">
-                      <input className="form-check-input" type="checkbox" />
-                    </div>
-                  </td>
-                  {columns.accountName && <td>{item.account_name || item.accountName}</td>}
-                  {columns.credit && <td>${(item.credit || 0).toLocaleString()}</td>}
-                  {columns.debit && <td>${(item.debit || 0).toLocaleString()}</td>}
+
+                  {columns.accountName && (
+                    <td>
+                      <Link to={`/reports/ledger-statement/${item.id}`} className="text-primary fw-medium">
+                        {item.account_name || item.accountName}
+                      </Link>
+                    </td>
+                  )}
+                  {columns.credit && <td>₹{(item.credit || 0).toLocaleString('en-IN')}</td>}
+                  {columns.debit && <td>₹{(item.debit || 0).toLocaleString('en-IN')}</td>}
                   <td></td>
                 </tr>
               ))
@@ -338,11 +478,11 @@ const TrialBalance = () => {
           </tbody>
           <tfoot>
             <tr className="bg-light border-top">
-              <td></td>
+
               {columns.accountName && <td className="fw-semibold">Total</td>}
-              {columns.credit && <td className="fw-semibold">${filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0).toLocaleString()}</td>}
-              {columns.debit && <td className="fw-semibold">${filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0).toLocaleString()}</td>}
-              <td className="fw-semibold text-end">${(filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0) - filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0)).toLocaleString()}</td>
+              {columns.credit && <td className="fw-semibold">₹{filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0).toLocaleString('en-IN')}</td>}
+              {columns.debit && <td className="fw-semibold">₹{filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0).toLocaleString('en-IN')}</td>}
+              <td className="fw-semibold text-end">₹{(filteredData.reduce((sum, item) => sum + (Number(item.debit) || 0), 0) - filteredData.reduce((sum, item) => sum + (Number(item.credit) || 0), 0)).toLocaleString('en-IN')}</td>
             </tr>
           </tfoot>
         </table>
@@ -368,14 +508,14 @@ const TrialBalance = () => {
               <div className="dropdown">
                 <Link
                   href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
+                  className="dropdown-toggle btn btn-lg bg-light d-flex align-items-center justify-content-between fs-13 fw-normal border w-100"
                   data-bs-toggle="dropdown"
                   data-bs-auto-close="outside"
                   aria-expanded="true"
                 >
-                  Select
+                  {selectedAccounts.length > 0 ? `${selectedAccounts.length} Selected` : 'Select Accounts'}
                 </Link>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
+                <div className="dropdown-menu shadow-lg w-100 dropdown-info p-3" style={{ maxHeight: '350px', overflowY: 'auto' }}>
                   <div className="mb-3">
                     <div className="input-icon-start position-relative">
                       <span className="input-icon-addon fs-12">
@@ -384,88 +524,90 @@ const TrialBalance = () => {
                       <input
                         type="text"
                         className="form-control form-control-sm"
-                        placeholder="Search"
+                        placeholder="Search accounts..."
+                        value={filterSearch}
+                        onChange={(e) => setFilterSearch(e.target.value)}
                       />
                     </div>
                   </div>
-                  <ul className="mb-3">
-                    <li className="d-flex align-items-center justify-content-between mb-3">
-                      <label className="d-inline-flex align-items-center text-gray-9">
-                        <input className="form-check-input select-all m-0 me-2" type="checkbox" />{' '}
+                  <ul className="mb-0 list-unstyled">
+                    <li className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                      <label className="d-inline-flex align-items-center text-gray-9 fw-medium mb-0" style={{ cursor: 'pointer' }}>
+                        <input 
+                          className="form-check-input m-0 me-2" 
+                          type="checkbox" 
+                          checked={selectedAccounts.length === uniqueAccounts.length && uniqueAccounts.length > 0}
+                          onChange={(e) => setSelectedAccounts(e.target.checked ? uniqueAccounts : [])}
+                        />{' '}
                         Select All
                       </label>
-                      <Link href="#" className="link-danger fw-medium text-decoration-underline">
-                        Reset
-                      </Link>
+                      <button 
+                        type="button"
+                        className="btn btn-link text-danger p-0 text-decoration-none fw-medium fs-13"
+                        onClick={() => setSelectedAccounts([])}
+                      >
+                        Clear
+                      </button>
                     </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> ETB -
-                        4324356677889
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> NPB -
-                        2343547586900
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> SDB -
-                        3354456565687
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> MFB -
-                        1597534682597
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> ETB -
-                        4324356677889
-                      </label>
-                    </li>
+                    {uniqueAccounts.filter(acc => acc.toLowerCase().includes(filterSearch.toLowerCase())).map((acc, i) => (
+                      <li key={i} className="mb-2">
+                        <label className="d-flex align-items-center text-dark mb-0" style={{ cursor: 'pointer' }}>
+                          <input 
+                            className="form-check-input m-0 me-2" 
+                            type="checkbox" 
+                            checked={selectedAccounts.includes(acc)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedAccounts([...selectedAccounts, acc]);
+                              else setSelectedAccounts(selectedAccounts.filter(a => a !== acc));
+                            }}
+                          /> 
+                          <span className="text-truncate" style={{ maxWidth: '200px' }}>{acc}</span>
+                        </label>
+                      </li>
+                    ))}
+                    {uniqueAccounts.filter(acc => acc.toLowerCase().includes(filterSearch.toLowerCase())).length === 0 && (
+                      <li className="text-muted text-center py-2 fs-12">No accounts found</li>
+                    )}
                   </ul>
                 </div>
               </div>
             </div>
             <div className="mb-3">
-              <label className="form-label">Amount</label>
-              <div className="dropdown">
-                <Link
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
-                  data-bs-toggle="dropdown"
-                  data-bs-auto-close="outside"
-                  aria-expanded="true"
-                >
-                  Select
-                </Link>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <div className="filter-range">
-                    <input type="text" id="range_03" />
-                    <p>
-                      Range : <span className="text-gray-9">Range : $200 - $5695</span>
-                    </p>
-                  </div>
+              <label className="form-label">Amount Range (₹)</label>
+              <div className="row g-2">
+                <div className="col-6">
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    placeholder="Min" 
+                    value={amountRange.min}
+                    onChange={(e) => setAmountRange({...amountRange, min: e.target.value})}
+                  />
+                </div>
+                <div className="col-6">
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    placeholder="Max" 
+                    value={amountRange.max}
+                    onChange={(e) => setAmountRange({...amountRange, max: e.target.value})}
+                  />
                 </div>
               </div>
             </div>
             <div className="offcanvas-footer">
               <div className="row g-2">
                 <div className="col-6">
-                  <Link href="#" className="btn btn-outline-white w-100">
+                  <button type="button" className="btn btn-outline-white w-100" onClick={handleResetFilter}>
                     Reset
-                  </Link>
+                  </button>
                 </div>
                 <div className="col-6">
                   <button
+                    type="button"
                     data-bs-dismiss="offcanvas"
                     className="btn btn-primary w-100"
-                    id="filter-submit"
+                    onClick={handleApplyFilter}
                   >
                     Submit
                   </button>

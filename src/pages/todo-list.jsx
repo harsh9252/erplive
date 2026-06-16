@@ -311,24 +311,23 @@ const TodoList = () => {
                   </td>
 
                   {/* Action Buttons */}
-                  <td>
-                    <div className="d-flex align-items-center">
-                      <Link href="#"
-                        className="btn btn-sm btn-icon"
-                        data-bs-toggle="modal"
-                        data-bs-target="#edit_todo"
-                        title="Edit Todo"
-                      >
-                        <i className="ti ti-edit"></i>
-                      </Link>
-                      <Link href="#"
-                        className="btn btn-sm btn-icon"
-                        data-bs-toggle="modal"
-                        data-bs-target="#delete_modal"
-                        title="Delete Todo"
-                      >
-                        <i className="ti ti-trash"></i>
-                      </Link>
+                  <td className="text-end pe-4">
+                    <div className="dropdown">
+                      <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                        <i className="isax isax-more fs-18"></i>
+                      </button>
+                      <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                        <li>
+                          <button className="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#edit_todo">
+                            <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Todo
+                          </button>
+                        </li>
+                        <li>
+                          <button className="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#delete_modal">
+                            <i className="isax isax-trash me-2 text-danger"></i>Delete Todo
+                          </button>
+                        </li>
+                      </ul>
                     </div>
                   </td>
                 </tr>

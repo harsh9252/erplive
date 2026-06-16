@@ -2,19 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import companyService from '../services/companyService';
 import { registerCompany } from '../services/authService';
+import businessNatureService from '../services/businessNatureService';
 import { toast } from 'react-toastify';
+import { useAuth } from '../components/AuthContext';
+import branchService from '../services/branchService';
+import settingsService from '../services/settingsService';
 
 const AddCompany = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshProfile } = useAuth();
   const queryParams = new URLSearchParams(location.search);
   const isOnboarding = queryParams.get('onboarding') === 'true';
 
   const [formData, setFormData] = useState({
     name: '',
     legal_name: '',
+    business_nature: '',
+    cin: '',
     gstin: '',
     pan: '',
+    tan: '',
     address: '',
     city: '',
     state: '',
@@ -35,10 +43,13 @@ const AddCompany = () => {
   const [currencies, setCurrencies] = useState([]);
   const [selectedCountryIso, setSelectedCountryIso] = useState('IN');
   const [selectedStateIso, setSelectedStateIso] = useState('');
+  const [businessTypes, setBusinessTypes] = useState([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(false);
 
   // State codes mapping
   const stateCodeMap = {
     'Jammu & Kashmir': '01',
+    'Jammu and Kashmir': '01',
     'Himachal Pradesh': '02',
     'Punjab': '03',
     'Chandigarh': '04',
@@ -63,6 +74,7 @@ const AddCompany = () => {
     'Madhya Pradesh': '23',
     'Gujarat': '24',
     'Dadra & Nagar Haveli and Daman & Diu': '26',
+    'Dadra and Nagar Haveli and Daman and Diu': '26',
     'Maharashtra': '27',
     'Andhra Pradesh': '28',
     'Karnataka': '29',
@@ -72,16 +84,30 @@ const AddCompany = () => {
     'Tamil Nadu': '33',
     'Puducherry': '34',
     'Andaman & Nicobar': '35',
+    'Andaman and Nicobar Islands': '35',
     'Telangana': '36',
+    'Ladakh': '38',
     'Other Territory': '96',
   };
 
-  const businessTypes = [
-    { id: 1, name: 'Sole Proprietorship' },
-    { id: 2, name: 'Partnership' },
-    { id: 3, name: 'Private Limited' },
-    { id: 4, name: 'Public Limited' },
-  ];
+  // Fetch business natures
+  useEffect(() => {
+    const fetchBusinessNatures = async () => {
+      try {
+        setLoadingBusinessTypes(true);
+        const response = await businessNatureService.getBusinessNatures();
+        const data = response.data || response || [];
+        setBusinessTypes(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching business natures:', error);
+        setBusinessTypes([]);
+      } finally {
+        setLoadingBusinessTypes(false);
+      }
+    };
+
+    fetchBusinessNatures();
+  }, []);
 
   // Fetch states from API
   useEffect(() => {
@@ -186,7 +212,7 @@ const AddCompany = () => {
   };
 
   const validatePhone = (phone) => {
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
     return phoneRegex.test(phone);
   };
 
@@ -208,16 +234,20 @@ const AddCompany = () => {
 
     if (!formData.legal_name.trim()) newErrors.legal_name = 'Legal name is required';
 
-    if (!formData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required';
-    } else if (!validateGSTIN(formData.gstin)) {
+    if (formData.gstin.trim() && !validateGSTIN(formData.gstin)) {
       newErrors.gstin = 'Invalid GSTIN format (e.g., 22AAAAA0000A1Z5)';
     }
 
-    if (!formData.pan.trim()) {
-      newErrors.pan = 'PAN is required';
-    } else if (!validatePAN(formData.pan)) {
+    if (formData.pan.trim() && !validatePAN(formData.pan)) {
       newErrors.pan = 'Invalid PAN format (e.g., AAAAA0000A)';
+    }
+
+    if (formData.tan.trim() && !validateTAN(formData.tan)) {
+      newErrors.tan = 'Invalid TAN format (e.g., AAAA00000A)';
+    }
+
+    if (formData.cin.trim() && formData.cin.trim().length !== 21) {
+      newErrors.cin = 'CIN must be 21 characters long';
     }
 
     if (!formData.address.trim()) newErrors.address = 'Address is required';
@@ -235,7 +265,7 @@ const AddCompany = () => {
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone is required';
     } else if (!validatePhone(formData.phone)) {
-      newErrors.phone = 'Phone must be 10 digits';
+      newErrors.phone = 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9';
     }
 
     if (!formData.email.trim()) {
@@ -249,7 +279,15 @@ const AddCompany = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === 'email') {
+      value = value.replace(/[^a-zA-Z0-9@.]/g, '');
+    }
+    if (name === 'phone' || name === 'pincode') {
+      value = value.replace(/\D/g, '');
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -315,19 +353,73 @@ const AddCompany = () => {
 
     try {
       setLoading(true);
+      const submitData = {
+        ...formData,
+        business_nature_id: businessTypes.find(t => t.name === formData.business_nature)?.id || null
+      };
+      
+      let newCompanyId = null;
       if (isOnboarding) {
-        await registerCompany(formData);
-        toast.success('Company created successfully! All master data has been seeded for your new business.', {
-          autoClose: 5000
-        });
-        navigate('/company/profile');
+        const response = await registerCompany(submitData);
+        newCompanyId = response?.data?.active_company?.id || response?.data?.companies?.[0]?.id || response?.data?.company?.id || response?.data?.id || response?.active_company?.id || response?.companies?.[0]?.id || response?.company?.id || response?.id;
       } else {
-        await companyService.createCompany(formData);
-        toast.success('Company created successfully! Default ledgers, vouchers, and warehouse have been seeded.', {
-          autoClose: 5000
-        });
-        navigate('/company/profile');
+        const response = await companyService.createCompany(submitData);
+        newCompanyId = response?.data?.id || response?.id || response?.data?.company?.id || response?.company?.id || response?.data?.newCompany?.id || response?.newCompany?.id;
       }
+
+      if (!newCompanyId) {
+        try {
+          const companiesResp = await companyService.getCompanies();
+          const companiesList = companiesResp?.data?.data || companiesResp?.data || companiesResp || [];
+          if (Array.isArray(companiesList) && companiesList.length > 0) {
+            const sorted = [...companiesList].sort((a, b) => b.id - a.id);
+            newCompanyId = sorted[0].id;
+          }
+        } catch (fallbackError) {
+          console.error('Error fetching companies for fallback ID:', fallbackError);
+        }
+      }
+
+      // Create default Branch (Head Office) and Warehouse
+      try {
+        const headers = newCompanyId ? {
+          'x-company-id': String(newCompanyId),
+          'x-business-id': String(newCompanyId)
+        } : {};
+
+        const uniqueBranchCode = `HO-${Math.floor(1000 + Math.random() * 9000)}`;
+        const uniqueWarehouseCode = `WH-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        await branchService.createBranch({
+          company_id: newCompanyId,
+          name: formData.name,
+          code: uniqueBranchCode,
+          is_head_office: true,
+          address: formData.address,
+          city: formData.city,
+          state_code: formData.state_code,
+          pincode: formData.pincode,
+          phone: formData.phone,
+          email: formData.email,
+          gstin: formData.gstin,
+        }, headers);
+
+        await settingsService.createWarehouse({
+          company_id: newCompanyId,
+          name: formData.name,
+          code: uniqueWarehouseCode,
+          location: `${formData.address}, ${formData.city}`,
+        }, headers);
+      } catch (defaultEntityError) {
+        console.error('Error creating default branch or warehouse:', defaultEntityError);
+      }
+
+      toast.success('Company created successfully!', {
+        autoClose: 5000
+      });
+      await refreshProfile();
+      window.dispatchEvent(new Event('COMPANY_CREATED'));
+      navigate('/companies');
     } catch (error) {
       console.error('Error creating company:', error);
       toast.error(error.message || 'Error creating company. Please try again.');
@@ -365,7 +457,7 @@ const AddCompany = () => {
       {/* Form Section */}
       <div className="row">
         <div className="col-lg-8">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="off">
             {/* Business Information */}
             <div className="card mb-3">
               <div className="card-header">
@@ -384,6 +476,10 @@ const AddCompany = () => {
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="Enter company name"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
                   </div>
@@ -399,6 +495,10 @@ const AddCompany = () => {
                       value={formData.legal_name}
                       onChange={handleInputChange}
                       placeholder="As per GST registration"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.legal_name && (
                       <div className="invalid-feedback d-block">{errors.legal_name}</div>
@@ -407,7 +507,7 @@ const AddCompany = () => {
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">
-                      GSTIN <span className="text-danger">*</span>
+                      GSTIN
                     </label>
                     <input
                       type="text"
@@ -416,13 +516,17 @@ const AddCompany = () => {
                       value={formData.gstin}
                       onChange={handleInputChange}
                       placeholder="e.g., 29AAPFY0939E1ZV"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
                   </div>
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">
-                      PAN Number <span className="text-danger">*</span>
+                      PAN Number
                     </label>
                     <input
                       type="text"
@@ -431,6 +535,10 @@ const AddCompany = () => {
                       value={formData.pan}
                       onChange={handleInputChange}
                       placeholder="e.g., AAPFY0939E"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.pan && <div className="invalid-feedback d-block">{errors.pan}</div>}
                   </div>
@@ -446,6 +554,10 @@ const AddCompany = () => {
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="10-digit mobile number"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
                   </div>
@@ -461,8 +573,73 @@ const AddCompany = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       placeholder="company@example.com"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
+                  </div>
+
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label">
+                      Business Nature
+                    </label>
+                    <select
+                      className={`form-select ${errors.business_nature ? 'is-invalid' : ''}`}
+                      name="business_nature"
+                      value={formData.business_nature}
+                      onChange={handleInputChange}
+                      disabled={loadingBusinessTypes}
+                    >
+                      <option value="">
+                        {loadingBusinessTypes ? 'Loading...' : 'Select business nature'}
+                      </option>
+                      {businessTypes.map((type) => (
+                        <option key={type.id || type.name} value={type.name}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.business_nature && <div className="invalid-feedback d-block">{errors.business_nature}</div>}
+                  </div>
+
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label">
+                      CIN No.
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${errors.cin ? 'is-invalid' : ''}`}
+                      name="cin"
+                      value={formData.cin}
+                      onChange={handleInputChange}
+                      placeholder="e.g., L12345AA1234AAA123456"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
+                    />
+                    {errors.cin && <div className="invalid-feedback d-block">{errors.cin}</div>}
+                  </div>
+
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label">
+                      TAN No.
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${errors.tan ? 'is-invalid' : ''}`}
+                      name="tan"
+                      value={formData.tan}
+                      onChange={handleInputChange}
+                      placeholder="e.g., AAAA00000A"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
+                    />
+                    {errors.tan && <div className="invalid-feedback d-block">{errors.tan}</div>}
                   </div>
                 </div>
               </div>
@@ -486,6 +663,10 @@ const AddCompany = () => {
                       onChange={handleInputChange}
                       placeholder="Full registered address"
                       rows="2"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     ></textarea>
                     {errors.address && (
                       <div className="invalid-feedback d-block">{errors.address}</div>
@@ -520,7 +701,7 @@ const AddCompany = () => {
                       City <span className="text-danger">*</span>
                     </label>
                     <select
-                      className={`form-control ${errors.city ? 'is-invalid' : ''}`}
+                      className={`form-select ${errors.city ? 'is-invalid' : ''}`}
                       name="city"
                       value={formData.city}
                       onChange={handleInputChange}
@@ -534,7 +715,7 @@ const AddCompany = () => {
                           : 'Select city'}
                       </option>
                       {cities.map((city) => (
-                        <option key={city.id} value={city.name}>
+                        <option key={city.id || city.name} value={city.name}>
                           {city.name}
                         </option>
                       ))}
@@ -553,6 +734,10 @@ const AddCompany = () => {
                       value={formData.pincode}
                       onChange={handleInputChange}
                       placeholder="Pincode"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     {errors.pincode && (
                       <div className="invalid-feedback d-block">{errors.pincode}</div>
@@ -570,6 +755,10 @@ const AddCompany = () => {
                       value={formData.state_code}
                       readOnly
                       placeholder="Auto-filled from state"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
                     />
                     <small className="text-muted">Auto-filled based on selected state</small>
                   </div>
@@ -609,7 +798,7 @@ const AddCompany = () => {
 
         {/* Sidebar Help */}
         <div className="col-lg-4">
-          <div className="card sticky-top" style={{ top: '20px' }}>
+          <div className="card " >
             <div className="card-header">
               <h5 className="card-title">Quick Help</h5>
             </div>

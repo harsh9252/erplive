@@ -7,6 +7,17 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleEmailChange = (e) => {
+    const nextValue = e.target.value;
+    if (/[^a-zA-Z0-9@._-]/.test(nextValue)) {
+      setError('Special symbols are not allowed in email.');
+      return;
+    }
+    setEmail(nextValue);
+    if (error) setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,6 +86,7 @@ const ForgotPassword = () => {
             <div className="col-lg-4 mx-auto">
               <form
                 onSubmit={handleSubmit}
+                noValidate
                 className="d-flex justify-content-center align-items-center"
               >
                 <div className="d-flex flex-column justify-content-lg-center p-4 p-lg-0 pb-0 flex-fill">
@@ -97,12 +109,13 @@ const ForgotPassword = () => {
                           <input
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="form-control border-start-0 ps-0"
+                            onChange={handleEmailChange}
+                            className={`form-control border-start-0 ps-0 ${error ? 'is-invalid' : ''}`}
                             placeholder="Enter Email Address"
                             required
                           />
                         </div>
+                        {error ? <div className="invalid-feedback d-block">{error}</div> : null}
                       </div>
 
                       <div className="mb-3">

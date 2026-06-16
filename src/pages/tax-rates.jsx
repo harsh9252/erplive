@@ -246,7 +246,7 @@ const TaxRates = () => {
                           <th>Tax Rate</th>
                           <th>Created On</th>
                           <th>Status</th>
-                          <th className="no-sort"></th>
+                          <th className="no-sort text-end pe-4">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -268,31 +268,33 @@ const TaxRates = () => {
                               />
                             </div>
                           </td>
-                          <td className="action-item">
-                            <Link  href="#" data-bs-toggle="dropdown">
-                              <i className="isax isax-more"></i>
-                            </Link>
-                            <ul className="dropdown-menu">
-                              <li>
-                                <Link 
-                                  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#edit_tax_rates"
-                                >
-                                  <i className="isax isax-edit me-2"></i>Edit
-                                </Link>
-                              </li>
-                              <li>
-                                <Link  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#delete_tax_rates"
-                                >
-                                  <i className="isax isax-trash me-2"></i>Delete
-                                </Link>
-                              </li>
-                            </ul>
+                          <td className="text-end pe-4">
+                            <div className="dropdown">
+                              <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                <i className="isax isax-more fs-18"></i>
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                                <li>
+                                  <Link 
+                                    href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#edit_tax_rates"
+                                  >
+                                    <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Tax Rate
+                                  </Link>
+                                </li>
+                                <li>
+                                  <Link  href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#delete_tax_rates"
+                                  >
+                                    <i className="isax isax-trash me-2 text-danger"></i>Delete Tax Rate
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                         <tr>
@@ -313,31 +315,33 @@ const TaxRates = () => {
                               />
                             </div>
                           </td>
-                          <td className="action-item">
-                            <Link  href="#" data-bs-toggle="dropdown">
-                              <i className="isax isax-more"></i>
-                            </Link>
-                            <ul className="dropdown-menu">
-                              <li>
-                                <Link 
-                                  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#edit_tax_rates"
-                                >
-                                  <i className="isax isax-edit me-2"></i>Edit
-                                </Link>
-                              </li>
-                              <li>
-                                <Link  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#delete_tax_rates"
-                                >
-                                  <i className="isax isax-trash me-2"></i>Delete
-                                </Link>
-                              </li>
-                            </ul>
+                          <td className="text-end pe-4">
+                            <div className="dropdown">
+                              <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                <i className="isax isax-more fs-18"></i>
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                                <li>
+                                  <Link 
+                                    href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#edit_tax_rates"
+                                  >
+                                    <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Tax Rate
+                                  </Link>
+                                </li>
+                                <li>
+                                  <Link  href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#delete_tax_rates"
+                                  >
+                                    <i className="isax isax-trash me-2 text-danger"></i>Delete Tax Rate
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                         <tr>
@@ -358,31 +362,33 @@ const TaxRates = () => {
                               />
                             </div>
                           </td>
-                          <td className="action-item">
-                            <Link  href="#" data-bs-toggle="dropdown">
-                              <i className="isax isax-more"></i>
-                            </Link>
-                            <ul className="dropdown-menu">
-                              <li>
-                                <Link 
-                                  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#edit_tax_rates"
-                                >
-                                  <i className="isax isax-edit me-2"></i>Edit
-                                </Link>
-                              </li>
-                              <li>
-                                <Link  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#delete_tax_rates"
-                                >
-                                  <i className="isax isax-trash me-2"></i>Delete
-                                </Link>
-                              </li>
-                            </ul>
+                          <td className="text-end pe-4">
+                            <div className="dropdown">
+                              <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                <i className="isax isax-more fs-18"></i>
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                                <li>
+                                  <Link 
+                                    href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#edit_tax_rates"
+                                  >
+                                    <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Tax Rate
+                                  </Link>
+                                </li>
+                                <li>
+                                  <Link  href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#delete_tax_rates"
+                                  >
+                                    <i className="isax isax-trash me-2 text-danger"></i>Delete Tax Rate
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -424,7 +430,7 @@ const TaxRates = () => {
                           <th>Tax Rate</th>
                           <th>Created On</th>
                           <th>Status</th>
-                          <th className="no-sort"></th>
+                          <th className="no-sort text-end pe-4">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -446,31 +452,33 @@ const TaxRates = () => {
                               />
                             </div>
                           </td>
-                          <td className="action-item">
-                            <Link  href="#" data-bs-toggle="dropdown">
-                              <i className="isax isax-more"></i>
-                            </Link>
-                            <ul className="dropdown-menu">
-                              <li>
-                                <Link 
-                                  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#edit_tax_group"
-                                >
-                                  <i className="isax isax-edit me-2"></i>Edit
-                                </Link>
-                              </li>
-                              <li>
-                                <Link  href="#"
-                                  className="dropdown-item d-flex align-items-center"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#delete_tax_group"
-                                >
-                                  <i className="isax isax-trash me-2"></i>Delete
-                                </Link>
-                              </li>
-                            </ul>
+                          <td className="text-end pe-4">
+                            <div className="dropdown">
+                              <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                <i className="isax isax-more fs-18"></i>
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                                <li>
+                                  <Link 
+                                    href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#edit_tax_group"
+                                  >
+                                    <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Tax Group
+                                  </Link>
+                                </li>
+                                <li>
+                                  <Link  href="#"
+                                    className="dropdown-item py-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#delete_tax_group"
+                                  >
+                                    <i className="isax isax-trash me-2 text-danger"></i>Delete Tax Group
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                       </tbody>

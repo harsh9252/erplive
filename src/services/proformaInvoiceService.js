@@ -1,23 +1,50 @@
 import { apiRequest } from './apiClient';
 import { cleanParams, normalizeListResponse, toDecimal, toNumberOrValue } from './apiUtils';
 
-const normalizeProformaPayload = (data = {}) => ({
-  customer_id: toNumberOrValue(data.customer_id ?? data.customerId),
-  proforma_date: data.proforma_date ?? data.proformaDate,
-  valid_until: data.valid_until ?? data.validUntil ?? null,
-  place_of_supply: data.place_of_supply ?? data.placeOfSupply,
-  notes: data.notes || '',
-  remarks: data.remarks || '',
-  terms_and_conditions: data.terms_and_conditions ?? data.termsAndConditions ?? '',
-  items: (data.items || []).map((item) => ({
-    item_id: toNumberOrValue(item.item_id ?? item.itemId),
-    description: item.description || '',
-    qty: toDecimal(item.qty),
-    rate: toDecimal(item.rate),
-    discount_pct: toDecimal(item.discount_pct ?? item.discountPct),
-    gst_rate: toDecimal(item.gst_rate ?? item.gstRate),
-  })),
-});
+const normalizeProformaPayload = (data = {}) => {
+  let subtotal = 0;
+  let totalTax = 0;
+
+  const items = (data.items || []).map((item) => {
+    const qty = Number(item.qty || 0);
+    const rate = Number(item.rate || 0);
+    const discount_pct = Number((item.discount_pct ?? item.discountPct) || 0);
+    const amount = qty * rate;
+    const discount_amount = Number(((amount * discount_pct) / 100).toFixed(2));
+    const taxable = amount - discount_amount;
+    const gst_rate = Number((item.gst_rate ?? item.gstRate) || 0);
+    const tax = (taxable * gst_rate) / 100;
+
+    subtotal += taxable;
+    totalTax += tax;
+
+    return {
+      item_id: Number(item.item_id ?? item.itemId),
+      description: String(item.description || ''),
+      qty,
+      rate,
+      discount_percent: discount_pct,
+      discount_amount,
+      gst_rate,
+    };
+  });
+
+  const exactTotal = subtotal + totalTax;
+  const netTotal = Math.round(exactTotal);
+  const round_off = Number((netTotal - exactTotal).toFixed(2));
+
+  return {
+    customer_id: Number(data.customer_id ?? data.customerId),
+    proforma_date: data.proforma_date ?? data.proformaDate,
+    valid_until: data.valid_until ?? data.validUntil ?? null,
+    place_of_supply: String((data.place_of_supply ?? data.placeOfSupply) || ''),
+    notes: String(data.notes || ''),
+    remarks: String(data.remarks || ''),
+    terms_and_conditions: String((data.terms_and_conditions ?? data.termsAndConditions) || ''),
+    round_off,
+    items,
+  };
+};
 
 export const getProformaInvoices = async (params = {}) => {
   return normalizeListResponse(

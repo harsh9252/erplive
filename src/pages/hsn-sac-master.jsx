@@ -3,9 +3,11 @@ import HSNSACForm from '../components/HSNSACForm';
 import { Link } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
-import { getHsnSacCodes, createHsnSacCode, updateHsnSacCode, deleteHsnSacCode } from '../services/hsnSacService';
+import { getHsnSacCodes, createHsnSacCode, updateHsnSacCode, deleteHsnSacCode, getRateHistory, createRateHistory } from '../services/hsnSacService';
+import { useAuth } from '../components/AuthContext';
 
 const HSNSACMaster = () => {
+    const { activeCompany } = useAuth();
     const [hsnSacList, setHsnSacList] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('ALL');
@@ -17,6 +19,15 @@ const HSNSACMaster = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
+    const [historyInfo, setHistoryInfo] = useState({ isOpen: false, id: null, code: null, data: [] });
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [newRateForm, setNewRateForm] = useState({ 
+        isOpen: false, 
+        rate: 18, 
+        effectiveDate: new Date().toISOString().split('T')[0],
+        notificationRef: '',
+        remarks: ''
+    });
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
@@ -25,7 +36,8 @@ const HSNSACMaster = () => {
                 page,
                 limit,
                 search: searchTerm || undefined,
-                type: filterType === 'ALL' ? undefined : filterType
+                type: filterType === 'ALL' ? undefined : filterType,
+                company_id: activeCompany?.id || undefined,
             };
             const response = await getHsnSacCodes(params);
             setHsnSacList(response.data || []);
@@ -36,11 +48,11 @@ const HSNSACMaster = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [page, limit, searchTerm, filterType]);
+    }, [page, limit, searchTerm, filterType, activeCompany?.id]);
 
     useEffect(() => {
         loadData();
-    }, [loadData]);
+    }, [loadData, activeCompany?.id]);
 
     const handleAddNew = () => {
         setEditingId(null);
@@ -74,6 +86,35 @@ const HSNSACMaster = () => {
 
     const handleDelete = (id) => {
         setDeleteConfirm({ isOpen: true, id });
+    };
+
+    const handleViewHistory = async (item) => {
+        setHistoryInfo({ isOpen: true, id: item.id, code: item.code, data: [] });
+        setHistoryLoading(true);
+        try {
+            const res = await getRateHistory(item.id);
+            setHistoryInfo(prev => ({ ...prev, data: res.data || [] }));
+        } catch (err) {
+            toast.error('Failed to load history');
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const handleAddRateHistory = async () => {
+        try {
+            await createRateHistory(historyInfo.id, {
+                gst_rate: parseFloat(newRateForm.rate),
+                effective_from: newRateForm.effectiveDate,
+                notification_ref: newRateForm.notificationRef,
+                remarks: newRateForm.remarks
+            });
+            toast.success('Rate history added');
+            setNewRateForm({ ...newRateForm, isOpen: false, notificationRef: '', remarks: '' });
+            handleViewHistory({ id: historyInfo.id, code: historyInfo.code }); // refresh
+        } catch (err) {
+            toast.error('Failed to add rate');
+        }
     };
 
     const confirmDelete = async () => {
@@ -181,7 +222,12 @@ const HSNSACMaster = () => {
                                 ) : hsnSacList.length > 0 ? (
                                     hsnSacList.map((item) => (
                                         <tr key={item.id}>
-                                            <td className="ps-4 fw-600 text-dark">{item.code}</td>
+                                            <td className="ps-4 fw-600 text-dark">
+                                                {item.code}
+                                                {!item.company_id && (
+                                                    <span className="badge bg-light text-secondary ms-2 border" style={{ fontSize: '10px' }}>Global</span>
+                                                )}
+                                            </td>
                                             <td>
                                                 <span className={`badge rounded-pill px-2 py-1 fs-11 ${item.type === 'HSN' ? 'bg-light-primary text-primary' : 'bg-light-success text-success'}`}>
                                                     {item.type}
@@ -198,13 +244,32 @@ const HSNSACMaster = () => {
                                             <td className="text-center text-muted fs-13 fw-500">{item.igst_rate}%</td>
                                             <td className="text-center text-muted fs-12">{item.cess_rate}%</td>
                                             <td className="text-end pe-4">
-                                                <div className="btn-group">
-                                                    <button className="btn btn-sm btn-outline-primary border-0" onClick={() => handleEdit(item.id)} title="Edit">
-                                                        <i className="isax isax-edit-2 fs-16"></i>
+                                                <div className="d-flex justify-content-end align-items-center gap-2">
+                                                    <button 
+                                                        className="btn btn-sm btn-soft-info border-0" 
+                                                        onClick={() => handleViewHistory(item)} 
+                                                        title="Rate History"
+                                                    >
+                                                        <i className="isax isax-clock fs-16"></i>
                                                     </button>
-                                                    <button className="btn btn-sm btn-outline-danger border-0" onClick={() => handleDelete(item.id)} title="Delete">
-                                                        <i className="isax isax-trash fs-16"></i>
-                                                    </button>
+                                                    {item.company_id && (
+                                                        <>
+                                                            <button 
+                                                                className="btn btn-sm btn-soft-warning border-0" 
+                                                                onClick={() => handleEdit(item.id)} 
+                                                                title="Edit"
+                                                            >
+                                                                <i className="isax isax-edit-2 fs-16"></i>
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-sm btn-soft-danger border-0" 
+                                                                onClick={() => handleDelete(item.id)} 
+                                                                title="Delete"
+                                                            >
+                                                                <i className="isax isax-trash fs-16"></i>
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -234,22 +299,152 @@ const HSNSACMaster = () => {
                 )}
             </div>
 
-            {/* Add/Edit Modal */}
+            {/* Rate History Modal */}
+            {historyInfo.isOpen && (
+                <>
+                    <div className="modal-backdrop fade show" style={{ zIndex: 1060 }} onClick={() => setHistoryInfo({ ...historyInfo, isOpen: false })}></div>
+                    <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1065 }}>
+                        <div className="modal-dialog modal-dialog-centered modal-lg">
+                            <div className="modal-content border-0 shadow-lg rounded-4">
+                                <div className="modal-header border-bottom-light py-3">
+                                    <h6 className="modal-title fw-bold">Rate History: {historyInfo.code}</h6>
+                                    <button type="button" className="btn-close shadow-none" onClick={() => setHistoryInfo({ ...historyInfo, isOpen: false })}></button>
+                                </div>
+                                <div className="modal-body p-4">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <span className="fs-13 fw-bold text-muted uppercase">Past Tax Rates</span>
+                                        <button 
+                                            className="btn btn-sm btn-soft-primary rounded-pill px-3"
+                                            onClick={() => setNewRateForm({ ...newRateForm, isOpen: true })}
+                                        >
+                                            <i className="isax isax-add me-1"></i>Set New Rate
+                                        </button>
+                                    </div>
+
+                                    {historyLoading ? (
+                                        <div className="text-center py-4">Loading history...</div>
+                                    ) : historyInfo.data.length > 0 ? (
+                                        <div className="list-group list-group-flush border rounded-3 overflow-hidden">
+                                            {historyInfo.data.map((h, i) => (
+                                                <div key={i} className="list-group-item py-3">
+                                                    <div className="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <div className="fw-bold text-dark fs-15">{h.gst_rate}% GST</div>
+                                                            <div className="fs-12 text-muted mt-1">
+                                                                <i className="isax isax-calendar me-1"></i>Effective From: {h.effective_from}
+                                                            </div>
+                                                            {h.notification_ref && (
+                                                                <div className="fs-12 text-primary mt-1">
+                                                                    <i className="isax isax-document-text me-1"></i>Ref: {h.notification_ref}
+                                                                </div>
+                                                            )}
+                                                            {h.remarks && (
+                                                                <div className="fs-12 text-muted mt-1 bg-light p-2 rounded">
+                                                                    <i className="isax isax-info-circle me-1"></i>{h.remarks}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {i === 0 && <span className="badge bg-soft-success text-success fs-10 uppercase ls-1 px-2">Current</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4 text-muted border border-dashed rounded-3">
+                                            No prior history found. The master rate has been consistent.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* New Rate Form Modal */}
+            {newRateForm.isOpen && (
+                <>
+                    <div className="modal-backdrop fade show" style={{ zIndex: 1070 }} onClick={() => setNewRateForm({ ...newRateForm, isOpen: false })}></div>
+                    <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1075 }}>
+                        <div className="modal-dialog modal-md modal-dialog-centered">
+                            <div className="modal-content border-0 shadow-lg rounded-4">
+                                <div className="modal-header border-0 pb-0 pt-4 px-4">
+                                    <h6 className="fw-bold mb-0">Update Rate (Date-Effective)</h6>
+                                    <button type="button" className="btn-close shadow-none" onClick={() => setNewRateForm({ ...newRateForm, isOpen: false })}></button>
+                                </div>
+                                <div className="modal-body p-4">
+                                    <div className="row g-3">
+                                        <div className="col-md-6">
+                                            <label className="form-label fs-13 fw-600">New GST Rate (%)</label>
+                                            <select 
+                                                className="form-select shadow-none" 
+                                                value={newRateForm.rate}
+                                                onChange={(e) => setNewRateForm({...newRateForm, rate: e.target.value})}
+                                            >
+                                                {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label className="form-label fs-13 fw-600">Effective Date</label>
+                                            <input 
+                                                type="date" 
+                                                className="form-control shadow-none" 
+                                                value={newRateForm.effectiveDate}
+                                                onChange={(e) => setNewRateForm({...newRateForm, effectiveDate: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="col-12">
+                                            <label className="form-label fs-13 fw-600">Notification Reference</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control shadow-none" 
+                                                placeholder="e.g. CBIC Notification 45/2025"
+                                                value={newRateForm.notificationRef}
+                                                onChange={(e) => setNewRateForm({...newRateForm, notificationRef: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="col-12">
+                                            <label className="form-label fs-13 fw-600">Remarks</label>
+                                            <textarea 
+                                                className="form-control shadow-none" 
+                                                rows="2"
+                                                placeholder="Reason for change..."
+                                                value={newRateForm.remarks}
+                                                onChange={(e) => setNewRateForm({...newRateForm, remarks: e.target.value})}
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="modal-footer border-0 p-4 pt-0">
+                                    <button 
+                                        className="btn btn-primary w-100 rounded-pill py-2 shadow-sm"
+                                        onClick={handleAddRateHistory}
+                                    >
+                                        Apply New Rate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* HSN/SAC Form Modal */}
             {showForm && (
                 <>
                     <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} onClick={() => setShowForm(false)}></div>
                     <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1055 }}>
-                        <div className="modal-dialog modal-dialog-centered modal-lg">
+                        <div className="modal-dialog modal-lg modal-dialog-centered">
                             <div className="modal-content border-0 shadow-lg rounded-4">
-                                <div className="modal-header border-bottom-light py-3">
-                                    <h6 className="modal-title fw-bold">
+                                <div className="modal-header border-bottom-light py-3 px-4">
+                                    <h6 className="modal-title fw-bold text-dark">
                                         {editingId ? 'Edit HSN/SAC Code' : 'Add New HSN/SAC Code'}
                                     </h6>
-                                    <button type="button" className="btn-close shadow-none" onClick={() => setShowForm(false)} aria-label="Close"></button>
+                                    <button type="button" className="btn-close shadow-none" onClick={() => setShowForm(false)}></button>
                                 </div>
                                 <div className="modal-body p-0">
-                                    <HSNSACForm
-                                        initialData={getEditingData()}
+                                    <HSNSACForm 
+                                        initialData={getEditingData()} 
                                         onSubmit={handleFormSubmit}
                                         isLoading={saving}
                                         onClose={() => setShowForm(false)}

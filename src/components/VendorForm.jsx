@@ -1,363 +1,376 @@
 import { useState, useEffect } from 'react';
+import { INDIAN_STATES } from '../utils/constants';
+import { INDIAN_CITIES } from '../utils/indianCities';
 
 const VendorForm = ({ initialData = null, onSubmit, isLoading = false, onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
-    company_name: '',
-    vendor_type: 'MANUFACTURER',
     gstin: '',
-    pan: '',
-    email: '',
     phone: '',
+    email: '',
     address: '',
     city: '',
     state: '',
+    state_code: '',
+    opening_balance: '',
+    balance_type: 'CR', // Default for Vendors
+    credit_limit: '',
     payment_terms: '',
-    bank_account: '',
-    ifsc_code: '',
+    gst_registration_type: 'Regular',
+    pan: '',
+    liable_to_tds: false,
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        name: initialData.name || '',
+        gstin: initialData.gstin || '',
+        phone: initialData.phone || '',
+        email: initialData.email || '',
+        address: initialData.address || '',
+        city: initialData.city || '',
+        state: initialData.state || '',
+        state_code: initialData.state_code || '',
+        opening_balance: initialData.ledger?.opening_balance || initialData.opening_balance || '',
+        balance_type: initialData.ledger?.balance_type || initialData.opening_balance_type || 'CR',
+        credit_limit: initialData.credit_limit || '',
+        payment_terms: initialData.credit_days || initialData.payment_terms || '',
+        gst_registration_type: initialData.gst_registration_type || 'Regular',
+        pan: initialData.pan || initialData.pan_no || '',
+        liable_to_tds: initialData.liable_to_tds === 1 || initialData.liable_to_tds === '1' || initialData.liable_to_tds === true || initialData.liable_to_tds === 'true',
+      });
+    } else {
+      setFormData({
+        name: '',
+        gstin: '',
+        phone: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        state_code: '',
+        opening_balance: '',
+        balance_type: 'CR',
+        credit_limit: '',
+        payment_terms: '',
+        gst_registration_type: 'Regular',
+        pan: '',
+        liable_to_tds: false,
+      });
     }
   }, [initialData]);
 
-  const states = [
-    { code: 'AN', name: 'Andaman and Nicobar Islands' },
-    { code: 'AP', name: 'Andhra Pradesh' },
-    { code: 'AR', name: 'Arunachal Pradesh' },
-    { code: 'AS', name: 'Assam' },
-    { code: 'BR', name: 'Bihar' },
-    { code: 'CG', name: 'Chhattisgarh' },
-    { code: 'CH', name: 'Chandigarh' },
-    { code: 'DD', name: 'Daman and Diu' },
-    { code: 'DL', name: 'Delhi' },
-    { code: 'DN', name: 'Dadra and Nagar Haveli' },
-    { code: 'GA', name: 'Goa' },
-    { code: 'GJ', name: 'Gujarat' },
-    { code: 'HR', name: 'Haryana' },
-    { code: 'HP', name: 'Himachal Pradesh' },
-    { code: 'JK', name: 'Jammu and Kashmir' },
-    { code: 'JH', name: 'Jharkhand' },
-    { code: 'KA', name: 'Karnataka' },
-    { code: 'KL', name: 'Kerala' },
-    { code: 'LA', name: 'Ladakh' },
-    { code: 'LD', name: 'Lakshadweep' },
-    { code: 'MP', name: 'Madhya Pradesh' },
-    { code: 'MH', name: 'Maharashtra' },
-    { code: 'MN', name: 'Manipur' },
-    { code: 'ML', name: 'Meghalaya' },
-    { code: 'MZ', name: 'Mizoram' },
-    { code: 'NL', name: 'Nagaland' },
-    { code: 'OD', name: 'Odisha' },
-    { code: 'PB', name: 'Punjab' },
-    { code: 'RJ', name: 'Rajasthan' },
-    { code: 'SK', name: 'Sikkim' },
-    { code: 'TN', name: 'Tamil Nadu' },
-    { code: 'TG', name: 'Telangana' },
-    { code: 'TR', name: 'Tripura' },
-    { code: 'UP', name: 'Uttar Pradesh' },
-    { code: 'UT', name: 'Uttarakhand' },
-    { code: 'WB', name: 'West Bengal' },
-  ];
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
 
-  const vendorTypes = [
-    { value: 'MANUFACTURER', label: 'Manufacturer' },
-    { value: 'DISTRIBUTOR', label: 'Distributor' },
-    { value: 'TRADER', label: 'Trader' },
-    { value: 'SERVICE_PROVIDER', label: 'Service Provider' },
-  ];
+    let finalValue = value;
 
-  const validateForm = () => {
+    if (name === 'phone') {
+      finalValue = value.replace(/\D/g, ''); // Only numbers
+    } else if (name === 'email') {
+      finalValue = value.replace(/[^\w@.\-]/g, ''); // No special symbols
+    } else if (name === 'pan' || name === 'gstin') {
+      finalValue = value.toUpperCase(); // Ensure uppercase
+    }
+
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : finalValue
+      };
+
+      if (name === 'state') {
+        const selectedState = INDIAN_STATES.find(s => s.name === finalValue);
+        if (selectedState) {
+          updated.state_code = selectedState.code;
+        } else if (!finalValue) {
+          updated.state_code = '';
+        }
+      }
+
+      return updated;
+    });
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validate = () => {
     const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Vendor Name is required';
-    }
-
-    if (!formData.vendor_type) {
-      newErrors.vendor_type = 'Vendor Type is required';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone is required';
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Phone must be 10 digits';
-    }
-
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/.test(formData.gstin)) {
       newErrors.gstin = 'Invalid GSTIN format';
     }
 
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+      newErrors.pan = 'Invalid PAN format';
     }
 
-    if (formData.ifsc_code && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifsc_code)) {
-      newErrors.ifsc_code = 'Invalid IFSC Code format';
+    if (formData.phone) {
+      if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+        newErrors.phone = 'Phone number must be 10 digits and cannot start with 0-5';
+      }
+    }
+
+    if (formData.email) {
+      if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    if (validate()) {
       onSubmit(formData);
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="row">
-        {/* Vendor Name */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">
-            Vendor Name <span className="text-danger">*</span>
-          </label>
+      <div className="row g-4">
+        {/* Basic Information */}
+        <div className="col-12 border-bottom pb-2">
+          <h6 className="fw-bold text-primary mb-0">General Information</h6>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">Vendor Name <span className="text-danger">*</span></label>
           <input
             type="text"
             className={`form-control ${errors.name ? 'is-invalid' : ''}`}
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="Enter vendor name"
-            disabled={isLoading}
+            placeholder="Enter vendor's full name"
           />
-          {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
+          {errors.name && <div className="invalid-feedback">{errors.name}</div>}
         </div>
 
-        {/* Company / Firm */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">Company / Firm</label>
-          <input
-            type="text"
-            className="form-control"
-            name="company_name"
-            value={formData.company_name}
-            onChange={handleInputChange}
-            placeholder="Enter company name"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Vendor Type */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">
-            Type <span className="text-danger">*</span>
-          </label>
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">GST Registration Type</label>
           <select
-            className={`form-control ${errors.vendor_type ? 'is-invalid' : ''}`}
-            name="vendor_type"
-            value={formData.vendor_type}
+            className="form-control"
+            name="gst_registration_type"
+            value={formData.gst_registration_type}
             onChange={handleInputChange}
-            disabled={isLoading}
           >
-            {vendorTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
+            <option value="Regular">Regular</option>
+            <option value="Composition">Composition</option>
+            <option value="Unregistered">Unregistered</option>
+            <option value="Consumer">Consumer</option>
+            <option value="Overseas">Overseas</option>
+            <option value="SEZ">SEZ</option>
+            <option value="Deemed Export">Deemed Export</option>
+            <option value="Tax Deductor">Tax Deductor</option>
+            <option value="Input Service Distributor">Input Service Distributor</option>
           </select>
-          {errors.vendor_type && <div className="invalid-feedback d-block">{errors.vendor_type}</div>}
         </div>
 
-        {/* Phone */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">
-            Phone <span className="text-danger">*</span>
-          </label>
-          <input
-            type="tel"
-            className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-            name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
-            placeholder="Enter phone number"
-            disabled={isLoading}
-          />
-          {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
-        </div>
-
-        {/* GSTIN */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">GSTIN</label>
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">GSTIN</label>
           <input
             type="text"
             className={`form-control ${errors.gstin ? 'is-invalid' : ''}`}
             name="gstin"
             value={formData.gstin}
             onChange={handleInputChange}
-            placeholder="Enter GSTIN"
-            disabled={isLoading}
+            placeholder="15-digit GSTIN (Optional)"
           />
-          {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
+          {errors.gstin && <div className="invalid-feedback">{errors.gstin}</div>}
         </div>
 
-        {/* PAN */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">PAN</label>
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">PAN Number</label>
           <input
             type="text"
-            className="form-control"
+            className={`form-control ${errors.pan ? 'is-invalid' : ''}`}
             name="pan"
             value={formData.pan}
             onChange={handleInputChange}
-            placeholder="Enter PAN"
-            disabled={isLoading}
+            placeholder="e.g. ABCDE1234F (Optional)"
           />
+          {errors.pan && <div className="invalid-feedback">{errors.pan}</div>}
         </div>
 
-        {/* Email */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">Email</label>
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">Phone Number</label>
+          <input
+            type="text"
+            className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            placeholder="Enter contact number"
+          />
+          {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label fs-13 fw-bold">Email Address</label>
           <input
             type="email"
             className={`form-control ${errors.email ? 'is-invalid' : ''}`}
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="Enter email"
-            disabled={isLoading}
+            placeholder="vendor@company.com"
           />
-          {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
+          {errors.email && <div className="invalid-feedback">{errors.email}</div>}
         </div>
 
-        {/* Address */}
-        <div className="col-12 mb-3">
-          <label className="form-label">Address</label>
+        <div className="col-12">
+          <label className="form-label fs-13 fw-bold">Business Address</label>
           <textarea
             className="form-control"
             name="address"
             value={formData.address}
             onChange={handleInputChange}
-            placeholder="Enter address"
-            rows="3"
-            disabled={isLoading}
+            rows="2"
+            placeholder="Street, area, and building details"
           ></textarea>
         </div>
 
-        {/* City */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">City</label>
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">City</label>
           <input
             type="text"
             className="form-control"
             name="city"
             value={formData.city}
             onChange={handleInputChange}
-            placeholder="Enter city"
-            disabled={isLoading}
+            placeholder="City"
+            list="city-options"
           />
+          <datalist id="city-options">
+            {formData.state && INDIAN_CITIES[formData.state] && INDIAN_CITIES[formData.state].map((city) => (
+              <option key={city} value={city} />
+            ))}
+          </datalist>
         </div>
 
-        {/* State */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">State</label>
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">State</label>
           <select
             className="form-control"
             name="state"
             value={formData.state}
             onChange={handleInputChange}
-            disabled={isLoading}
           >
             <option value="">Select State</option>
-            {states.map((state) => (
-              <option key={state.code} value={state.code}>
+            {INDIAN_STATES.map((state) => (
+              <option key={state.code} value={state.name}>
                 {state.name}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Payment Terms */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">Payment Terms</label>
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">State Code</label>
           <input
             type="text"
             className="form-control"
-            name="payment_terms"
-            value={formData.payment_terms}
+            name="state_code"
+            value={formData.state_code}
             onChange={handleInputChange}
-            placeholder="e.g., Net 30, COD"
-            disabled={isLoading}
+            placeholder="e.g. 08"
           />
         </div>
 
-        {/* Bank Account No. */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">Bank Account No.</label>
+        {/* Financial Information */}
+        <div className="col-12 border-bottom pb-2 mt-5">
+          <h6 className="fw-bold text-primary mb-0">Financial Settings</h6>
+        </div>
+
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">Opening Balance (₹)</label>
           <input
-            type="text"
+            type="number"
             className="form-control"
-            name="bank_account"
-            value={formData.bank_account}
+            name="opening_balance"
+            value={formData.opening_balance}
             onChange={handleInputChange}
-            placeholder="Enter bank account number"
-            disabled={isLoading}
+            placeholder="0.00"
+            step="0.01"
           />
         </div>
 
-        {/* IFSC Code */}
-        <div className="col-md-6 mb-3">
-          <label className="form-label">IFSC Code</label>
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">Balance Type</label>
+          <div className="d-flex pt-1">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="balance_type"
+                id="cr"
+                value="CR"
+                checked={formData.balance_type === 'CR'}
+                onChange={handleInputChange}
+              />
+              <label className="form-check-label fs-13" htmlFor="cr">CR (Payable)</label>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-4">
+          <label className="form-label fs-13 fw-bold">Credit Limit (₹)</label>
           <input
-            type="text"
-            className={`form-control ${errors.ifsc_code ? 'is-invalid' : ''}`}
-            name="ifsc_code"
-            value={formData.ifsc_code}
+            type="number"
+            className="form-control"
+            name="credit_limit"
+            value={formData.credit_limit}
             onChange={handleInputChange}
-            placeholder="Enter IFSC Code"
-            disabled={isLoading}
+            placeholder="0 = Unlimited"
           />
-          {errors.ifsc_code && <div className="invalid-feedback d-block">{errors.ifsc_code}</div>}
+        </div>
+
+
+
+        <div className="col-md-4">
+          <div className="form-check form-switch p-3 bg-light rounded-2 mt-2">
+            <input
+              className="form-check-input ms-0 me-3"
+              type="checkbox"
+              id="liable_to_tds"
+              name="liable_to_tds"
+              checked={formData.liable_to_tds}
+              onChange={handleInputChange}
+            />
+            <label className="form-check-label fs-13 fw-bold" htmlFor="liable_to_tds">
+              Liable to TDS Deduction
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* Form Actions */}
-      <div className="d-flex gap-2 mt-4">
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              Saving...
-            </>
-          ) : (
-            'Save Vendor'
-          )}
-        </button>
+      <div className="d-flex justify-content-end gap-2 mt-5">
         {onClose && (
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-outline-secondary px-4 py-2"
             onClick={onClose}
             disabled={isLoading}
           >
             Cancel
           </button>
         )}
+        <button
+          type="submit"
+          className="btn btn-primary px-5 py-2"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Saving...' : 'Save Vendor'}
+        </button>
       </div>
     </form>
   );

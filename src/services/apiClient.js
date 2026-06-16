@@ -96,11 +96,28 @@ const buildNormalizedError = (error) => {
   }
 
   const responseData = error?.response?.data || error?.data || error;
-  const message =
-    responseData?.message ||
-    responseData?.errors?.[0]?.message ||
-    error?.message ||
-    'Request failed';
+  
+  // Extract express-validator or nested validation messages if present
+  let message = responseData?.message;
+  if (responseData?.errors && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+    const detailMsgs = responseData.errors.map(err => err.msg || err.message).filter(Boolean);
+    if (detailMsgs.length > 0) {
+      message = detailMsgs.join(', ');
+    }
+  }
+  
+  if (!message) {
+    message = responseData?.errors?.[0]?.message || error?.message || 'Request failed';
+  }
+
+  // Beautify cryptic validation message formats (like Joi patterns)
+  if (typeof message === 'string' && message.includes('fails to match the required pattern')) {
+    if (message.includes('"phone"')) {
+      message = 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9';
+    } else {
+      message = message.replace(/fails to match the required pattern: .*/, 'is invalid');
+    }
+  }
 
   const normalizedError = new Error(message);
   normalizedError.status = error?.response?.status || error?.status || null;
@@ -266,6 +283,25 @@ apiClient.interceptors.request.use((config) => {
     nextConfig.headers.Authorization = `Bearer ${accessToken}`;
   }
 
+  const activeCompany = getStoredActiveCompany();
+  const companyId = activeCompany?.id || activeCompany?.company_id || localStorage.getItem('company_id');
+  
+  if (companyId) {
+    if (!nextConfig.headers['x-company-id']) {
+      nextConfig.headers['x-company-id'] = String(companyId);
+    }
+    if (!nextConfig.headers['x-business-id']) {
+      nextConfig.headers['x-business-id'] = String(companyId);
+    }
+  }
+
+  const activeFyId = localStorage.getItem('activeFinancialYearId');
+  if (activeFyId) {
+    if (!nextConfig.headers['x-financial-year-id']) {
+      nextConfig.headers['x-financial-year-id'] = String(activeFyId);
+    }
+  }
+
   if (
     nextConfig.data &&
     !(nextConfig.data instanceof FormData) &&
@@ -276,6 +312,7 @@ apiClient.interceptors.request.use((config) => {
 
   return nextConfig;
 });
+ 
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -283,10 +320,10 @@ apiClient.interceptors.response.use(
     const originalRequest = error?.config;
     const status = error?.response?.status;
 
-    if (status === 429 && originalRequest && !originalRequest._retry) {
-      originalRequest._retry = true;
-      // Wait 1.5s before retrying to allow the rate limit to reset
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    if (status === 429 && originalRequest && !originalRequest._isRetry429) {
+      originalRequest._isRetry429 = true;
+      // Wait 2s before retrying for rate limit specifically
+      await new Promise(resolve => setTimeout(resolve, 2000));
       return apiClient(originalRequest);
     }
 
@@ -312,7 +349,35 @@ apiClient.interceptors.response.use(
   },
 );
 
+const pendingGetRequests = new Map();
+
 export const apiRequest = async (config) => {
+  const method = (config.method || 'GET').toUpperCase();
+  
+  if (method === 'GET') {
+    const cacheKey = JSON.stringify({
+      url: config.url,
+      params: config.params || {},
+      headers: config.headers || {}
+    });
+
+    if (pendingGetRequests.has(cacheKey)) {
+      return pendingGetRequests.get(cacheKey);
+    }
+
+    const promise = (async () => {
+      try {
+        const response = await apiClient(config);
+        return response.data;
+      } finally {
+        pendingGetRequests.delete(cacheKey);
+      }
+    })();
+
+    pendingGetRequests.set(cacheKey, promise);
+    return promise;
+  }
+
   const response = await apiClient(config);
   return response.data;
 };

@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import { interestService } from '../services/interestService';
 import { ledgerService } from '../services/ledgerService';
 import { ledgerGroupService } from '../services/ledgerGroupService';
+import customerService from '../services/customerService';
+import vendorService from '../services/vendorService';
 
 const InterestCalculation = () => {
   const [activeTab, setActiveTab] = useState('receivables'); // 'receivables' or 'payables'
@@ -26,24 +28,34 @@ const InterestCalculation = () => {
   // Lists for dropdowns
   const [entities, setEntities] = useState([]);
 
-  useEffect(() => {
-    fetchEntities();
-  }, [activeTab]);
+  const fetchedEntitiesRef = React.useRef(null);
 
   useEffect(() => {
-    fetchInterestData();
-  }, [activeTab, filters.rate, filters.as_of_date, filters.entity_id]);
+    if (fetchedEntitiesRef.current !== activeTab) {
+      fetchEntities();
+      fetchedEntitiesRef.current = activeTab;
+    }
+  }, [activeTab]);
+
+  // Debounce all filter changes to prevent multiple calls on mount or rapid typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchInterestData();
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [activeTab, filters.as_of_date, filters.entity_id, filters.from_date, filters.to_date, filters.rate]);
 
   const fetchEntities = async () => {
     try {
-      const groupsResp = await ledgerGroupService.getGroups();
-      const groupName = activeTab === 'receivables' ? 'Sundry Debtors' : 'Sundry Creditors';
-      const targetGroup = (groupsResp.data || []).find(g => g.name === groupName);
-      
-      if (targetGroup) {
-        const ledgersResp = await ledgerService.getLedgers({ group_id: targetGroup.id, limit: 200 });
-        setEntities(ledgersResp.data || []);
+      let activeEntities = [];
+      if (activeTab === 'receivables') {
+        const resp = await customerService.getCustomers(1, 1000);
+        activeEntities = resp.data || resp.items || [];
+      } else {
+        const resp = await vendorService.getVendors({ limit: 1000 });
+        activeEntities = resp.data || resp.items || [];
       }
+      setEntities(activeEntities);
     } catch (error) {
       console.error('Error fetching entities:', error);
     }
@@ -64,18 +76,27 @@ const InterestCalculation = () => {
         ? await interestService.getReceivablesInterest(params)
         : await interestService.getPayablesInterest(params);
 
-      const items = response.data || [];
+      // Extract details array from response data
+      const items = response.data?.details || [];
       setData(items);
       
-      // Calculate totals if not provided by backend
-      const total_outstanding = items.reduce((sum, item) => sum + parseFloat(item.outstanding_amount || 0), 0);
-      const total_interest = items.reduce((sum, item) => sum + parseFloat(item.interest_amount || 0), 0);
-      
-      setSummary({
-        total_outstanding,
-        total_interest,
-        total_due: total_outstanding + total_interest
-      });
+      // Use summary from backend if available, otherwise calculate
+      if (response.data?.summary) {
+        setSummary({
+          total_outstanding: response.data.summary.total_outstanding || 0,
+          total_interest: response.data.summary.total_interest || 0,
+          total_due: response.data.summary.total_due || 0
+        });
+      } else {
+        const total_outstanding = items.reduce((sum, item) => sum + parseFloat(item.outstanding || item.outstanding_amount || 0), 0);
+        const total_interest = items.reduce((sum, item) => sum + parseFloat(item.interest_amount || 0), 0);
+        
+        setSummary({
+          total_outstanding,
+          total_interest,
+          total_due: total_outstanding + total_interest
+        });
+      }
     } catch (error) {
       console.error('Error fetching interest data:', error);
       toast.error('Failed to load interest report');
@@ -104,17 +125,7 @@ const InterestCalculation = () => {
           <h4>Interest Calculation</h4>
           <p className="text-muted mb-0">Track interest accrued on outstanding balances</p>
         </div>
-        <div className="page-header-right">
-          <div className="dropdown">
-            <button className="btn btn-outline-white dropdown-toggle" data-bs-toggle="dropdown">
-              <i className="isax isax-export-1 me-1"></i>Export
-            </button>
-            <ul className="dropdown-menu">
-              <li><button className="dropdown-item">Download as PDF</button></li>
-              <li><button className="dropdown-item">Download as Excel</button></li>
-            </ul>
-          </div>
-        </div>
+
       </div>
 
       {/* Summary Cards */}
@@ -258,15 +269,15 @@ const InterestCalculation = () => {
                 ) : data.length > 0 ? (
                   data.map((item, index) => (
                     <tr key={index}>
-                      <td className="fw-600">{item.invoice_no || item.id}</td>
-                      <td>{item.customer_name || item.vendor_name || 'N/A'}</td>
+                      <td className="fw-600">{item.invoice_number || item.invoice_no || item.id}</td>
+                      <td>{item.customer?.name || item.vendor?.name || item.customer_name || item.vendor_name || 'N/A'}</td>
                       <td>{item.invoice_date}</td>
                       <td className="text-center">
                         <span className="badge badge-soft-secondary">{item.days_outstanding || 0} Days</span>
                       </td>
-                      <td className="text-end">{formatCurrency(item.outstanding_amount)}</td>
+                      <td className="text-end">{formatCurrency(item.outstanding || item.outstanding_amount)}</td>
                       <td className="text-end text-warning fw-500">{formatCurrency(item.interest_amount)}</td>
-                      <td className="text-end fw-600">{formatCurrency(item.total_due || (item.outstanding_amount + item.interest_amount))}</td>
+                      <td className="text-end fw-600">{formatCurrency(item.total_due || ((item.outstanding || item.outstanding_amount) + item.interest_amount))}</td>
                     </tr>
                   ))
                 ) : (

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getBalanceSheetReport } from '../services/reportService';
+import investmentService from '../services/investmentService';
+import branchService from '../services/branchService';
+import { useAuth } from '../components/AuthContext';
 
 const initialData = [
   { id: 1, accountName: 'Emily Clark', avatar: 'avatar-28.jpg', bankNo: 'GTB - 3298784309485', credit: 15000, debit: 5000, balance: 10000 },
@@ -20,25 +23,57 @@ const initialData = [
 ];
 
 const BalanceSheet = () => {
+  const { activeCompany } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [asOnDate, setAsOnDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [branches, setBranches] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
+  const [investSummary, setInvestSummary] = useState({ total_invested: 0 });
+
+  const [filterAccounts, setFilterAccounts] = useState([]);
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
 
   useEffect(() => {
-    fetchReportData();
-  }, []);
+    const init = async () => {
+      try {
+        const branchRes = await branchService.getBranches();
+        setBranches(branchRes.data || []);
+        setSelectedBranch('');
+      } catch (err) {
+        console.error("Failed to load branches", err);
+      }
+    };
+    init();
+  }, [activeCompany?.id]);
+
+  useEffect(() => {
+    fetchReportData({ as_on_date: asOnDate, branch_id: selectedBranch, branchId: selectedBranch });
+  }, [asOnDate, selectedBranch, activeCompany?.id]);
 
   const fetchReportData = async (params = {}) => {
     try {
       setLoading(true);
       const finalParams = {
-        as_on_date: new Date().toISOString().split('T')[0],
+        as_on_date: asOnDate,
         ...params
       };
-      const response = await getBalanceSheetReport(finalParams);
+      
+      const [response, investRes] = await Promise.all([
+        getBalanceSheetReport(finalParams),
+        investmentService.getHoldingsSummary()
+      ]);
+
       const reportData = response.data || response;
+      
+      if (investRes && investRes.success) {
+        const iData = investRes.data || investRes;
+        setInvestSummary({ total_invested: iData.total_invested || iData.total_cost || 0 });
+      }
       
       let flattened = [];
       if (reportData.assets?.items) {
@@ -89,10 +124,18 @@ const BalanceSheet = () => {
     setSortConfig({ key, direction });
   };
 
-  let filteredData = data.filter(item =>
-    (item.accountName || '').toLowerCase().includes(searchText.toLowerCase()) ||
-    (item.bankNo || '').toLowerCase().includes(searchText.toLowerCase())
-  );
+  let filteredData = data.filter(item => {
+    const searchMatch = (item.accountName || '').toLowerCase().includes(searchText.toLowerCase()) ||
+                        (item.bankNo || '').toLowerCase().includes(searchText.toLowerCase());
+    
+    const accountMatch = filterAccounts.length === 0 || filterAccounts.includes(item.accountName || item.account_name);
+    
+    const bal = Number(item.balance) || 0;
+    const minMatch = amountMin === '' || bal >= Number(amountMin);
+    const maxMatch = amountMax === '' || bal <= Number(amountMax);
+
+    return searchMatch && accountMatch && minMatch && maxMatch;
+  });
 
   filteredData.sort((a, b) => {
     if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -103,32 +146,83 @@ const BalanceSheet = () => {
     }
     return 0;
   });
+  const downloadExcel = async () => {
+    try {
+      const { utils, writeFile } = await import('xlsx');
+      const exportData = filteredData.map(item => ({
+        'Account Holder Name': item.accountName || item.account_name || '',
+        'Bank & Account No': item.bankNo || item.bank_no || '',
+        'Type': item.type,
+        'Credit': item.credit || 0,
+        'Debit': item.debit || 0,
+        'Balance': item.balance || 0
+      }));
+      const ws = utils.json_to_sheet(exportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Balance Sheet");
+      writeFile(wb, `balance_sheet_${asOnDate}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export Excel");
+    }
+  };
+
+  const downloadPDF = async () => {
+    try {
+      const jspdfModule = await import('jspdf');
+      const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
+      const autotableModule = await import('jspdf-autotable');
+      const autoTable = autotableModule.default || autotableModule;
+      
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text('Balance Sheet Report', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`As On: ${asOnDate}`, 14, 22);
+
+      const tableColumns = ["Account Holder", "Bank & Account No", "Type", "Credit", "Debit", "Balance"];
+      const tableRows = filteredData.map(item => [
+        item.accountName || item.account_name || '',
+        item.bankNo || item.bank_no || '',
+        item.type,
+        `Rs. ${(item.credit || 0).toLocaleString('en-IN')}`,
+        `Rs. ${(item.debit || 0).toLocaleString('en-IN')}`,
+        `Rs. ${(item.balance || 0).toLocaleString('en-IN')}`
+      ]);
+
+      autoTable(doc, {
+        startY: 28,
+        head: [tableColumns],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [62, 121, 247] }
+      });
+
+      doc.save(`balance_sheet_${asOnDate}.pdf`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
   return (
     <>
       <div className="d-flex d-block align-items-center justify-content-between flex-wrap gap-3 mb-3">
         <div>
-          <h6 className="mb-0">Balance Sheet Report</h6>
+          <h6 className="mb-0 fw-bold">Balance Sheet Report</h6>
         </div>
         <div className="my-xl-auto">
           <div className="dropdown">
-            <Link
-              href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
+            <button
+              className="btn btn-outline-white d-inline-flex align-items-center shadow-none border"
               data-bs-toggle="dropdown"
+              data-bs-display="static"
             >
               <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as Excel
-                </Link>
-              </li>
+            </button>
+            <ul className="dropdown-menu border-0 shadow" style={{ position: 'absolute', right: 0, left: 'auto', transform: 'translateX(-30px)', top: '100%', marginTop: '5px', minWidth: '160px' }}>
+              <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={downloadPDF}>Download PDF</button></li>
+              <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={downloadExcel}>Download Excel</button></li>
             </ul>
           </div>
         </div>
@@ -140,7 +234,7 @@ const BalanceSheet = () => {
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                   <div>
-                    <h6 className="fs-16 fw-semibold mb-1">${data.filter(i => i.type === 'Asset').reduce((sum, i) => sum + (Number(i.balance) || 0), 0).toLocaleString()}</h6>
+                    <h6 className="fs-16 fw-semibold mb-1">₹{filteredData.filter(i => i.type === 'Asset').reduce((sum, i) => sum + (Number(i.balance) || 0), 0).toLocaleString('en-IN')}</h6>
                     <p className="mb-1">Total Assets</p>
                   </div>
                   <div>
@@ -149,21 +243,19 @@ const BalanceSheet = () => {
                     </span>
                   </div>
                 </div>
-                <p className="fs-13 mb-0">
-                  <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>5.62%
-                  </span>{' '}
-                  from last month
-                </p>
+                <div className="d-flex align-items-center justify-content-between">
+                  <p className="fs-11 mb-0 text-muted">Incl. Investments</p>
+                  <p className="fs-11 mb-0 fw-bold">₹{investSummary.total_invested.toLocaleString('en-IN')}</p>
+                </div>
               </div>
             </div>
           </div>
           <div className="col-xl-3 col-lg-4 col-md-6">
-            <div className="card position-relative shadow-lg">
+            <div className="card position-relative shadow-lg border-0">
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                   <div>
-                    <h6 className="fs-16 fw-semibold mb-1">${Math.abs(data.filter(i => i.type === 'Liability').reduce((sum, i) => sum + (Number(i.balance) || 0), 0)).toLocaleString()}</h6>
+                    <h6 className="fs-16 fw-semibold mb-1">₹{Math.abs(filteredData.filter(i => i.type === 'Liability').reduce((sum, i) => sum + (Number(i.balance) || 0), 0)).toLocaleString('en-IN')}</h6>
                     <p className="mb-1">Total Liabilities</p>
                   </div>
                   <div>
@@ -172,21 +264,19 @@ const BalanceSheet = () => {
                     </span>
                   </div>
                 </div>
-                <p className="fs-13 mb-0">
-                  <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>11.4%
-                  </span>{' '}
-                  from last month
-                </p>
+                <p className="fs-11 mb-0 text-muted">Current Obligations</p>
               </div>
             </div>
           </div>
           <div className="col-xl-3 col-lg-4 col-md-6">
-            <div className="card position-relative shadow-lg">
+            <div className="card position-relative shadow-lg border-0">
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                   <div>
-                    <h6 className="fs-16 fw-semibold mb-1">$400,000</h6>
+                    <h6 className="fs-16 fw-semibold mb-1">
+                      ₹{(filteredData.filter(i => i.type === 'Asset').reduce((sum, i) => sum + (Number(i.balance) || 0), 0) - 
+                        Math.abs(filteredData.filter(i => i.type === 'Liability').reduce((sum, i) => sum + (Number(i.balance) || 0), 0))).toLocaleString('en-IN')}
+                    </h6>
                     <p className="mb-1">Net Worth (Equity)</p>
                   </div>
                   <div>
@@ -195,21 +285,23 @@ const BalanceSheet = () => {
                     </span>
                   </div>
                 </div>
-                <p className="fs-13 mb-0">
-                  <span className="text-success">
-                    <i className="isax isax-send text-success me-1"></i>8.52%
-                  </span>{' '}
-                  from last month
-                </p>
+                <p className="fs-11 mb-0 text-muted">Assets - Liabilities</p>
               </div>
             </div>
           </div>
           <div className="col-xl-3 col-lg-4 col-md-6">
-            <div className="card position-relative shadow-lg">
+            <div className="card position-relative shadow-lg border-0">
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                   <div>
-                    <h6 className="fs-16 fw-semibold mb-1">80%</h6>
+                    <h6 className="fs-16 fw-semibold mb-1">
+                      {(() => {
+                        const assets = filteredData.filter(i => i.type === 'Asset').reduce((sum, i) => sum + (Number(i.balance) || 0), 0);
+                        const liab = Math.abs(filteredData.filter(i => i.type === 'Liability').reduce((sum, i) => sum + (Number(i.balance) || 0), 0));
+                        const netWorth = assets - liab;
+                        return assets > 0 ? ((netWorth / assets) * 100).toFixed(1) : '0';
+                      })()}%
+                    </h6>
                     <p className="mb-1">Equity Ratio</p>
                   </div>
                   <div>
@@ -218,12 +310,7 @@ const BalanceSheet = () => {
                     </span>
                   </div>
                 </div>
-                <p className="fs-13 mb-0">
-                  <span className="text-success">
-                    <i className="isax isax-received text-success me-1"></i>7.45%
-                  </span>{' '}
-                  from last month
-                </p>
+                <p className="fs-11 mb-0 text-muted">Net Worth / Total Assets</p>
               </div>
             </div>
           </div>
@@ -247,9 +334,29 @@ const BalanceSheet = () => {
                 </Link>
               </div>
             </div>
-            <div id="reportrange" className="reportrange-picker d-flex align-items-center">
+            <div className="d-flex align-items-center bg-white border px-2 py-1 rounded">
+              <i className="isax isax-buildings-2 text-gray-5 fs-14 me-1"></i>
+              <select 
+                className="form-select form-select-sm border-0 shadow-none ps-0 fs-13" 
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                style={{ width: '150px', textOverflow: 'ellipsis' }}
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="d-flex align-items-center bg-white border px-2 py-1 rounded">
               <i className="isax isax-calendar text-gray-5 fs-14 me-1"></i>
-              <span className="reportrange-picker-field">16 Apr 25 - 16 Apr 25</span>
+              <input 
+                type="date" 
+                className="form-control form-control-sm border-0 shadow-none p-0 fs-13" 
+                value={asOnDate}
+                onChange={(e) => setAsOnDate(e.target.value)}
+                style={{ width: '120px' }}
+              />
             </div>
             <Link
               className="btn btn-outline-white fw-normal d-inline-flex align-items-center"
@@ -260,86 +367,15 @@ const BalanceSheet = () => {
               <i className="isax isax-filter me-1"></i>Filter
             </Link>
           </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown">
-              <Link
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu-lg">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.accountName} onChange={() => handleColumnToggle('accountName')} />
-                    <span>Account Holder Name</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.bankNo} onChange={() => handleColumnToggle('bankNo')} />
-                    <span>Bank & Account No</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.credit} onChange={() => handleColumnToggle('credit')} />
-                    <span>Credit</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.debit} onChange={() => handleColumnToggle('debit')} />
-                    <span>Debit</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.balance} onChange={() => handleColumnToggle('balance')} />
-                    <span>Balance</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div className="align-items-center gap-2 flex-wrap filter-info mt-3">
-          <h6 className="fs-13 fw-semibold">Filters</h6>
-          <span className="tag bg-light border rounded-1 fs-12 text-dark badge">
-            <span className="num-count d-inline-flex align-items-center justify-content-center bg-success fs-10 me-1">
-              6
-            </span>
-            Account Holders Selected
-            <span className="ms-1 tag-close">
-              <i className="fa-solid fa-x fs-10"></i>
-            </span>
-          </span>
-          <Link href="#" className="link-danger fw-medium text-decoration-underline ms-md-1">
-            Clear All
-          </Link>
         </div>
       </div>
       <div className="table-responsive">
         <table className="table table-nowrap datatable">
           <thead className="thead-light">
             <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input className="form-check-input" type="checkbox" id="select-all" />
-                </div>
-              </th>
-              {columns.accountName && (
                 <th onClick={() => requestSort('accountName')} style={{ cursor: 'pointer' }}>
                   Account Holder Name {sortConfig.key === 'accountName' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                 </th>
-              )}
               {columns.bankNo && (
                 <th onClick={() => requestSort('bankNo')} style={{ cursor: 'pointer' }}>
                   Bank & Account No {sortConfig.key === 'bankNo' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
@@ -382,11 +418,6 @@ const BalanceSheet = () => {
             ) : (
               filteredData.map((item, index) => (
                 <tr key={item.id || index}>
-                  <td>
-                    <div className="form-check form-check-md">
-                      <input className="form-check-input" type="checkbox" />
-                    </div>
-                  </td>
                   {columns.accountName && (
                     <td>
                       <div className="d-flex align-items-center">
@@ -399,16 +430,21 @@ const BalanceSheet = () => {
                         </Link>
                         <div>
                           <h6 className="fs-14 fw-medium mb-0">
-                            <Link href="#">{item.account_name || item.accountName}</Link>
+                            <Link to={`/reports/ledger-statement/${item.ledger_id || item.id}`}>
+                                {item.account_name || item.accountName}
+                                {(item.group_name?.toLowerCase().includes('investment') || item.bankNo?.toLowerCase().includes('investment')) && 
+                                    <span className="badge bg-soft-info text-info fs-10 ms-2">Investment</span>
+                                }
+                            </Link>
                           </h6>
                         </div>
                       </div>
                     </td>
                   )}
                   {columns.bankNo && <td>{item.bank_no || item.bankNo}</td>}
-                  {columns.credit && <td>${(item.credit || 0).toLocaleString()}</td>}
-                  {columns.debit && <td>${(item.debit || 0).toLocaleString()}</td>}
-                  {columns.balance && <td>${(item.balance || 0).toLocaleString()}</td>}
+                  {columns.credit && <td>₹{(item.credit || 0).toLocaleString('en-IN')}</td>}
+                  {columns.debit && <td>₹{(item.debit || 0).toLocaleString('en-IN')}</td>}
+                  {columns.balance && <td>₹{(item.balance || 0).toLocaleString('en-IN')}</td>}
                 </tr>
               ))
             )}
@@ -430,164 +466,101 @@ const BalanceSheet = () => {
           </div>
         </div>
         <div className="offcanvas-body pt-3">
-          <form action="#">
+          <div>
             <div className="mb-3">
               <label className="form-label">Account Holder</label>
               <div className="dropdown">
-                <Link
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
+                <button
+                  className="dropdown-toggle btn btn-lg bg-light d-flex align-items-center justify-content-start fs-13 fw-normal border w-100"
                   data-bs-toggle="dropdown"
                   data-bs-auto-close="outside"
-                  aria-expanded="true"
+                  aria-expanded="false"
                 >
-                  Select
-                </Link>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <div className="mb-3">
-                    <div className="input-icon-start position-relative">
-                      <span className="input-icon-addon fs-12">
-                        <i className="isax isax-search-normal"></i>
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Search"
-                      />
-                    </div>
-                  </div>
-                  <ul className="mb-3">
-                    <li className="d-flex align-items-center justify-content-between mb-3">
-                      <label className="d-inline-flex align-items-center text-gray-9">
-                        <input className="form-check-input select-all m-0 me-2" type="checkbox" />{' '}
+                  Select ({filterAccounts.length})
+                </button>
+                <div className="dropdown-menu shadow-lg w-100 dropdown-info p-3" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <ul className="mb-3 list-unstyled">
+                    <li className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                      <label className="d-inline-flex align-items-center text-gray-9 mb-0">
+                        <input 
+                          className="form-check-input m-0 me-2" 
+                          type="checkbox" 
+                          checked={filterAccounts.length === [...new Set(data.map(d => d.accountName || d.account_name).filter(Boolean))].length && filterAccounts.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFilterAccounts([...new Set(data.map(d => d.accountName || d.account_name).filter(Boolean))]);
+                            } else {
+                              setFilterAccounts([]);
+                            }
+                          }}
+                        />{' '}
                         Select All
                       </label>
-                      <Link href="#" className="link-danger fw-medium text-decoration-underline">
+                      <button type="button" className="btn btn-link text-danger p-0" onClick={() => setFilterAccounts([])}>
                         Reset
-                      </Link>
+                      </button>
                     </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/profiles/avatar-28.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
+                    {[...new Set(data.map(d => d.accountName || d.account_name).filter(Boolean))].sort().map(acc => (
+                      <li key={acc} className="mb-2">
+                        <label className="dropdown-item px-2 d-flex align-items-center text-dark">
+                          <input 
+                            className="form-check-input m-0 me-2" 
+                            type="checkbox" 
+                            checked={filterAccounts.includes(acc)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFilterAccounts([...filterAccounts, acc]);
+                              } else {
+                                setFilterAccounts(filterAccounts.filter(a => a !== acc));
+                              }
+                            }}
                           />
-                        </span>
-                        Emily Clark
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/profiles/avatar-12.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Sophia White
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/profiles/avatar-06.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Michael Johnson
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/profiles/avatar-30.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Olivia Harris
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/profiles/avatar-16.jpg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        David Anderson
-                      </label>
-                    </li>
+                          {acc}
+                        </label>
+                      </li>
+                    ))}
                   </ul>
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <Link href="#" className="btn btn-outline-white w-100 close-filter">
-                        Cancel
-                      </Link>
-                    </div>
-                    <div className="col-6">
-                      <Link href="#" className="btn btn-primary w-100">
-                        Select
-                      </Link>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
             <div className="mb-3">
-              <label className="form-label">Amount</label>
-              <div className="dropdown">
-                <Link
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
-                  data-bs-toggle="dropdown"
-                  data-bs-auto-close="outside"
-                  aria-expanded="true"
-                >
-                  Select
-                </Link>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <div className="filter-range">
-                    <input type="text" id="range_03" />
-                    <p>
-                      Range : <span className="text-gray-9">Range : $200 - $5695</span>
-                    </p>
-                  </div>
-                </div>
+              <label className="form-label">Amount Range</label>
+              <div className="d-flex align-items-center gap-2">
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  placeholder="Min (₹)" 
+                  value={amountMin}
+                  onChange={(e) => setAmountMin(e.target.value)}
+                />
+                <span className="text-muted">-</span>
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  placeholder="Max (₹)" 
+                  value={amountMax}
+                  onChange={(e) => setAmountMax(e.target.value)}
+                />
               </div>
             </div>
-            <div className="offcanvas-footer">
+            <div className="offcanvas-footer mt-4">
               <div className="row g-2">
                 <div className="col-6">
-                  <Link href="#" className="btn btn-outline-white w-100">
-                    Reset
-                  </Link>
+                  <button type="button" className="btn btn-outline-white w-100 shadow-sm" onClick={() => { setFilterAccounts([]); setAmountMin(''); setAmountMax(''); }}>
+                    Reset Filters
+                  </button>
                 </div>
                 <div className="col-6">
                   <button
                     data-bs-dismiss="offcanvas"
                     className="btn btn-primary w-100"
-                    id="filter-submit"
                   >
                     Submit
                   </button>
                 </div>
               </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </>

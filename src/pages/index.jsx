@@ -1,902 +1,519 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import ApexCharts from 'apexcharts';
+import dashboardService from '../services/dashboardService';
+import { getCustomers } from '../services/customerService';
+import financialYearService from '../services/financialYearService';
+import investmentService from '../services/investmentService';
+import { useAuth } from '../components/AuthContext';
+import { toast } from 'react-toastify';
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
+  const [chartData, setChartData] = useState([]);
+  const [activeFY, setActiveFY] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [customerCount, setCustomerCount] = useState(0);
+  const [recentInvoices, setRecentInvoices] = useState([]);
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [investmentSummary, setInvestmentSummary] = useState({ total_invested: 0, current_value: 0 });
+
+  useEffect(() => {
+    fetchDashboardData();
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      // 1. Financial Year
+      const fyResponse = await financialYearService.getFinancialYears();
+      const fyList = fyResponse.data || fyResponse || [];
+      const active = fyList.find(y => y.is_active) || fyList[0];
+      setActiveFY(active);
+
+      const fyStart = active?.start_date;
+      const fyEnd = active?.end_date;
+
+      // 2. Fetch all dashboard data in parallel
+      const [summaryRes, chartRes, invCount, custCount, recentInv, topCust, investRes] = await Promise.allSettled([
+        dashboardService.getDashboardSummary(),
+        dashboardService.getSalesChart(6),
+        dashboardService.getInvoiceCount(),
+        dashboardService.getCustomerCount(),
+        dashboardService.getRecentInvoices(5),
+        getCustomers(1, 5),  // fetch top 5 customers from /api/customers
+        investmentService.getHoldingsSummary()
+      ]);
+
+      if (summaryRes.status === 'fulfilled') {
+        const data = summaryRes.value?.data || summaryRes.value;
+        setSummary(data);
+      }
+
+      const chartValues = chartRes.status === 'fulfilled' ? (chartRes.value?.data || chartRes.value || []) : [];
+      if (chartRes.status === 'fulfilled') {
+        setChartData(chartValues);
+      }
+
+      // Calculate dynamic month totals from chart data if summary is 0
+      if (chartValues.length > 0) {
+        const currentMonthStr = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+        const currentMonthData = chartValues.find(m => m.month === currentMonthStr) || chartValues[chartValues.length - 1];
+
+        setSummary(prev => {
+          const newSummary = { ...prev };
+          newSummary.financials = { ...newSummary.financials };
+
+          if (!newSummary.financials.month_sales && currentMonthData?.sales) {
+            newSummary.financials.month_sales = currentMonthData.sales;
+          }
+          if (!newSummary.financials.month_purchases && currentMonthData?.purchases) {
+            newSummary.financials.month_purchases = currentMonthData.purchases;
+          }
+          // Dynamic Net Position if missing
+          if (!newSummary.financials.net_position) {
+            const rec = parseFloat(newSummary.financials.total_receivables) || 0;
+            const pay = parseFloat(newSummary.financials.total_payables) || 0;
+            newSummary.financials.net_position = rec - pay;
+          }
+          return newSummary;
+        });
+      }
+
+      if (invCount.status === 'fulfilled') {
+        console.log('[Dashboard] Invoice count raw:', invCount.value);
+        setInvoiceCount(invCount.value || 0);
+      }
+      if (custCount.status === 'fulfilled') {
+        console.log('[Dashboard] Customer count raw:', custCount.value);
+        setCustomerCount(custCount.value || 0);
+      }
+      if (recentInv.status === 'fulfilled') {
+        setRecentInvoices(recentInv.value || []);
+      }
+      if (topCust.status === 'fulfilled') {
+        console.log('[Dashboard] Top customers raw:', topCust.value);
+        // getCustomers returns { data: [...], pagination: {...} }
+        const custData = topCust.value?.data || topCust.value || [];
+        setTopCustomers(Array.isArray(custData) ? custData : []);
+      }
+
+      if (investRes.status === 'fulfilled') {
+        const iData = investRes.value?.data || investRes.value || {};
+        setInvestmentSummary({
+          total_invested: iData.total_invested || iData.total_cost || 0,
+          current_value: iData.current_value || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let chart = null;
+    if (!loading && chartData.length > 0) {
+      const options = {
+        series: [{
+          name: 'Sales',
+          data: chartData.map(item => parseFloat(item.sales) || 0)
+        }, {
+          name: 'Purchase',
+          data: chartData.map(item => parseFloat(item.purchases) || 0)
+        }],
+        chart: {
+          height: 273,
+          type: 'area',
+          toolbar: { show: false },
+          zoom: { enabled: false }
+        },
+        colors: ['#3B82F6', '#10B981'],
+        dataLabels: { enabled: false },
+        fill: {
+          type: 'gradient',
+          gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 }
+        },
+        stroke: { curve: 'smooth', width: 3 },
+        xaxis: {
+          categories: chartData.map(item => {
+            const [year, month] = item.month.split('-');
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return months[parseInt(month) - 1];
+          }),
+        },
+        yaxis: {
+          labels: {
+            formatter: (val) => formatCurrencyShort(val)
+          }
+        },
+        tooltip: {
+          y: {
+            formatter: (val) => formatCurrency(val)
+          }
+        },
+        legend: { position: 'top', horizontalAlign: 'right' }
+      };
+
+      const el = document.querySelector('#revenue_chart');
+      if (el) {
+        chart = new ApexCharts(el, options);
+        chart.render();
+      }
+    }
+    return () => { if (chart) chart.destroy(); };
+  }, [loading, chartData]);
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(value || 0);
+  };
+
+  const formatCurrencyShort = (value) => {
+    const v = parseFloat(value) || 0;
+    if (v >= 10000000) return '₹' + (v / 10000000).toFixed(1) + ' Cr';
+    if (v >= 100000) return '₹' + (v / 100000).toFixed(1) + ' L';
+    if (v >= 1000) return '₹' + (v / 1000).toFixed(1) + 'K';
+    return '₹' + v.toFixed(0);
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    switch ((status || '').toUpperCase()) {
+      case 'PAID': return 'success';
+      case 'PARTIAL': return 'info';
+      case 'UNPAID': return 'warning';
+      default: return 'secondary';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const financials = summary?.financials || {};
+  const alerts = summary?.alerts || {};
+
   return (
     <>
-      {/* Start Breadcrumb */}
-      <div className="d-flex d-block align-items-center justify-content-between flex-wrap gap-3 mb-3">
+      {/* Breadcrumb Bar */}
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
         <div>
-          <h6>Dashboard</h6>
+          <h6 className="fw-bold mb-0">Dashboard</h6>
         </div>
-        <div className="d-flex d-block align-items-center justify-content-between flex-wrap gap-3 mb-3">
-          <div id="reportrange" className="reportrange-picker d-flex align-items-center">
+        <div className="d-flex align-items-center flex-wrap gap-2">
+          <div className="reportrange-picker d-flex align-items-center bg-white border px-3 py-1 rounded">
             <i className="isax isax-calendar text-gray-5 fs-14 me-1"></i>
-            <span className="reportrange-picker-field">16 Apr 25 - 16 Apr 25</span>
+            <span className="fs-13">
+              {activeFY
+                ? `${new Date(activeFY.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })} - ${new Date(activeFY.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}`
+                : 'Loading...'}
+            </span>
           </div>
+          <button className="btn btn-sm btn-outline-secondary" onClick={fetchDashboardData} title="Refresh">
+            <i className="isax isax-refresh fs-14"></i>
+          </button>
           <div className="dropdown">
-            <Link
-              className="btn btn-primary d-flex align-items-center justify-content-center dropdown-toggle"
-              data-bs-toggle="dropdown"
-              href="javascript:void(0);"
-              role="button"
-            >
-              Create New
-            </Link>
-            <ul className="dropdown-menu dropdown-menu-start">
-              <li>
-                <Link to="/add-invoice" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-document-text-1 me-2"></i>Invoice
-                </Link>
-              </li>
-              <li>
-                <Link to="/expenses" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-money-send me-2"></i>Expense
-                </Link>
-              </li>
-              <li>
-                <Link to="/add-credit-notes" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-money-add me-2"></i>Credit Notes
-                </Link>
-              </li>
-              <li>
-                <Link to="/add-debit-notes" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-money-recive me-2"></i>Debit Notes
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/add-purchases-orders"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document me-2"></i>Purchase Order
-                </Link>
-              </li>
-              <li>
-                <Link to="/add-quotation" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-document-download me-2"></i>Quotation
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/add-delivery-challan"
-                  className="dropdown-item d-flex align-items-center"
-                >
-                  <i className="isax isax-document-forward me-2"></i>Delivery Challan
-                </Link>
-              </li>
-              <li>
-                <Link to="/e-invoices" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-receipt-text-1 me-2"></i>E-Invoice
-                </Link>
-              </li>
-              <li>
-                <Link to="/add-eway-bill" className="dropdown-item d-flex align-items-center">
-                  <i className="isax isax-truck me-2"></i>E-Way Bill
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div className="dropdown">
-            <Link href="javascript: void(0);"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="javascript:void(0);">
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="javascript:void(0);">
-                  Download as Excel
-                </Link>
-              </li>
+            <button className="btn btn-primary d-flex align-items-center gap-2 dropdown-toggle" data-bs-toggle="dropdown">
+              <i className="isax isax-add-circle"></i> Create New
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0">
+              <li><Link to="/invoicing/sales/add" className="dropdown-item"><i className="isax isax-document-text-1 me-2"></i>Invoice</Link></li>
+              <li><Link to="/invoicing/sales-orders/add" className="dropdown-item"><i className="isax isax-note-text me-2"></i>Sales Order</Link></li>
+              <li><Link to="/invoicing/purchase-orders/add" className="dropdown-item"><i className="isax isax-document-copy me-2"></i>Purchase Order</Link></li>
+              <li><Link to="/invoicing/credit-notes/add" className="dropdown-item"><i className="isax isax-money-add me-2"></i>Credit Note</Link></li>
             </ul>
           </div>
         </div>
       </div>
-      {/* End Breadcrumb */}
 
-      <div className="bg-primary rounded welcome-wrap position-relative mb-3">
-        {/* start row */}
-        <div className="row">
-          <div className="col-lg-8 col-md-9 col-sm-7">
-            <div>
-              <h5 className="text-white mb-1">Good Morning, Jafna Cremson</h5>
-              <p className="text-white mb-3">
-                You have 15+ invoices saved to draft that has to send to customers
-              </p>
-              <div className="d-flex align-items-center flex-wrap gap-3">
-                <p className="d-flex align-items-center fs-13 text-white mb-0">
-                  <i className="isax isax-calendar5 me-1"></i>Friday, 24 Mar 2025
-                </p>
-                <p className="d-flex align-items-center fs-13 text-white mb-0">
-                  <i className="isax isax-clock5 me-1"></i>11:24 AM
-                </p>
-              </div>
-            </div>
+      {/* Welcome Banner */}
+      <div className="rounded position-relative mb-4 p-4 text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' }}>
+        <div className="row align-items-center">
+          <div className="col-lg-8">
+            <h4 className="fw-bold mb-1">Good Day, {user?.name || 'User'}</h4>
+            <p className="mb-3 opacity-90 mb-2">
+              {alerts.low_stock_items > 0 || alerts.pending_cheques > 0
+                ? `You have ${alerts.low_stock_items || 0} low stock alert${alerts.low_stock_items !== 1 ? 's' : ''} and ${alerts.pending_cheques || 0} pending cheque${alerts.pending_cheques !== 1 ? 's' : ''}.`
+                : 'Everything looks great! Here is your business overview.'}
+            </p>
+
           </div>
         </div>
-        {/* end row */}
 
-        <div className="position-absolute end-0 top-50 translate-middle-y p-2 d-none d-sm-block">
-          <img src="/assets/img/icons/dashboard.svg" alt="img" />
+      </div>
+
+      {/* Stats Cards Row */}
+      <div className="row g-3 mb-4">
+        {/* Total Invoices */}
+        <div className="col-6 col-xl-3">
+          <Link to="/invoicing/sales" className="card border-0 shadow-sm h-100 mb-0 text-decoration-none">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <span className="avatar avatar-44 bg-primary-subtle text-primary rounded-circle">
+                  <i className="isax isax-document-text-1 fs-20"></i>
+                </span>
+                <span className="badge badge-soft-primary fs-11">Invoices</span>
+              </div>
+              <h4 className="fw-bold mb-0">{invoiceCount.toLocaleString('en-IN')}</h4>
+              <p className="text-muted fs-13 mb-0 mt-1">Total Sales Invoices</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Total Customers */}
+        <div className="col-6 col-xl-3">
+          <Link to="/customers" className="card border-0 shadow-sm h-100 mb-0 text-decoration-none">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <span className="avatar avatar-44 bg-success-subtle text-success rounded-circle">
+                  <i className="isax isax-profile-2user fs-20"></i>
+                </span>
+                <span className="badge badge-soft-success fs-11">Customers</span>
+              </div>
+              <h4 className="fw-bold mb-0">{customerCount.toLocaleString('en-IN')}</h4>
+              <p className="text-muted fs-13 mb-0 mt-1">Total Customers</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Total Receivables */}
+        <div className="col-6 col-xl-3">
+          <Link to="/reports/outstanding-reports" state={{ reportType: 'receivables' }} className="card border-0 shadow-sm h-100 mb-0 text-decoration-none">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <span className="avatar avatar-44 bg-warning-subtle text-warning rounded-circle">
+                  <i className="isax isax-receipt-item fs-20"></i>
+                </span>
+                <span className="badge badge-soft-warning fs-11">Receivable</span>
+              </div>
+              <h4 className="fw-bold mb-0">{formatCurrencyShort(financials.total_receivables)}</h4>
+              <p className="text-muted fs-13 mb-0 mt-1">Outstanding Receivables</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Total Payables */}
+        <div className="col-6 col-xl-3">
+          <Link to="/reports/outstanding-reports" state={{ reportType: 'payables' }} className="card border-0 shadow-sm h-100 mb-0 text-decoration-none">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <span className="avatar avatar-44 bg-danger-subtle text-danger rounded-circle">
+                  <i className="isax isax-money fs-20"></i>
+                </span>
+                <span className="badge badge-soft-danger fs-11">Payable</span>
+              </div>
+              <h4 className="fw-bold mb-0">{formatCurrencyShort(financials.total_payables)}</h4>
+              <p className="text-muted fs-13 mb-0 mt-1">Outstanding Payables</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Total Investments - New Card */}
+        <div className="col-6 col-xl-3">
+          <Link to="/master/investments" className="card border-0 shadow-sm h-100 mb-0 text-decoration-none">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <span className="avatar avatar-44 bg-info-subtle text-info rounded-circle">
+                  <i className="isax isax-chart-success fs-20"></i>
+                </span>
+                <span className="badge badge-soft-info fs-11">Investments</span>
+              </div>
+              <h4 className="fw-bold mb-0">{formatCurrencyShort(investmentSummary.total_invested)}</h4>
+              <p className="text-muted fs-13 mb-0 mt-1">Total Investments</p>
+            </div>
+          </Link>
         </div>
       </div>
 
-      {/* start row */}
-      <div className="row">
-        <div className="col-md-4 d-flex">
-          <div className="card flex-fill">
+      {/* Charts + Tables Row */}
+      <div className="row g-3">
+        {/* Left Column */}
+        <div className="col-xl-8">
+          {/* Revenue Chart */}
+          <div className="card border-0 shadow-sm mb-3">
             <div className="card-body">
-              <div className="mb-3">
-                <h6 className="d-flex align-items-center mb-1">
-                  <i className="isax isax-category5 text-default me-2"></i>Overview
-                </h6>
-              </div>
-              <div className="row g-4">
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-primary-subtle text-primary flex-shrink-0 me-2">
-                      <i className="isax isax-document-text-1 fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Invoices</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">1,041</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-success-subtle text-success-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-profile-2user fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Customers</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">3,462</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-warning-subtle text-warning-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-dcube fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Amount Due</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">$1,642</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-info-subtle text-info-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-document-text fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Quotations</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">2,150</h6>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-4 d-flex">
-          <div className="card flex-fill">
-            <div className="card-body">
-              <div className="mb-3">
-                <h6 className="d-flex align-items-center mb-1">
-                  <i className="isax isax-chart-215 text-default me-2"></i>Sales Analytics
-                </h6>
-              </div>
-              <div className="row g-4">
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-primary-subtle text-primary flex-shrink-0 me-2">
-                      <i className="isax isax-document-forward fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Total Sales</p>
-                      <h6 className="fs-16 fw-semibold mb-0">$40,569</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-success-subtle text-success-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-programming-arrow fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Purchase</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">$1,54,220</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-warning-subtle text-warning-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-dollar-circle fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 mb-0">Expenses</p>
-                      <h6 className="fs-16 fw-semibold text-truncate">$10,041</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-info-subtle text-info-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-flag fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Credits</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">$12,150</h6>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-4 d-flex">
-          <div className="card flex-fill">
-            <div className="card-body">
-              <div className="mb-3">
-                <h6 className="d-flex align-items-center mb-1">
-                  <i className="isax isax-chart-success5 text-default me-2"></i>Invoice Statistics
-                </h6>
-              </div>
-              <div className="row g-4">
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-primary-subtle text-primary flex-shrink-0 me-2">
-                      <i className="isax isax-document fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Invoiced</p>
-                      <h6 className="fs-16 fw-semibold mb-0">$21,132</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-success-subtle text-success-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-document-forward fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Received</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">$10,763</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar avatar-44 avatar-rounded bg-warning-subtle text-warning-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-document-previous fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Outstanding</p>
-                      <h6 className="fs-16 fw-semibold mb-0 text-truncate">$8041</h6>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-6">
-                  <div className="d-flex align-items-center me-2">
-                    <span className="avatar avatar-44 avatar-rounded bg-info-subtle text-info-emphasis flex-shrink-0 me-2">
-                      <i className="isax isax-dislike fs-20"></i>
-                    </span>
-                    <div>
-                      <p className="mb-1 text-truncate">Overdue</p>
-                      <h6 className="fs-16 fw-semibold text-truncate mb-0">$41,811.2</h6>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* end row */}
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <h6 className="fw-bold mb-0">Revenue Analytics</h6>
 
-      {/* start row */}
-      <div className="row">
-        <div className="col-md-4 d-flex flex-column">
-          <div className="card overflow-hidden z-1 flex-fill">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
-                <div>
-                  <p className="mb-1">Total Products</p>
-                  <div className="d-flex align-items-center">
-                    <h6 className="fs-16 fw-semibold me-2">897</h6>
-                    <span className="badge badge-sm badge-soft-success">
-                      +45<i className="isax isax-arrow-up-15 ms-1"></i>
-                    </span>
-                  </div>
-                </div>
-                <span className="avatar avatar-lg bg-light text-dark avatar-rounded">
-                  <i className="isax isax-document-text fs-16"></i>
-                </span>
               </div>
-              <Link to="/inventory" className="fw-medium text-decoration-underline">
-                View Inventory
-              </Link>
-            </div>
-            <div className="position-absolute end-0 bottom-0 z-n1">
-              <img src="/assets/img/bg/card-bg-01.svg" alt="img" />
+              {chartData.length > 0
+                ? <div id="revenue_chart"></div>
+                : <div className="text-center py-5 text-muted fs-13"><i className="isax isax-chart-21 fs-32 d-block mb-2 opacity-25"></i>No chart data available</div>
+              }
             </div>
           </div>
-        </div>
-        <div className="col-md-4 d-flex flex-column">
-          <div className="card overflow-hidden z-1 flex-fill">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
-                <div>
-                  <p className="mb-1">Total Sales</p>
-                  <div className="d-flex align-items-center">
-                    <h6 className="fs-16 fw-semibold me-2">645</h6>
-                    <span className="badge badge-sm badge-soft-success">
-                      +45<i className="isax isax-arrow-up-15 ms-1"></i>
-                    </span>
-                  </div>
-                </div>
-                <span className="avatar avatar-lg bg-light text-dark avatar-rounded">
-                  <i className="isax isax-document-text fs-16"></i>
-                </span>
-              </div>
-              <Link to="/invoices" className="fw-medium text-decoration-underline">
-                View Invoices
-              </Link>
-            </div>
-            <div className="position-absolute end-0 bottom-0 z-n1">
-              <img src="/assets/img/bg/card-bg-02.svg" alt="img" />
-            </div>
-          </div>
-        </div>
-        <div className="col-md-4 d-flex flex-column">
-          <div className="card overflow-hidden z-1 flex-fill">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
-                <div>
-                  <p className="mb-1">Total Quotations</p>
-                  <div className="d-flex align-items-center">
-                    <h6 className="fs-16 fw-semibold me-2">128</h6>
-                    <span className="badge badge-sm badge-soft-success">
-                      +45<i className="isax isax-arrow-up-15 ms-1"></i>
-                    </span>
-                  </div>
-                </div>
-                <span className="avatar avatar-lg bg-light text-dark avatar-rounded">
-                  <i className="isax isax-document-text fs-16"></i>
-                </span>
-              </div>
-              <Link to="/quotations" className="fw-medium text-decoration-underline">
-                View All
-              </Link>
-            </div>
-            <div className="position-absolute end-0 bottom-0 z-n1">
-              <img src="/assets/img/bg/card-bg-03.svg" alt="img" />
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* end row */}
 
-      {/* start row */}
-      <div className="row">
-        <div className="col-xl-6 d-flex">
-          <div className="card flex-fill">
-            <div className="card-body pb-0">
-              <div className="mb-3">
-                <h6 className="mb-1">Revenue</h6>
-              </div>
-              <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                <div>
-                  <p className="mb-1">Total Revenue</p>
-                  <div className="d-flex align-items-center">
-                    <h6 className="fs-16 fw-semibold me-2">897</h6>
-                    <span className="badge badge-sm badge-soft-success">
-                      +45<i className="isax isax-arrow-up-15 ms-1"></i>
-                    </span>
-                  </div>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <p className="fs-13 text-dark d-flex align-items-center mb-0">
-                    <i className="fa-solid fa-circle text-primary-transparent fs-12 me-1"></i>
-                    Received
-                  </p>
-                  <p className="fs-13 text-dark d-flex align-items-center mb-0">
-                    <i className="fa-solid fa-circle text-primary fs-12 me-1"></i>Outstanding
-                  </p>
-                </div>
-              </div>
-              <div id="revenue_chart"></div>
-            </div>
-          </div>
-        </div>
-        <div className="col-xl-6 d-flex">
-          <div className="card flex-fill">
+          {/* Recent Invoices Table */}
+          <div className="card border-0 shadow-sm">
             <div className="card-body">
-              <div className="mb-3">
-                <h6 className="mb-1">Customers</h6>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold mb-0">Recent Invoices</h6>
+                <Link to="/invoicing/sales" className="btn btn-sm btn-soft-primary fs-12">View All</Link>
               </div>
               <div className="table-responsive">
-                <table className="table table-nowrap table-borderless custom-table">
-                  <tbody>
+                <table className="table align-middle mb-0">
+                  <thead className="table-light fs-12 text-muted">
                     <tr>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-lg rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-06.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-1">
-                              <Link to="/customer-details">Emily Clark</Link>
-                            </h6>
-                            <p className="fs-13">No of Invoices : 45</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="mb-1">Outstanding </p>
-                        <h6 className="fs-14 fw-semibold">$3589</h6>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center justify-content-end gap-2">
-                          <Link
-                            to="/add-invoice"
-                            className="btn btn-icon btn-sm btn-light"
-                            data-bs-toggle="tooltip"
-                            title="New Invoice"
-                          >
-                            <i className="isax isax-add-circle"></i>
-                          </Link>
-                          <div data-bs-toggle="tooltip" title="Add Ledger">
-                            <Link href="#"
-                              className="btn btn-icon btn-sm btn-light"
-                              data-bs-toggle="modal"
-                              data-bs-target="#add_ledger"
-                            >
-                              <i className="isax isax-document-text-1"></i>
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-lg rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-01.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-1">
-                              <Link to="/customer-details">John Smith</Link>
-                            </h6>
-                            <p className="fs-13">No of Invoices : 16</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="mb-1">Outstanding </p>
-                        <h6 className="fs-14 fw-semibold">$5426</h6>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center justify-content-end gap-2">
-                          <Link
-                            to="/add-invoice"
-                            className="btn btn-icon btn-sm btn-light"
-                            data-bs-toggle="tooltip"
-                            title="New Invoice"
-                          >
-                            <i className="isax isax-add-circle"></i>
-                          </Link>
-                          <div data-bs-toggle="tooltip" title="Add Ledger">
-                            <Link href="#"
-                              className="btn btn-icon btn-sm btn-light"
-                              data-bs-toggle="modal"
-                              data-bs-target="#add_ledger"
-                            >
-                              <i className="isax isax-document-text-1"></i>
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-lg rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-38.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-1">
-                              <Link to="/customer-details">Olivia Harris</Link>
-                            </h6>
-                            <p className="fs-13">No of Invoices : 23</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="mb-1">Outstanding </p>
-                        <h6 className="fs-14 fw-semibold">$1493</h6>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center justify-content-end gap-2">
-                          <Link
-                            to="/add-invoice"
-                            className="btn btn-icon btn-sm btn-light"
-                            data-bs-toggle="tooltip"
-                            title="New Invoice"
-                          >
-                            <i className="isax isax-add-circle"></i>
-                          </Link>
-                          <div data-bs-toggle="tooltip" title="Add Ledger">
-                            <Link href="#"
-                              className="btn btn-icon btn-sm btn-light"
-                              data-bs-toggle="modal"
-                              data-bs-target="#add_ledger"
-                            >
-                              <i className="isax isax-document-text-1"></i>
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-lg rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-12.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-1">
-                              <Link to="/customer-details">William Parker</Link>
-                            </h6>
-                            <p className="fs-13">No of Invoices : 58</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="mb-1">Outstanding </p>
-                        <h6 className="fs-14 fw-semibold">$7854</h6>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center justify-content-end gap-2">
-                          <Link
-                            to="/add-invoice"
-                            className="btn btn-icon btn-sm btn-light"
-                            data-bs-toggle="tooltip"
-                            title="New Invoice"
-                          >
-                            <i className="isax isax-add-circle"></i>
-                          </Link>
-                          <div data-bs-toggle="tooltip" title="Add Ledger">
-                            <Link href="#"
-                              className="btn btn-icon btn-sm btn-light"
-                              data-bs-toggle="modal"
-                              data-bs-target="#add_ledger"
-                            >
-                              <i className="isax isax-document-text-1"></i>
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-lg rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-02.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-1">
-                              <Link to="/customer-details">Charlotte Brown</Link>
-                            </h6>
-                            <p className="fs-13">No of Invoices : 09</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="mb-1">Outstanding </p>
-                        <h6 className="fs-14 fw-semibold">$4989</h6>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center justify-content-end gap-2">
-                          <Link
-                            to="/add-invoice"
-                            className="btn btn-icon btn-sm btn-light"
-                            data-bs-toggle="tooltip"
-                            title="New Invoice"
-                          >
-                            <i className="isax isax-add-circle"></i>
-                          </Link>
-                          <div data-bs-toggle="tooltip" title="Add Ledger">
-                            <Link href="#"
-                              className="btn btn-icon btn-sm btn-light"
-                              data-bs-toggle="modal"
-                              data-bs-target="#add_ledger"
-                            >
-                              <i className="isax isax-document-text-1"></i>
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <Link
-                to="/customers"
-                className="btn btn-light btn-lg w-100 text-decoration-underline mt-3"
-              >
-                All Customers
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* end row */}
-
-      {/* start row */}
-      <div className="row">
-        <div className="col-md-12">
-          <div className="card">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
-                <h6 className="mb-1">Invoices</h6>
-                <Link to="/invoices" className="btn btn-primary mb-1">
-                  View all Invoices
-                </Link>
-              </div>
-              <div className="table-responsive no-filter no-pagination">
-                <table className="table table-nowrap border mb-0">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
+                      <th>Invoice No</th>
                       <th>Customer</th>
-                      <th>Created On</th>
-                      <th>Amount</th>
-                      <th>Paid</th>
-                      <th>Payment Mode</th>
-                      <th>Due Date</th>
+                      <th>Date</th>
+                      <th className="text-end">Amount</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00025
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-22.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
+                    {recentInvoices.map((inv, idx) => (
+                      <tr key={inv.id || idx}>
+                        <td>
+                          <Link to={`/invoicing/sales/${inv.id}`} className="fw-medium text-primary text-decoration-none">
+                            {inv.invoice_number || inv.invoice_no || `#${inv.id}`}
                           </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">Emily Clark</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>22 Feb 2025</td>
-                      <td className="text-dark">$10,000</td>
-                      <td>$5,000</td>
-                      <td className="text-dark">Cash</td>
-                      <td>04 Mar 2025</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00024
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-07.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">John Carter</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>07 Feb 2025</td>
-                      <td className="text-dark">$25,750</td>
-                      <td>$5,000</td>
-                      <td className="text-dark">Check</td>
-                      <td>20 Feb 2025</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00023
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-16.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">Sophia White</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>09 Dec 2024</td>
-                      <td className="text-dark">$1,20,500</td>
-                      <td>$60,000</td>
-                      <td className="text-dark">Check</td>
-                      <td>12 Nov 2024</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00022
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-08.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">Michael Johnson</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>30 Nov 2024</td>
-                      <td className="text-dark">$7,50,300</td>
-                      <td>$60,000</td>
-                      <td className="text-dark">Check</td>
-                      <td>25 Oct 2024</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00016
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-15.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">Daniel Martinez</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>12 Oct 2024</td>
-                      <td className="text-dark">$9,99,999</td>
-                      <td>$4,00,000</td>
-                      <td className="text-dark">Cash</td>
-                      <td>18 Oct 2024</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link to="/invoice-details" className="link-default">
-                          INV00015
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="/customer-details"
-                            className="avatar avatar-sm rounded-circle me-2 flex-shrink-0"
-                          >
-                            <img
-                              src="/assets/img/users/user-27.jpg"
-                              className="rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 fw-medium mb-0">
-                              <Link to="/customer-details">Ava Taylor</Link>
-                            </h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td>25 Sep 2024</td>
-                      <td className="text-dark">$3,50,000</td>
-                      <td>$1,50,000</td>
-                      <td className="text-dark">Bank Transfer</td>
-                      <td>10 Oct 2024</td>
-                    </tr>
+                        </td>
+                        <td className="fs-13">{inv.customer?.name || inv.customer_name || '—'}</td>
+                        <td className="fs-12 text-muted">{inv.invoice_date || inv.date || '—'}</td>
+                        <td className="text-end fw-bold">{formatCurrency(inv.net_total || inv.amount)}</td>
+                        <td>
+                          <span className={`badge badge-soft-${getPaymentStatusBadge(inv.payment_status || inv.status)} rounded-pill fs-11`}>
+                            {inv.payment_status || inv.status || 'DRAFT'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {recentInvoices.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center py-4 text-muted fs-13">
+                          <i className="isax isax-document-text-1 d-block fs-28 mb-2 opacity-25"></i>
+                          No invoices found
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Right Column */}
+        <div className="col-xl-4">
+          {/* Financial Summary Card */}
+          <div className="card border-0 shadow-sm mb-3 text-white" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' }}>
+            <div className="card-body">
+              <p className="fs-13 mb-3 opacity-75 fw-medium">Financial Summary</p>
+
+              <div className="mb-3">
+                <p className="fs-12 mb-1 opacity-75">Net Position</p>
+                <h3 className="fw-bold mb-0">{formatCurrency(financials.net_position)}</h3>
+              </div>
+
+              <hr className="border-white opacity-25" />
+
+              <div className="row g-2 mt-1">
+                <div className="col-6">
+                  <Link to="/sales-report" className="text-white text-decoration-none d-block custom-card-hover">
+                    <p className="fs-12 mb-1 opacity-75">Month Sales</p>
+                    <p className="fw-bold mb-0">{formatCurrencyShort(financials.month_sales)}</p>
+                  </Link>
+                </div>
+                <div className="col-6">
+                  <Link to="/purchases-report" className="text-white text-decoration-none d-block custom-card-hover">
+                    <p className="fs-12 mb-1 opacity-75">Month Purchase</p>
+                    <p className="fw-bold mb-0">{formatCurrencyShort(financials.month_purchases)}</p>
+                  </Link>
+                </div>
+              </div>
+
+              <hr className="border-white opacity-25" />
+
+              <div className="row g-2">
+                <div className="col-6">
+                  <Link to="/stock-alerts" className="text-white text-decoration-none d-block custom-card-hover">
+                    <p className="fs-12 mb-1 opacity-75">Low Stock</p>
+                    <p className="fw-bold mb-0">{alerts.low_stock_items ?? '0'} items</p>
+                  </Link>
+                </div>
+                <div className="col-6">
+                  <Link to="/banking/cheques" className="text-white text-decoration-none d-block custom-card-hover">
+                    <p className="fs-12 mb-1 opacity-75">Pending Cheques</p>
+                    <p className="fw-bold mb-0">{alerts.pending_cheques ?? '0'}</p>
+                  </Link>
+                </div>
+              </div>
+
+              <hr className="border-white opacity-25" />
+              
+              <div className="row g-2">
+                <div className="col-12">
+                  <Link to="/master/investments" className="text-white text-decoration-none d-block custom-card-hover">
+                    <p className="fs-12 mb-1 opacity-75">Portfolio Value</p>
+                    <div className="d-flex align-items-center justify-content-between">
+                      <p className="fw-bold mb-0">{formatCurrencyShort(investmentSummary.current_value || investmentSummary.total_invested)}</p>
+                      <span className="badge bg-white text-primary fs-10">Live Tracker</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Customers */}
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold mb-0">Top Customers</h6>
+                <Link to="/customers" className="btn btn-sm btn-soft-primary fs-12">View All</Link>
+              </div>
+              <div className="d-grid gap-3">
+                {topCustomers.map((cust, idx) => (
+                  <div key={cust.id || idx} className="d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center gap-2">
+                      <div
+                        className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold fs-12"
+                        style={{ width: 36, height: 36, background: `hsl(${(idx * 60) % 360}, 60%, 55%)`, flexShrink: 0 }}
+                      >
+                        {(cust.name || cust.customer_name || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="fw-medium fs-13 mb-0">{cust.name || cust.customer_name || '—'}</p>
+                        <p className="fs-11 text-muted mb-0">
+                          {cust.city ? cust.city : cust.gstin ? cust.gstin : cust.email || 'Customer'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="badge badge-soft-success fs-11">Active</span>
+                  </div>
+                ))}
+                {topCustomers.length === 0 && (
+                  <div className="text-center py-4 text-muted fs-13">
+                    <i className="isax isax-profile-2user d-block fs-28 mb-2 opacity-25"></i>
+                    No customer data available
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      {/* end row */}
     </>
   );
 };

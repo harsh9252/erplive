@@ -9,13 +9,31 @@ const VoucherEntryLines = ({
   balanceError,
   validateBalance,
   entryError,
+  lineErrors = {},
+  clearLineError,
   isReadOnly = false,
+  voucherType = '', // 'PAYMENT', 'RECEIPT', 'CONTRA', 'JOURNAL'
 }) => {
   const [nextId, setNextId] = useState(Date.now() + Math.random());
 
-  const ledgerOptions = useMemo(() => 
-    ledgers.map(l => ({ value: l.id, label: l.name })),
-  [ledgers]);
+  const getLedgerOptions = (dr_cr) => {
+    let filtered = ledgers;
+    
+    const type = (voucherType || '').toUpperCase();
+    const isPayment = type.includes('PAYMENT') || type === 'PMT' || type === 'PYMT';
+    const isReceipt = type.includes('RECEIPT') || type === 'RCT' || type === 'RCPT';
+    const isContra = type.includes('CONTRA') || type === 'CNT';
+    
+    if (isPayment && dr_cr === 'CR') {
+      filtered = ledgers.filter(l => l.ledger_type === 'cash_bank' || l.group_name?.toLowerCase().includes('cash') || l.group_name?.toLowerCase().includes('bank'));
+    } else if (isReceipt && dr_cr === 'DR') {
+      filtered = ledgers.filter(l => l.ledger_type === 'cash_bank' || l.group_name?.toLowerCase().includes('cash') || l.group_name?.toLowerCase().includes('bank'));
+    } else if (isContra) {
+      filtered = ledgers.filter(l => l.ledger_type === 'cash_bank' || l.group_name?.toLowerCase().includes('cash') || l.group_name?.toLowerCase().includes('bank'));
+    }
+
+    return filtered.map(l => ({ value: l.id, label: l.name }));
+  };
 
   const costCenterOptions = useMemo(() => 
     costCenters.map(cc => ({ value: cc.id, label: cc.name })),
@@ -29,6 +47,12 @@ const VoucherEntryLines = ({
         entry.id === id ? { ...entry, [field]: value } : entry
       )
     );
+
+    if (clearLineError) {
+      if (field === 'amount') clearLineError(id, 'amount');
+      if (field === 'ledger_id') clearLineError(id, 'ledger');
+    }
+
     // Validate balance on amount change or dr_cr
     if (field === 'amount' || field === 'dr_cr') {
       setTimeout(() => validateBalance(), 0);
@@ -102,8 +126,8 @@ const VoucherEntryLines = ({
             <thead className="table-light fs-13">
               <tr>
                 <th style={{ minWidth: '250px' }}>Ledger Account <span className="text-danger">*</span></th>
-                <th className="text-center" style={{ minWidth: '80px', width: '80px' }}>Dr/Cr</th>
-                <th className="text-end" style={{ minWidth: '130px', width: '130px' }}>Amount <span className="text-danger">*</span></th>
+                <th className="text-center" style={{ minWidth: '100px', width: '100px' }}>Dr/Cr</th>
+                <th className="text-end" style={{ minWidth: '150px', width: '150px' }}>Amount <span className="text-danger">*</span></th>
                 <th style={{ minWidth: '180px' }}>Cost Centre</th>
                 <th style={{ minWidth: '200px' }}>Remark/Line Narration</th>
                 <th className="text-center" style={{ width: '50px' }}></th>
@@ -114,12 +138,14 @@ const VoucherEntryLines = ({
                 <tr key={entry.id}>
                   <td>
                     <SearchableSelect
-                      options={ledgerOptions}
+                      options={getLedgerOptions(entry.dr_cr)}
                       value={entry.ledger_id}
                       onChange={(val) => handleEntryChange(entry.id, 'ledger_id', val)}
                       placeholder="Search Ledger Name..."
                       disabled={isReadOnly}
+                      className={lineErrors[`entry_ledger_${entry.id}`] ? 'is-invalid' : ''}
                     />
+                    {lineErrors[`entry_ledger_${entry.id}`] && <div className="invalid-feedback d-block mt-1">{lineErrors[`entry_ledger_${entry.id}`]}</div>}
                   </td>
                   <td className="text-center">
                     <select
@@ -135,7 +161,7 @@ const VoucherEntryLines = ({
                   <td>
                     <input
                       type="number"
-                      className="form-control form-control-sm text-end fw-600"
+                      className={`form-control form-control-sm text-end fw-600 ${lineErrors[`entry_amount_${entry.id}`] ? 'is-invalid' : ''}`}
                       placeholder="0.00"
                       value={entry.amount}
                       onChange={(e) => handleEntryChange(entry.id, 'amount', e.target.value)}
@@ -143,6 +169,7 @@ const VoucherEntryLines = ({
                       min="0"
                       disabled={isReadOnly}
                     />
+                    {lineErrors[`entry_amount_${entry.id}`] && <div className="invalid-feedback d-block mt-1 text-start">{lineErrors[`entry_amount_${entry.id}`]}</div>}
                   </td>
                   <td>
                     <select
@@ -180,15 +207,16 @@ const VoucherEntryLines = ({
             </tbody>
             <tfoot className="table-light fw-600">
               <tr>
-                <td className="text-end">Total DR Accounted:</td>
-                <td colSpan="2" className="text-end text-primary">₹{totalDR.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="text-end">Total CR Accounted:</td>
-                <td colSpan="2" className="text-end text-success">₹{totalCR.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td colSpan="2" className="text-end text-muted">Total DR Accounted:</td>
+                <td className="text-end text-primary fs-14 fw-bold">₹{totalDR.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="text-end text-muted">Total CR Accounted:</td>
+                <td className="text-start text-success fs-14 fw-bold ps-3">₹{totalCR.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td></td>
               </tr>
               {!isBalanced && (
                 <tr className="table-warning text-danger">
-                  <td colSpan="4" className="text-end fs-13">Unbalanced Difference:</td>
-                  <td colSpan="2" className="text-end">₹{Math.abs(totalDR - totalCR).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td colSpan="4" className="text-end fs-13 fw-bold">Unbalanced Difference:</td>
+                  <td colSpan="2" className="text-start ps-3 fw-bold">₹{Math.abs(totalDR - totalCR).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               )}
             </tfoot>

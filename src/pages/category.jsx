@@ -43,9 +43,9 @@ const Category = () => {
                 </div>
               </th>
               <th>Category</th>
-              <th className="no-sort">No of Products</th>
-              <th className="no-sort"></th>
-              <th className="no-sort"></th>
+              <th className="no-sort text-center">No of Products</th>
+              <th className="no-sort text-center">Status</th>
+              <th className="no-sort text-end pe-4">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -77,31 +77,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -132,31 +134,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -187,31 +191,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -242,31 +248,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -297,31 +305,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -352,31 +362,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -407,31 +419,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -462,31 +476,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -517,31 +533,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>
@@ -572,31 +590,33 @@ const Category = () => {
                   <input className="form-check-input" type="checkbox" role="switch" checked />
                 </div>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="isax isax-more"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                    >
-                      <i className="isax isax-edit me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="dropdown">
+                  <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                    <i className="isax isax-more fs-18"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                    <li>
+                      <Link
+                        href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_modal"
+                      >
+                        <i className="isax isax-edit-2 me-2 text-warning"></i>Edit
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="#"
+                        className="dropdown-item py-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete_modal"
+                      >
+                        <i className="isax isax-trash me-2 text-danger"></i>Delete
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </td>
             </tr>
             <tr>

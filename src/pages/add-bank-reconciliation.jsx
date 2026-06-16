@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { bankReconciliationService } from '../services/bankReconciliationService';
-import { ledgerService } from '../services/ledgerService';
-import { ledgerGroupService } from '../services/ledgerGroupService';
+import { bankAccountService } from '../services/bankAccountService';
 
 const AddBankReconciliation = () => {
   const navigate = useNavigate();
@@ -18,6 +17,7 @@ const AddBankReconciliation = () => {
       { id: Date.now(), transaction_date: new Date().toISOString().split('T')[0], cheque_no: '', description: '', debit_amount: 0, credit_amount: 0 }
     ]
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchBankAccounts();
@@ -25,14 +25,13 @@ const AddBankReconciliation = () => {
 
   const fetchBankAccounts = async () => {
     try {
-      const groupsResp = await ledgerGroupService.getGroups();
-      const bankGroup = (groupsResp.data || []).find(g => g.name === 'Bank Accounts');
-      if (bankGroup) {
-        const ledgersResp = await ledgerService.getLedgers({ group_id: bankGroup.id, limit: 100 });
-        setBankAccounts(ledgersResp.data || []);
+      const response = await bankAccountService.getBankAccounts();
+      if (response.success) {
+        setBankAccounts(response.data || []);
       }
     } catch (error) {
       console.error('Error fetching bank accounts:', error);
+      toast.error("Failed to load bank accounts");
     }
   };
 
@@ -64,12 +63,27 @@ const AddBankReconciliation = () => {
     });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.bank_account_id) newErrors.bank_account_id = "Please select a bank account.";
+    if (!formData.statement_date) newErrors.statement_date = "Statement date is required.";
+    if (formData.statement_balance === '' || formData.statement_balance === null || formData.statement_balance === undefined) {
+      newErrors.statement_balance = "Closing balance is required.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.bank_account_id) {
-      toast.error("Please select a bank account");
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -112,7 +126,7 @@ const AddBankReconciliation = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-header bg-transparent border-bottom-0 pt-4 px-4 pb-0">
             <h5 className="card-title mb-0">Reconciliation Details</h5>
@@ -122,38 +136,40 @@ const AddBankReconciliation = () => {
               <div className="col-md-4">
                 <label className="form-label fw-600">Bank Account <span className="text-danger">*</span></label>
                 <select 
-                  className="form-select"
-                  required
+                  className={`form-select ${errors.bank_account_id ? 'is-invalid' : ''}`}
                   value={formData.bank_account_id}
-                  onChange={(e) => setFormData({ ...formData, bank_account_id: e.target.value })}
+                  onChange={(e) => handleInputChange('bank_account_id', e.target.value)}
                 >
                   <option value="">Select Bank Account</option>
                   {bankAccounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    <option key={acc.id} value={acc.id}>
+                      {acc.bank_name} - {acc.account_number}
+                    </option>
                   ))}
                 </select>
+                {errors.bank_account_id && <div className="invalid-feedback">{errors.bank_account_id}</div>}
               </div>
               <div className="col-md-4">
                 <label className="form-label fw-600">Statement Date <span className="text-danger">*</span></label>
                 <input 
                   type="date" 
-                  className="form-control"
-                  required
+                  className={`form-control ${errors.statement_date ? 'is-invalid' : ''}`}
                   value={formData.statement_date}
-                  onChange={(e) => setFormData({ ...formData, statement_date: e.target.value })}
+                  onChange={(e) => handleInputChange('statement_date', e.target.value)}
                 />
+                {errors.statement_date && <div className="invalid-feedback">{errors.statement_date}</div>}
               </div>
               <div className="col-md-4">
                 <label className="form-label fw-600">Closing Balance (as per statement) <span className="text-danger">*</span></label>
                 <input 
                   type="number" 
                   step="0.01"
-                  className="form-control"
-                  required
+                  className={`form-control ${errors.statement_balance ? 'is-invalid' : ''}`}
                   value={formData.statement_balance}
-                  onChange={(e) => setFormData({ ...formData, statement_balance: e.target.value })}
+                  onChange={(e) => handleInputChange('statement_balance', e.target.value)}
                   placeholder="0.00"
                 />
+                {errors.statement_balance && <div className="invalid-feedback">{errors.statement_balance}</div>}
               </div>
             </div>
           </div>

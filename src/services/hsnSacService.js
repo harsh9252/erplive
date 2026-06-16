@@ -34,11 +34,36 @@ export const deleteHsnSacCode = async (id) =>
     method: 'DELETE',
   });
 
+export const getRateAtDate = async (id, date) =>
+  apiRequest({
+    url: `/api/hsn-sac/${id}/rate`,
+    method: 'GET',
+    params: { date },
+  });
+
+export const getRateHistory = async (id) =>
+  normalizeListResponse(
+    await apiRequest({
+      url: `/api/hsn-sac/${id}/rates`,
+      method: 'GET',
+    }),
+  );
+
+export const createRateHistory = async (id, payload) =>
+  apiRequest({
+    url: `/api/hsn-sac/${id}/rates`,
+    method: 'POST',
+    data: payload,
+  });
+
 export const hsnSacService = {
   getHsnSacCodes,
   createHsnSacCode,
   updateHsnSacCode,
   deleteHsnSacCode,
+  getRateAtDate,
+  getRateHistory,
+  createRateHistory,
 };
 
 export default hsnSacService;

@@ -25,24 +25,24 @@ const MatchBankReconciliation = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [summaryResp, bankResp, erpResp, matchedResp] = await Promise.all([
+      const [summaryResp, unmatchedResp, matchedResp] = await Promise.all([
         bankReconciliationService.getReconciliationSummary(id),
-        bankReconciliationService.getUnmatchedTransactions(id), // This should return bank entries
-        bankReconciliationService.getUnmatchedTransactions(id), // Wait, the spec says getUnmatched returns ERP vouchers too or separate endpoints?
-        // Re-reading spec: 
-        // GET /api/bank-reconciliations/{id}/unmatched -> bank entries not yet matched to ERP vouchers
-        // GET /api/bank-reconciliations/{id}/matched -> already matched pairs
+        bankReconciliationService.getUnmatchedTransactions(id),
         bankReconciliationService.getMatchedTransactions(id)
       ]);
 
       setSummary(summaryResp.data);
-      // Note: The spec says /unmatched returns bank entries. 
-      // I'll assume bankResp.data contains the bank statement entries that are unmatched.
-      // For ERP Vouchers, we might need another endpoint or the same one returns both.
-      // Assuming for now that 'unmatched' returns bank entries, and we might need to fetch ERP vouchers filtered by bank account.
-      setUnmatchedBank(bankResp.data || []);
-      // Placeholder for ERP vouchers if not in the same endpoint
-      setUnmatchedErp(erpResp.data?.erp_vouchers || []); 
+      
+      // The unmatched endpoint may return an array directly or an object { bank_entries: [], erp_vouchers: [] }
+      const unmatchedData = unmatchedResp.data || [];
+      if (Array.isArray(unmatchedData)) {
+        setUnmatchedBank(unmatchedData);
+        setUnmatchedErp([]);
+      } else {
+        setUnmatchedBank(unmatchedData.bank_entries || []);
+        setUnmatchedErp(unmatchedData.erp_vouchers || []); 
+      }
+      
       setMatchedPairs(matchedResp.data || []);
       
     } catch (error) {
@@ -50,6 +50,37 @@ const MatchBankReconciliation = () => {
       toast.error('Failed to load reconciliation data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Suggest Match Helper
+  const handleSuggestMatch = () => {
+    let matchCount = 0;
+    const updatedEntries = unmatchedBank.map(entry => {
+      if (entry.matched) return entry;
+      
+      // Find exactly matching amount in ERP vouchers
+      const potentialVoucher = unmatchedErp.find(v => {
+        // If bank entry is Debit (Outbound), look for ERP Payment (Debit)
+        // If bank entry is Credit (Inbound), look for ERP Receipt (Credit)
+        const amt = entry.debit_amount > 0 ? entry.debit_amount : entry.credit_amount;
+        const vAmt = v.debit_amount > 0 ? v.debit_amount : v.credit_amount;
+        
+        return vAmt === amt && !v.matched;
+      });
+
+      if (potentialVoucher) {
+        matchCount++;
+        return { ...entry, suggest_match_id: potentialVoucher.id, suggest_match_name: potentialVoucher.description || potentialVoucher.voucher_no };
+      }
+      return entry;
+    });
+
+    if (matchCount > 0) {
+      setUnmatchedBank(updatedEntries);
+      toast.success(`Found ${matchCount} potential matches! Highlighted in blue.`);
+    } else {
+      toast.info("No exact amount matches found.");
     }
   };
 
@@ -94,6 +125,29 @@ const MatchBankReconciliation = () => {
   };
 
   const handleFinalize = async () => {
+    const totalUnmatched = unmatchedBank.length + unmatchedErp.length;
+    const currentVariance = Math.abs(statementBalance - erpBalance);
+
+    if (totalUnmatched > 0) {
+      Swal.fire({
+        title: 'Cannot Finalize',
+        text: `There are still ${totalUnmatched} unmatched transactions. All entries must be matched before finalizing.`,
+        icon: 'warning',
+        confirmButtonColor: '#d33'
+      });
+      return;
+    }
+
+    if (currentVariance > 0.01) { // Allowing for tiny rounding differences
+      Swal.fire({
+        title: 'Variance Detected',
+        text: `There is still a variance of ${currentVariance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}. The ERP balance must match the statement balance.`,
+        icon: 'warning',
+        confirmButtonColor: '#d33'
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Finalize Reconciliation?',
       text: "This will lock the reconciliation record. You won't be able to match or unmatch after this.",
@@ -108,7 +162,8 @@ const MatchBankReconciliation = () => {
           toast.success("Reconciliation finalized!");
           navigate('/accounting/bank-reconciliation');
         } catch (error) {
-          toast.error("Finalization failed");
+          const message = error.response?.data?.message || error.message || "Finalization failed";
+          toast.error(message);
         }
       }
     });
@@ -126,6 +181,11 @@ const MatchBankReconciliation = () => {
   const statementBalance = summary?.statement_balance || 0;
   const variance = statementBalance - erpBalance;
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return dateString.split('T')[0];
+  };
+
   return (
     <>
       {/* Header with Summary Stats */}
@@ -133,7 +193,7 @@ const MatchBankReconciliation = () => {
         <div className="row align-items-center">
           <div className="col">
             <h4 className="page-title">{summary?.bank_account_name || 'Bank Reconciliation'}</h4>
-            <p className="text-muted small mb-0">Statement Date: {summary?.statement_date}</p>
+            <p className="text-muted small mb-0">Statement Date: {formatDate(summary?.statement_date)}</p>
           </div>
           <div className="col-auto d-flex gap-2">
             <button className="btn btn-success" onClick={handleFinalize} disabled={summary?.status === 'FINALIZED'}>
@@ -228,7 +288,7 @@ const MatchBankReconciliation = () => {
                             onClick={() => setSelectedBankEntry(entry)}
                             style={{ cursor: 'pointer' }}
                           >
-                            <td>{entry.transaction_date}</td>
+                            <td>{formatDate(entry.transaction_date)}</td>
                             <td className="small">{entry.description}</td>
                             <td className={`text-end fw-500 ${entry.debit_amount > 0 ? 'text-success' : 'text-danger'}`}>
                               {entry.debit_amount > 0 ? entry.debit_amount : -entry.credit_amount}
@@ -275,7 +335,7 @@ const MatchBankReconciliation = () => {
                             onClick={() => setSelectedErpVoucher(v)}
                             style={{ cursor: 'pointer' }}
                           >
-                            <td>{v.voucher_date}</td>
+                            <td>{formatDate(v.voucher_date)}</td>
                             <td className="small">
                               <div className="fw-600">{v.voucher_number || v.v_no}</div>
                               <div className="text-muted text-truncate" style={{ maxWidth: '150px' }}>{v.narration}</div>
@@ -321,23 +381,24 @@ const MatchBankReconciliation = () => {
                       <tr key={pair.id}>
                         <td>
                           <div className="small fw-600">{pair.bank_entry?.description}</div>
-                          <div className="text-muted small">{pair.bank_entry?.transaction_date}</div>
+                          <div className="text-muted small">{formatDate(pair.bank_entry?.transaction_date)}</div>
                         </td>
                         <td className="text-center"><i className="isax isax-tick-circle text-success"></i></td>
                         <td>
                           <div className="small fw-600">{pair.erp_voucher?.voucher_number}</div>
-                          <div className="text-muted small">{pair.erp_voucher?.voucher_date}</div>
+                          <div className="text-muted small">{formatDate(pair.erp_voucher?.voucher_date)}</div>
                         </td>
                         <td className="text-end fw-600">
                            {parseFloat(pair.amount || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                         </td>
                         <td className="text-center">
                           <button 
-                            className="btn btn-sm btn-soft-danger btn-icon"
+                            className="btn btn-sm btn-soft-danger border-0"
                             onClick={() => handleUnmatch(pair.bank_entry_id)}
                             disabled={summary?.status === 'FINALIZED'}
+                            title="Unmatch"
                           >
-                            <i className="isax isax-trash"></i>
+                            <i className="isax isax-trash fs-16"></i>
                           </button>
                         </td>
                       </tr>

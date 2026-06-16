@@ -115,19 +115,19 @@ export default function HotelBookingInvoice() {
                       <td>Special Menu</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>150.00</p>
                         </div>
                       </td>
@@ -137,19 +137,19 @@ export default function HotelBookingInvoice() {
                       <td>Special Menu</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>150.00</p>
                         </div>
                       </td>
@@ -159,19 +159,19 @@ export default function HotelBookingInvoice() {
                       <td>Special Menu</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>150.00</p>
                         </div>
                       </td>
@@ -181,19 +181,19 @@ export default function HotelBookingInvoice() {
                       <td>Special Menu</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>50.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>150.00</p>
                         </div>
                       </td>
@@ -207,7 +207,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-light">
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0 fw-medium">$</p>
+                          <p className="mb-0 fw-medium">₹</p>
                           <p className="fw-medium">200.00</p>
                         </div>
                       </td>
@@ -221,7 +221,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-dark">
                         <div className="d-flex justify-content-between align-items-center text-white">
-                          <p className="mb-0 fw-semibold">$</p>
+                          <p className="mb-0 fw-semibold">₹</p>
                           <p className="fw-semibold">600.00</p>
                         </div>
                       </td>
@@ -248,7 +248,7 @@ export default function HotelBookingInvoice() {
                     <tr className="odd">
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>175.00</p>
                         </div>
                       </td>
@@ -256,19 +256,19 @@ export default function HotelBookingInvoice() {
                       <td>Personal</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>525.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>25.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>500.00</p>
                         </div>
                       </td>
@@ -276,7 +276,7 @@ export default function HotelBookingInvoice() {
                     <tr>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>155.00</p>
                         </div>
                       </td>
@@ -284,19 +284,19 @@ export default function HotelBookingInvoice() {
                       <td>Trip</td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>600.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>45.00</p>
                         </div>
                       </td>
                       <td>
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0">$</p>
+                          <p className="mb-0">₹</p>
                           <p>89,955.00</p>
                         </div>
                       </td>
@@ -311,7 +311,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-light">
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0 fw-medium">$</p>
+                          <p className="mb-0 fw-medium">₹</p>
                           <p className="fw-medium">70.00</p>
                         </div>
                       </td>
@@ -326,7 +326,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-light">
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0 fw-medium">$</p>
+                          <p className="mb-0 fw-medium">₹</p>
                           <p className="fw-medium">90,455.00</p>
                         </div>
                       </td>
@@ -341,7 +341,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-light">
                         <div className="d-flex justify-content-between align-items-center">
-                          <p className="mb-0 fw-medium">$</p>
+                          <p className="mb-0 fw-medium">₹</p>
                           <p className="fw-medium">475.00</p>
                         </div>
                       </td>
@@ -371,7 +371,7 @@ export default function HotelBookingInvoice() {
                       </td>
                       <td className="bg-dark">
                         <div className="d-flex justify-content-between align-items-center text-white">
-                          <p className="mb-0 fw-semibold">$</p>
+                          <p className="mb-0 fw-semibold">₹</p>
                           <p className="fw-semibold">600.00</p>
                         </div>
                       </td>

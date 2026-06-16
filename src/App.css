@@ -206,3 +206,87 @@ body.slide-nav .sidebar-overlay {
 body.slide-nav .sidebar {
   transform: translateX(0); /* slide in */
 }
+
+@media (max-width: 991.98px) {
+  .header .header-user .user-menu {
+    justify-content: flex-end !important;
+    gap: 0.5rem;
+  }
+
+  .header .header-user .user-menu .dropdown,
+  .header .header-user .user-menu .profile-dropdown {
+    position: relative !important;
+  }
+
+  .header .header-user .user-menu .dropdown .dropdown-menu,
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu {
+    z-index: 2000;
+    min-width: 200px;
+  }
+
+  .header .header-user .user-menu .profile-dropdown {
+    position: static !important;
+    right: auto !important;
+  }
+
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu {
+    right: 0;
+    left: auto;
+  }
+
+  .header .header-user .user-menu .dropdown .dropdown-menu,
+  .header .header-user .user-menu .profile-dropdown .dropdown-menu {
+    position: fixed !important;
+    top: 56px !important;
+    right: 12px !important;
+    left: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+/* Responsive Header Layout Fix */
+@media (max-width: 575.98px) {
+  .header .main-header {
+    height: 60px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    padding: 0 10px !important;
+  }
+
+  .header .header-user {
+    width: auto !important;
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .header .user-menu {
+    margin: 0;
+    padding: 0;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end !important;
+    width: auto !important;
+  }
+
+  /* Ensure the toggle button doesn't shrink */
+  #toggle_btn {
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+
+  /* Compact the user menu items to save space */
+  .header .user-menu .btn-menubar {
+    padding: 0.4rem !important;
+    margin: 0 2px !important;
+  }
+
+  /* Hide text labels on mobile if they exist */
+  .header .user-menu .user-name {
+    display: none !important;
+  }
+}

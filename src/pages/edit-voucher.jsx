@@ -4,8 +4,10 @@ import VoucherEntryLines from '../components/VoucherEntryLines';
 import { voucherService } from '../services/voucherService';
 import { ledgerService } from '../services/ledgerService';
 import { costCenterService } from '../services/costCenterService';
+import branchService from '../services/branchService';
 import approvalService from '../services/approvalService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const EditVoucher = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const EditVoucher = () => {
     reference_number: '',
     narration: '',
     cost_center_id: '',
+    branch_id: '',
   });
 
   const [entries, setEntries] = useState([
@@ -28,6 +31,7 @@ const EditVoucher = () => {
   const [voucherTypes, setVoucherTypes] = useState([]);
   const [ledgers, setLedgers] = useState([]);
   const [costCenters, setCostCenters] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [errors, setErrors] = useState({});
   const [balanceError, setBalanceError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -78,6 +82,21 @@ const EditVoucher = () => {
     fetchCostCenters();
   }, []);
 
+  // Load branches
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await branchService.getBranches();
+        if (response && response.data) {
+          setBranches(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+      }
+    };
+    fetchBranches();
+  }, []);
+
   // Load existing voucher
   useEffect(() => {
     const fetchVoucher = async () => {
@@ -93,9 +112,10 @@ const EditVoucher = () => {
             reference_number: voucher.reference_number || '',
             narration: voucher.narration || '',
             cost_center_id: voucher.cost_center_id || '',
+            branch_id: voucher.branch_id || voucher.branch?.id || '',
           });
           setEntries(voucher.entries || []);
-          setIsPosted(voucher.status === 'Posted');
+          setIsPosted(voucher.status?.toUpperCase() === 'POSTED');
         }
       } catch (error) {
         console.error('Error fetching voucher:', error);
@@ -158,17 +178,25 @@ const EditVoucher = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  /* 
-   * Voucher updates are not supported by the current backend API. 
-   * We keep the submission handler to provide feedback to the user.
-   */
 
   const handlePostVoucher = async () => {
-    if (window.confirm('Are you sure you want to post this voucher? Posted vouchers cannot be edited.')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Are you sure you want to post this voucher? Posted vouchers cannot be edited.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0066cc',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, post it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
       setLoading(true);
       try {
         await voucherService.postVoucher(id);
         setIsPosted(true);
+        toast.success('Voucher posted successfully!');
       } catch (error) {
         console.error('Error posting voucher:', error);
         setErrors({ submit: error.message || 'Failed to post voucher' });
@@ -179,8 +207,28 @@ const EditVoucher = () => {
   };
 
   const handleSubmitForApproval = async () => {
-    const remarks = window.prompt('Enter any remarks for approval (optional):');
-    if (remarks === null) return;
+    const { value: remarks } = await Swal.fire({
+      title: 'Submit for Approval',
+      input: 'textarea',
+      inputLabel: 'Remarks (Mandatory)',
+      inputPlaceholder: 'Enter any remarks for the approver...',
+      showCancelButton: true,
+      confirmButtonText: 'Submit Now',
+      confirmButtonColor: '#0066cc',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0 b-0',
+        confirmButton: 'btn btn-primary px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false,
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return 'You must enter remarks to submit for approval!';
+        }
+      }
+    });
+
+    if (!remarks) return;
 
     setLoading(true);
     try {
@@ -190,8 +238,7 @@ const EditVoucher = () => {
         remarks: remarks,
       });
       toast.success('Submitted for approval successfully!');
-      // Reload voucher state if possible or navigate
-      navigate('/vouchers');
+      navigate('/accounting/vouchers');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit for approval');
     } finally {
@@ -201,7 +248,37 @@ const EditVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Voucher updates are not exposed by the current backend API. Post or cancel the voucher instead.');
+
+    if (!validateBalance() || !validateForm()) {
+      toast.error('Please fix the validation errors before submitting.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        voucher_date: formData.voucher_date,
+        reference_number: formData.reference_number,
+        narration: formData.narration,
+        entries: entries
+          .filter((e) => e.ledger_id && e.amount)
+          .map((e) => ({
+            ledger_id: parseInt(e.ledger_id),
+            amount: parseFloat(e.amount),
+            dr_cr: e.dr_cr,
+            narration: e.narration,
+          })),
+      };
+
+      await voucherService.updateVoucher(id, payload);
+      toast.success('Voucher updated successfully!');
+      navigate('/accounting/vouchers');
+    } catch (error) {
+      console.error('Error updating voucher:', error);
+      toast.error(error.response?.data?.message || error.message || 'Failed to update voucher');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pageWrapperStyle = {
@@ -228,7 +305,7 @@ const EditVoucher = () => {
           <p className="text-muted mb-0">Update existing voucher details and post to ledger</p>
         </div>
         <div className="page-header-right">
-          <Link to="/vouchers" className="btn btn-outline-secondary d-flex align-items-center">
+          <Link to="/accounting/vouchers" className="btn btn-outline-secondary d-flex align-items-center">
             <i className="isax isax-arrow-left-2 me-2"></i>Back to List
           </Link>
         </div>
@@ -258,7 +335,7 @@ const EditVoucher = () => {
             )}
 
             <div className="row g-3">
-              <div className="col-lg-3 col-md-6 col-12">
+              <div className="col-lg-2 col-md-6 col-12">
                 <label className="form-label fw-600">
                   Voucher Type <span className="text-danger">*</span>
                 </label>
@@ -270,7 +347,9 @@ const EditVoucher = () => {
                   disabled={true}
                 >
                   <option value="">Select Type</option>
-                  {voucherTypes.map((type) => (
+                  {voucherTypes
+                    .filter(type => !['SALES', 'PURCHASE', 'CREDIT NOTE', 'DEBIT NOTE'].includes(type.name?.toUpperCase()))
+                    .map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
                     </option>
@@ -279,6 +358,20 @@ const EditVoucher = () => {
                 {errors.voucher_type_id && (
                   <div className="invalid-feedback d-block">{errors.voucher_type_id}</div>
                 )}
+              </div>
+
+              <div className="col-lg-2 col-md-6 col-12">
+                <label className="form-label fw-600">Branch <span className="text-danger">*</span></label>
+                <select
+                  name="branch_id"
+                  className="form-select bg-light"
+                  value={formData.branch_id}
+                  onChange={handleInputChange}
+                  disabled={true}
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
               </div>
 
               <div className="col-lg-2 col-md-6 col-12">
@@ -315,7 +408,7 @@ const EditVoucher = () => {
                 )}
               </div>
 
-              <div className="col-lg-4 col-md-6 col-12">
+              <div className="col-lg-3 col-md-6 col-12">
                 <label className="form-label fw-600">Reference No.</label>
                 <input
                   type="text"
@@ -358,7 +451,7 @@ const EditVoucher = () => {
 
         {/* Action Buttons */}
         <div className="d-flex align-items-center justify-content-between mt-4 mb-5">
-           <Link to="/vouchers" className="btn btn-light">
+           <Link to="/accounting/vouchers" className="btn btn-light">
             <i className="isax isax-arrow-left-2 me-2"></i>Back to List
           </Link>
           <div className="d-flex gap-3">

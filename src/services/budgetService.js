@@ -5,14 +5,31 @@ import {
   normalizeListResponse,
 } from "./apiUtils";
 
-const getBudgets = async (params = {}) =>
-  normalizeListResponse(
-    await apiRequest({
-      url: "/api/budgets",
-      method: "GET",
-      params: cleanParams(params),
-    }),
-  );
+let fetchBudgetsInProgress = new Map();
+
+const getBudgets = async (params = {}) => {
+  const paramKey = JSON.stringify(params);
+  if (fetchBudgetsInProgress.has(paramKey)) {
+    return fetchBudgetsInProgress.get(paramKey);
+  }
+
+  const promise = (async () => {
+    try {
+      return normalizeListResponse(
+        await apiRequest({
+          url: "/api/budgets",
+          method: "GET",
+          params: cleanParams(params),
+        })
+      );
+    } finally {
+      fetchBudgetsInProgress.delete(paramKey);
+    }
+  })();
+
+  fetchBudgetsInProgress.set(paramKey, promise);
+  return promise;
+};
 
 const getBudget = async (id) =>
   apiRequest({

@@ -51,7 +51,7 @@ const QUICK_ACTIONS = [
   {
     label: 'Sales Order',
     route: '/invoicing/sales-orders/add',
-    icon: 'isax-note-text-1',
+    icon: 'isax-note-text',
     module: 'sales_invoice',
     action: 'create'
   },
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
       <div className="row">
         {/* Total Receivables */}
         <div className="col-sm-6 col-xl-3 d-flex mb-4">
-          <Link to="/outstanding-reports" className="card overflow-hidden z-1 flex-fill mb-0">
+          <Link to="/reports/outstanding-reports" state={{ reportType: 'receivables' }} className="card overflow-hidden z-1 flex-fill mb-0">
             <div className="card-body">
               <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
                 <div>
@@ -256,7 +256,7 @@ const AdminDashboard = () => {
 
         {/* Total Payables */}
         <div className="col-sm-6 col-xl-3 d-flex mb-4">
-          <Link to="/outstanding-reports" className="card overflow-hidden z-1 flex-fill mb-0">
+          <Link to="/reports/outstanding-reports" state={{ reportType: 'payables' }} className="card overflow-hidden z-1 flex-fill mb-0">
             <div className="card-body">
               <div className="d-flex align-items-center justify-content-between border-bottom mb-2 pb-2">
                 <div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { getCompanies, createCompany, updateCompany, updateCompanyStatus } from '../services/companyService';
+import { getCompanies, createCompany, updateCompany, updateCompanyStatus, getCompanyById, getBusinessNatures } from '../services/companyService';
 import { switchCompany } from '../services/authService';
 import { useAuth } from '../components/AuthContext';
 import { toast } from 'react-toastify';
@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const Companies = () => {
-  const { activeCompany } = useAuth();
+  const { activeCompany, switchCompany: contextSwitchCompany } = useAuth();
   // State for companies list
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,22 +18,28 @@ const Companies = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [sortBy, setSortBy] = useState('latest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
   const [editingCompany, setEditingCompany] = useState(null);
-  const [deletingCompanyId, setDeletingCompanyId] = useState(null);
+  const [filterCompanyIds, setFilterCompanyIds] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [companySearch, setCompanySearch] = useState('');
+
   const [statusChangeData, setStatusChangeData] = useState(null); // { id, newStatus, oldStatus }
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState({
     company: true,
-    email: true,
+    legalName: true,
+    email: false,
     url: true,
     plan: true,
-    createdOn: true,
+    createdOn: false,
     status: true,
   });
 
-  // State for add company modal
   const [companyData, setCompanyData] = useState({
     name: '',
     legal_name: '',
@@ -46,6 +52,12 @@ const Companies = () => {
     pincode: '',
     phone: '',
     email: '',
+    business_nature_id: '',
+    tan: '',
+    cin: '',
+    currency: 'INR',
+    country: 'India',
+    timezone: 'Asia/Kolkata'
   });
 
   const [errors, setErrors] = useState({});
@@ -64,6 +76,7 @@ const Companies = () => {
   // State codes mapping
   const stateCodeMap = {
     'Jammu & Kashmir': '01',
+    'Jammu and Kashmir': '01',
     'Himachal Pradesh': '02',
     'Punjab': '03',
     'Chandigarh': '04',
@@ -88,6 +101,7 @@ const Companies = () => {
     'Madhya Pradesh': '23',
     'Gujarat': '24',
     'Dadra & Nagar Haveli and Daman & Diu': '26',
+    'Dadra and Nagar Haveli and Daman and Diu': '26',
     'Maharashtra': '27',
     'Andhra Pradesh': '28',
     'Karnataka': '29',
@@ -97,11 +111,13 @@ const Companies = () => {
     'Tamil Nadu': '33',
     'Puducherry': '34',
     'Andaman & Nicobar': '35',
+    'Andaman and Nicobar Islands': '35',
     'Telangana': '36',
+    'Ladakh': '38',
     'Other Territory': '96',
   };
 
-  const businessTypes = [
+  const [businessTypes, setBusinessTypes] = useState([
     { id: 1, name: 'Sole Proprietorship' },
     { id: 2, name: 'Partnership' },
     { id: 3, name: 'Private Limited' },
@@ -110,7 +126,7 @@ const Companies = () => {
     { id: 6, name: 'HUF' },
     { id: 7, name: 'Trust' },
     { id: 8, name: 'NGO' },
-  ];
+  ]);
 
   const location = useLocation();
 
@@ -123,19 +139,21 @@ const Companies = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('edit') === 'true' && companies.length > 0 && !editingCompany) {
-      handleEdit(companies[0]);
-
-      // We need to wait a bit for the DOM to be ready if it's a fresh navigation
-      setTimeout(() => {
-        const modalElement = document.getElementById('add_companies');
-        if (modalElement) {
-          let modal = window.bootstrap.Modal.getInstance(modalElement);
-          if (!modal) {
-            modal = new window.bootstrap.Modal(modalElement);
+      const autoEdit = async () => {
+        await handleEdit(companies[0]);
+        // We need to wait a bit for the DOM to be ready if it's a fresh navigation
+        setTimeout(() => {
+          const modalElement = document.getElementById('add_companies');
+          if (modalElement) {
+            let modal = window.bootstrap.Modal.getInstance(modalElement);
+            if (!modal) {
+              modal = new window.bootstrap.Modal(modalElement);
+            }
+            modal.show();
           }
-          modal.show();
-        }
-      }, 500);
+        }, 100);
+      };
+      autoEdit();
     }
   }, [location.search, companies]);
 
@@ -148,20 +166,25 @@ const Companies = () => {
 
       const companiesList = Array.isArray(response.data) ? response.data : [];
 
+      // We removed the N+1 API call fetching full details for every single company here.
+      // This improves initial load performance dramatically.
+      // Details are now fetched on-demand when user clicks "Edit" (inside handleEdit).
+
       const transformedCompanies = companiesList.map(company => ({
         id: company.id,
         name: company.name,
+        legalName: company.legal_name || '-',
         email: company.email || '',
-        url: company.website || '',
+        url: company.website || company.url || '',
         plan: 'Basic (Monthly)',
-        createdOn: (company.createdAt && !isNaN(new Date(company.createdAt))) ? new Date(company.createdAt).toLocaleDateString('en-GB', {
+        createdOn: (company.createdAt || company.created_at) && !isNaN(new Date(company.createdAt || company.created_at)) ? new Date(company.createdAt || company.created_at).toLocaleDateString('en-GB', {
           day: '2-digit',
           month: 'short',
           year: 'numeric'
         }) : 'N/A',
         status: company.is_active ? 'Active' : 'Inactive',
         logo: '/assets/img/icons/company-01.svg',
-        raw: company // Store the full company object for editing
+        raw: company // Store the basic company object for editing
       }));
       setCompanies(transformedCompanies);
 
@@ -184,6 +207,21 @@ const Companies = () => {
       setLoading(false);
     }
   };
+
+  // Fetch dynamic business natures from API
+  useEffect(() => {
+    const fetchBusinessNatures = async () => {
+      try {
+        const response = await getBusinessNatures();
+        if (response && response.success && Array.isArray(response.data)) {
+          setBusinessTypes(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching business natures:', error);
+      }
+    };
+    fetchBusinessNatures();
+  }, []);
 
   // Fetch countries from API
   useEffect(() => {
@@ -338,12 +376,17 @@ const Companies = () => {
   };
 
   const validateTAN = (tan) => {
-    const tanRegex = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/;
+    const tanRegex = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/i;
     return tanRegex.test(tan);
   };
 
+  const validateCIN = (cin) => {
+    const cinRegex = /^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/i;
+    return cinRegex.test(cin);
+  };
+
   const validatePhone = (phone) => {
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
     return phoneRegex.test(phone);
   };
 
@@ -365,17 +408,25 @@ const Companies = () => {
 
     if (!companyData.legal_name.trim()) newErrors.legal_name = 'Legal name is required';
 
-    if (!companyData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required';
-    } else if (!validateGSTIN(companyData.gstin)) {
+    if (companyData.gstin.trim() && !validateGSTIN(companyData.gstin)) {
       newErrors.gstin = 'Invalid GSTIN format (e.g., 22AAAAA0000A1Z5)';
     }
 
-    if (!companyData.pan.trim()) {
-      newErrors.pan = 'PAN is required';
-    } else if (!validatePAN(companyData.pan)) {
+    if (companyData.pan.trim() && !validatePAN(companyData.pan)) {
       newErrors.pan = 'Invalid PAN format (e.g., AAAAA0000A)';
     }
+
+    if (companyData.tan && companyData.tan.trim() && !validateTAN(companyData.tan)) {
+      newErrors.tan = 'Invalid TAN format (e.g., AAAA11111A)';
+    }
+
+    if (companyData.cin && companyData.cin.trim() && !validateCIN(companyData.cin)) {
+      newErrors.cin = 'Invalid CIN format (e.g., U74140DL2026PTC123456)';
+    }
+
+    if (!companyData.address.trim()) newErrors.address = 'Address is required';
+    if (!companyData.city.trim()) newErrors.city = 'City is required';
+    if (!companyData.state) newErrors.state = 'State is required';
 
     if (!companyData.pincode.trim()) {
       newErrors.pincode = 'Pincode is required';
@@ -386,7 +437,7 @@ const Companies = () => {
     if (!companyData.phone.trim()) {
       newErrors.phone = 'Phone is required';
     } else if (!validatePhone(companyData.phone)) {
-      newErrors.phone = 'Phone must be 10 digits';
+      newErrors.phone = 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9';
     }
 
     if (!companyData.email.trim()) {
@@ -400,7 +451,18 @@ const Companies = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    if (name === 'email') {
+      value = value.replace(/[^a-zA-Z0-9@.]/g, '');
+    }
+    if (name === 'phone' || name === 'pincode') {
+      value = value.replace(/\D/g, '');
+    }
+    if (['gstin', 'pan', 'tan', 'cin'].includes(name)) {
+      value = value.toUpperCase();
+    }
+
     setCompanyData((prev) => ({
       ...prev,
       [name]: value,
@@ -488,42 +550,36 @@ const Companies = () => {
     setLoading(true);
 
     try {
+      const payload = {
+        name: companyData.name,
+        legal_name: companyData.legal_name,
+        gstin: companyData.gstin,
+        pan: companyData.pan,
+        address: companyData.address,
+        city: companyData.city,
+        state: companyData.state,
+        state_code: companyData.state_code,
+        pincode: companyData.pincode,
+        phone: companyData.phone,
+        email: companyData.email,
+        business_nature_id: companyData.business_nature_id ? Number(companyData.business_nature_id) : null,
+        business_nature: companyData.business_nature_id ? businessTypes.find(t => String(t.id) === String(companyData.business_nature_id))?.name : null,
+        tan: companyData.tan || null,
+        cin: companyData.cin || null,
+        currency: companyData.currency || 'INR',
+        country: companyData.country || 'India',
+        timezone: companyData.timezone || 'Asia/Kolkata'
+      };
+
       if (editingCompany) {
         // Update existing company
-        const payload = {
-          name: companyData.name,
-          legal_name: companyData.legal_name,
-          gstin: companyData.gstin,
-          pan: companyData.pan,
-          address: companyData.address,
-          city: companyData.city,
-          state: companyData.state,
-          state_code: companyData.state_code,
-          pincode: companyData.pincode,
-          phone: companyData.phone,
-          email: companyData.email,
-        };
-
         await updateCompany(editingCompany.id, payload);
         toast.success('Company updated successfully!');
       } else {
         // Create new company
-        const payload = {
-          name: companyData.name,
-          legal_name: companyData.legal_name,
-          gstin: companyData.gstin,
-          pan: companyData.pan,
-          address: companyData.address,
-          city: companyData.city,
-          state: companyData.state,
-          state_code: companyData.state_code,
-          pincode: companyData.pincode,
-          phone: companyData.phone,
-          email: companyData.email,
-        };
-
         await createCompany(payload);
         toast.success('Company created successfully!');
+        window.dispatchEvent(new Event('COMPANY_CREATED'));
       }
 
       // Refresh companies list
@@ -570,6 +626,12 @@ const Companies = () => {
       pincode: '',
       phone: '',
       email: '',
+      business_nature_id: '',
+      tan: '',
+      cin: '',
+      currency: 'INR',
+      country: 'India',
+      timezone: 'Asia/Kolkata'
     });
     setEditingCompany(null);
     setErrors({});
@@ -578,10 +640,12 @@ const Companies = () => {
   // Handler functions for table operations
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleStatusFilter = (status) => {
     setFilterStatus(status === filterStatus ? '' : status);
+    setCurrentPage(1);
   };
 
   const handleSort = (sortType) => {
@@ -606,11 +670,31 @@ const Companies = () => {
     setSearchTerm('');
     setFilterStatus('');
     setSelectedCompanies([]);
+    setFilterCompanyIds([]);
+    setStartDate('');
+    setEndDate('');
+    setCurrentPage(1);
   };
 
-  const handleEdit = (company) => {
-    setEditingCompany(company);
-    const raw = company.raw || {};
+  const handleEdit = async (company) => {
+    setLoading(true);
+    let raw = company.raw || {};
+    
+    try {
+      // Fetch full details on demand to avoid N+1 queries on page load
+      const detailRes = await getCompanyById(company.id);
+      if (detailRes && detailRes.data) {
+        raw = { ...raw, ...detailRes.data };
+      }
+    } catch (err) {
+      console.error(`Error fetching full details for company ${company.id}:`, err);
+      toast.error('Failed to load full company details. Form may have incomplete data.');
+    } finally {
+      setLoading(false);
+    }
+
+    const updatedCompany = { ...company, raw };
+    setEditingCompany(updatedCompany);
     console.log('DEBUG: handleEdit raw data:', raw);
 
     // Find ISO codes based on names
@@ -635,6 +719,12 @@ const Companies = () => {
       pincode: raw.pincode || '',
       phone: raw.phone || '',
       email: raw.email || '',
+      business_nature_id: raw.business_nature_id || '',
+      tan: raw.tan || '',
+      cin: raw.cin || '',
+      currency: raw.currency || 'INR',
+      country: raw.country || 'India',
+      timezone: raw.timezone || 'Asia/Kolkata'
     });
   };
 
@@ -720,20 +810,7 @@ const Companies = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    setDeletingCompanyId(id);
-  };
 
-  const confirmDelete = () => {
-    setCompanies(prev => prev.filter(c => c.id !== deletingCompanyId));
-    setDeletingCompanyId(null);
-    // Close modal
-    const modalElement = document.getElementById('delete_modal');
-    const modal = window.bootstrap.Modal.getInstance(modalElement);
-    if (modal) {
-      modal.hide();
-    }
-  };
 
   const handleStatusChange = (id, newStatus) => {
     const company = companies.find(c => c.id === id);
@@ -753,17 +830,37 @@ const Companies = () => {
         setLoading(true);
         const isActive = statusChangeData.newStatus === 'Active';
         console.log(`DEBUG: Initiating status change for company ${statusChangeData.id} to is_active=${isActive}`);
-        const response = await updateCompanyStatus(statusChangeData.id, isActive);
-        console.log('DEBUG: Status update response from backend:', response);
+        
+        // Close modal and cleanup backdrop BEFORE async operations that might unmount the component
+        const modalElement = document.getElementById('status_change_modal');
+        if (modalElement) {
+          const modal = window.bootstrap.Modal.getInstance(modalElement);
+          if (modal) modal.hide();
+        }
+        // Force cleanup of Bootstrap modal leftovers in case of rapid unmount
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
 
-        toast.success(`Company status updated to ${statusChangeData.newStatus}`);
+        // Save reference and clear state
+        const currentChangeData = statusChangeData;
         setStatusChangeData(null);
 
-        // Close modal
-        const modalElement = document.getElementById('status_change_modal');
-        const modal = window.bootstrap.Modal.getInstance(modalElement);
-        if (modal) {
-          modal.hide();
+        const response = await updateCompanyStatus(currentChangeData.id, isActive);
+        console.log('DEBUG: Status update response from backend:', response);
+
+        toast.success(`Company status updated to ${currentChangeData.newStatus}`);
+        
+        if (isActive) {
+          try {
+            await contextSwitchCompany(currentChangeData.id);
+            toast.success(`Switched active company to ${currentChangeData.companyName}`);
+          } catch (switchErr) {
+            console.error('Error auto-switching company:', switchErr);
+            toast.error('Could not auto-switch to this company');
+          }
         }
 
         // Re-fetch data to verify persistence and update UI from server state
@@ -785,7 +882,7 @@ const Companies = () => {
       [columnName]: !prev[columnName]
     }));
   };
-  
+
   const handleSwitchCompany = async (companyId) => {
     try {
       setLoading(true);
@@ -800,14 +897,49 @@ const Companies = () => {
       setLoading(false);
     }
   };
-  
-  // Filter and sort companies
+
   const filteredAndSortedCompanies = companies
     .filter(company => {
-      const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // 1. Search term filter
+      const matchesSearch = !searchTerm ||
+        company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         company.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // 2. Status filter
       const matchesStatus = !filterStatus || company.status === filterStatus;
-      return matchesSearch && matchesStatus;
+
+      // 3. Company selection filter
+      const matchesCompany = filterCompanyIds.length === 0 || filterCompanyIds.includes(company.id);
+
+      // 4. Date range filter
+      let matchesDate = true;
+      if (startDate || endDate) {
+        const createdRaw = company.raw?.createdAt || company.raw?.created_at;
+        
+        if (createdRaw) {
+          const createdDate = new Date(createdRaw);
+          if (!isNaN(createdDate.getTime())) {
+            // Get local YYYY-MM-DD format
+            const yyyy = createdDate.getFullYear();
+            const mm = String(createdDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(createdDate.getDate()).padStart(2, '0');
+            const companyDateStr = `${yyyy}-${mm}-${dd}`;
+            
+            if (startDate && companyDateStr < startDate) {
+              matchesDate = false;
+            }
+            if (endDate && companyDateStr > endDate) {
+              matchesDate = false;
+            }
+          } else {
+            matchesDate = false;
+          }
+        } else {
+          matchesDate = false;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesCompany && matchesDate;
     })
     .sort((a, b) => {
       if (sortBy === 'latest') {
@@ -819,6 +951,11 @@ const Companies = () => {
       }
       return 0;
     });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCompanies = filteredAndSortedCompanies.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredAndSortedCompanies.length / itemsPerPage);
 
   return (
     <>
@@ -861,7 +998,7 @@ const Companies = () => {
         </div>
       </div>
       <div className="row">
-        <div className="col-xl-3 col-lg-4 col-md-6">
+        <div className="col-xl-4 col-lg-4 col-md-6">
           <div className="card position-relative">
             <div className="card-body">
               <div className="d-flex align-items-center pb-0">
@@ -878,7 +1015,7 @@ const Companies = () => {
             </div>
           </div>
         </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
+        <div className="col-xl-4 col-lg-4 col-md-6">
           <div className="card position-relative">
             <div className="card-body">
               <div className="d-flex align-items-center pb-0">
@@ -895,7 +1032,7 @@ const Companies = () => {
             </div>
           </div>
         </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
+        <div className="col-xl-4 col-lg-4 col-md-6">
           <div className="card position-relative">
             <div className="card-body">
               <div className="d-flex align-items-center pb-0">
@@ -907,23 +1044,6 @@ const Companies = () => {
                 <div>
                   <p className="mb-1">Inactive Company</p>
                   <h6 className="fs-16 fw-semibold">{companies.filter(c => c.status === 'Inactive').length}</h6>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-xl-3 col-lg-4 col-md-6">
-          <div className="card position-relative">
-            <div className="card-body">
-              <div className="d-flex align-items-center pb-0">
-                <div className="me-2">
-                  <span className="avatar avatar-lg bg-primary-subtle">
-                    <i className="isax isax-map5 text-primary fs-28"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="mb-1">Company Locations</p>
-                  <h6 className="fs-16 fw-semibold">{companies.length}</h6>
                 </div>
               </div>
             </div>
@@ -941,6 +1061,10 @@ const Companies = () => {
                   placeholder="Search companies..."
                   value={searchTerm}
                   onChange={handleSearch}
+                  autoComplete="one-time-code"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck="false"
                 />
                 <span className="btn-searchset">
                   <i className="isax isax-search-normal fs-12"></i>
@@ -956,120 +1080,7 @@ const Companies = () => {
               <i className="isax isax-filter me-1"></i>Filter
             </a>
           </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown" style={{ position: "relative" }}>
-              <a
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center fw-medium"
-                data-bs-toggle="dropdown" data-bs-auto-close="outside"
-              >
-                <i className="isax isax-sort me-1"></i>Sort By :{' '}
-                <span className="fw-normal ms-1">
-                  {sortBy === 'latest' ? 'Latest' : sortBy === 'oldest' ? 'Oldest' : 'Name'}
-                </span>
-              </a>
-              <ul className="dropdown-menu  dropdown-menu-end">
-                <li>
-                  <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); handleSort('latest'); }}>
-                    Latest
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); handleSort('oldest'); }}>
-                    Oldest
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); handleSort('name'); }}>
-                    Name
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div className="dropdown" style={{ position: "relative" }}>
-              <a
-                href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown" data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </a>
-              <ul className="dropdown-menu dropdown-menu-lg">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.company}
-                      onChange={() => toggleColumn('company')}
-                    />
-                    <span>Company</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.email}
-                      onChange={() => toggleColumn('email')}
-                    />
-                    <span>Email</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.url}
-                      onChange={() => toggleColumn('url')}
-                    />
-                    <span>Domain URL</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.plan}
-                      onChange={() => toggleColumn('plan')}
-                    />
-                    <span>Plan</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.createdOn}
-                      onChange={() => toggleColumn('createdOn')}
-                    />
-                    <span>Created On</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={visibleColumns.status}
-                      onChange={() => toggleColumn('status')}
-                    />
-                    <span>Status</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
-          </div>
+
         </div>
         <div className="align-items-center gap-2 flex-wrap filter-info mt-3">
           <h6 className="fs-13 fw-semibold">Filters</h6>
@@ -1089,18 +1100,26 @@ const Companies = () => {
               </span>
             </span>
           )}
-          {selectedCompanies.length > 0 && (
+          {filterCompanyIds.length > 0 && (
             <span className="tag bg-light border rounded-1 fs-12 text-dark badge">
               <span className="num-count d-inline-flex align-items-center justify-content-center bg-success fs-10 me-1">
-                {selectedCompanies.length}
+                {filterCompanyIds.length}
               </span>
-              Companies Selected
-              <span className="ms-1 tag-close" onClick={() => setSelectedCompanies([])} style={{ cursor: 'pointer' }}>
+              Companies Filtered
+              <span className="ms-1 tag-close" onClick={() => setFilterCompanyIds([])} style={{ cursor: 'pointer' }}>
                 <i className="fa-solid fa-x fs-10"></i>
               </span>
             </span>
           )}
-          {(searchTerm || filterStatus || selectedCompanies.length > 0) && (
+          {(startDate || endDate) && (
+            <span className="tag bg-light border rounded-1 fs-12 text-dark badge">
+              Date: {startDate || 'Any'} to {endDate || 'Any'}
+              <span className="ms-1 tag-close" onClick={() => { setStartDate(''); setEndDate(''); }} style={{ cursor: 'pointer' }}>
+                <i className="fa-solid fa-x fs-10"></i>
+              </span>
+            </span>
+          )}
+          {(searchTerm || filterStatus || filterCompanyIds.length > 0 || startDate || endDate) && (
             <Link to="#" className="link-danger fw-medium text-decoration-underline ms-md-1" onClick={(e) => { e.preventDefault(); clearFilters(); }}>
               Clear All
             </Link>
@@ -1111,30 +1130,18 @@ const Companies = () => {
         <table className="table table-nowrap datatable">
           <thead className="thead-light">
             <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="select-all"
-                    checked={selectedCompanies.length === filteredAndSortedCompanies.length && filteredAndSortedCompanies.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </div>
-              </th>
-              {visibleColumns.company && <th className="no-sort">Company</th>}
+              {visibleColumns.company && <th className="no-sort">Name</th>}
+              {visibleColumns.legalName && <th className="no-sort">Legal Name</th>}
               {visibleColumns.email && <th className="no-sort">Email</th>}
-              {visibleColumns.url && <th className="no-sort">Account URL</th>}
-              {visibleColumns.plan && <th>Plan</th>}
               {visibleColumns.createdOn && <th>Created On</th>}
-              {visibleColumns.status && <th className="no-sort">Status</th>}
+              {visibleColumns.status && <th>Status</th>}
               <th className="no-sort">Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredAndSortedCompanies.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-4">
+                <td colSpan="6" className="text-center py-4">
                   <div className="d-flex flex-column align-items-center">
                     <i className="isax isax-search-normal fs-48 text-muted mb-2"></i>
                     <p className="text-muted">No companies found</p>
@@ -1142,18 +1149,8 @@ const Companies = () => {
                 </td>
               </tr>
             ) : (
-              filteredAndSortedCompanies.map((company) => (
+              currentCompanies.map((company) => (
                 <tr key={company.id}>
-                  <td>
-                    <div className="form-check form-check-md">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={selectedCompanies.includes(company.id)}
-                        onChange={() => handleSelectCompany(company.id)}
-                      />
-                    </div>
-                  </td>
                   {visibleColumns.company && (
                     <td>
                       <div className="d-flex align-items-center">
@@ -1167,100 +1164,109 @@ const Companies = () => {
                             alt="img"
                           />
                         </Link>
-                        <div>
-                          <h6 className="fs-14 fw-medium mb-0">
-                            <Link to={`/company-details/${company.id}`}>{company.name}</Link>
+                        <div style={{ minWidth: '150px', maxWidth: '400px', whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                          <h6 className="fs-14 fw-medium mb-0" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                            <Link to={`/company-details/${company.id}`} style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>{company.name}</Link>
                           </h6>
                         </div>
                       </div>
                     </td>
                   )}
-                  {visibleColumns.email && <td>{company.email}</td>}
-                  {visibleColumns.url && <td>{company.url}</td>}
-                  {visibleColumns.plan && (
-                    <td>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <p className="mb-0">{company.plan}</p>
-                        <a href="#" className="ms-3" onClick={(e) => e.preventDefault()}>
-                          <span className="btn btn-sm btn-light p-1 d-inline-flex align-items-center">
-                            <i className="isax isax-candle"></i>
-                          </span>
-                        </a>
-                      </div>
-                    </td>
-                  )}
+                  {visibleColumns.legalName && <td style={{ wordBreak: 'break-all', whiteSpace: 'normal', minWidth: '120px', maxWidth: '300px' }}>{company.legalName}</td>}
+                  {visibleColumns.email && <td style={{ wordBreak: 'break-all', whiteSpace: 'normal', minWidth: '120px', maxWidth: '300px' }}>{company.email}</td>}
                   {visibleColumns.createdOn && <td>{company.createdOn}</td>}
                   {visibleColumns.status && (
                     <td>
-                    <div className="dropdown" style={{ position: "relative" }}>
-                        <a
-                          href="#"
-                          className={`badge ${company.status === 'Active' ? 'badge-soft-success' : 'badge-soft-danger'} d-inline-flex align-items-center dropdown-toggle`}
+                      <div className="dropdown">
+                        <span 
+                          className={`badge ${company.status === 'Active' ? 'bg-soft-success text-success border border-success' : 'bg-soft-danger text-danger border border-danger'} px-2 py-1 dropdown-toggle`}
                           data-bs-toggle="dropdown"
-                          aria-expanded="false"
+                          style={{ cursor: 'pointer' }}
                         >
                           {company.status}
-                          <i className={`isax ${company.status === 'Active' ? 'isax-tick-circle' : 'isax-close-circle'} ms-1`}></i>
-                        </a>
-                        <ul className="dropdown-menu">
+                        </span>
+                        <ul className="dropdown-menu shadow-sm border-0 fs-13" style={{ minWidth: '120px' }}>
                           <li>
-                            <a
-                              className="dropdown-item"
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleStatusChange(company.id, company.status === 'Active' ? 'Inactive' : 'Active');
+                            <button
+                              className={`dropdown-item d-flex align-items-center ${company.status === 'Active' ? 'bg-light text-muted' : ''}`}
+                              data-bs-toggle={company.status === 'Active' ? '' : 'modal'}
+                              data-bs-target={company.status === 'Active' ? '' : '#status_change_modal'}
+                              onClick={() => {
+                                if (company.status !== 'Active') handleStatusChange(company.id, 'Active');
                               }}
-                              data-bs-toggle="modal"
-                              data-bs-target="#status_change_modal"
+                              disabled={company.status === 'Active'}
                             >
-                              Mark as {company.status === 'Active' ? 'Inactive' : 'Active'}
-                            </a>
+                              <i className="isax isax-tick-circle text-success me-2"></i> Active
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className={`dropdown-item d-flex align-items-center ${company.status === 'Inactive' ? 'bg-light text-muted' : ''}`}
+                              data-bs-toggle={company.status === 'Inactive' ? '' : 'modal'}
+                              data-bs-target={company.status === 'Inactive' ? '' : '#status_change_modal'}
+                              onClick={() => {
+                                if (company.status !== 'Inactive') handleStatusChange(company.id, 'Inactive');
+                              }}
+                              disabled={company.status === 'Inactive'}
+                            >
+                              <i className="isax isax-close-circle text-danger me-2"></i> Inactive
+                            </button>
                           </li>
                         </ul>
                       </div>
                     </td>
                   )}
-                  <td className="action-item">
-                    <div className="d-flex gap-2">
-                       {activeCompany?.id !== company.id && (
-                        <button
-                          className="btn btn-sm btn-outline-info"
-                          title="Switch to this company"
-                          onClick={() => handleSwitchCompany(company.id)}
-                        >
-                          <i className="isax isax-refresh"></i>
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#add_companies"
-                        title="Edit"
-                        onClick={() => handleEdit(company)}
-                      >
-                        <i className="isax isax-edit"></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        data-bs-toggle="modal"
-                        data-bs-target="#delete_modal"
-                        title="Delete"
-                        onClick={() => handleDelete(company.id)}
-                      >
-                        <i className="isax isax-trash"></i>
-                      </button>
-                    </div>
+
+                  <td>
+                    <button
+                      className="btn btn-icon-sm btn-outline-white border-0 shadow-none p-0"
+                      data-bs-toggle="modal"
+                      data-bs-target="#add_companies"
+                      onClick={() => handleEdit(company)}
+                      title="Edit Company"
+                    >
+                      <i className="isax isax-edit-2 fs-18 text-warning"></i>
+                    </button>
                   </td>
                 </tr>
               ))
             )}
-
-
-
           </tbody>
         </table>
       </div>
+      {filteredAndSortedCompanies.length > 0 && (
+        <div className="row mt-3">
+          <div className="col-sm-12 col-md-5 d-flex align-items-center justify-content-center justify-content-md-start">
+            <div className="dataTables_info">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+              {Math.min(currentPage * itemsPerPage, filteredAndSortedCompanies.length)} of {filteredAndSortedCompanies.length} entries
+            </div>
+          </div>
+          <div className="col-sm-12 col-md-7 d-flex align-items-center justify-content-center justify-content-md-end">
+            <div className="dataTables_paginate paging_simple_numbers">
+              <ul className="pagination mb-0">
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+                    <i className="isax isax-arrow-left-2"></i>
+                  </button>
+                </li>
+                {[...Array(totalPages)].map((_, index) => (
+                  <li key={index} className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(index + 1)}>
+                      {index + 1}
+                    </button>
+                  </li>
+                )).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))}
+                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+                    <i className="isax isax-arrow-right-3"></i>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="offcanvas offcanvas-offset offcanvas-end" tabIndex="-1" id="customcanvas">
         <div className="offcanvas-header d-block pb-0">
           <div className="border-bottom d-flex align-items-center justify-content-between pb-3">
@@ -1282,14 +1288,16 @@ const Companies = () => {
               <div className="dropdown" style={{ position: "relative" }}>
                 <a
                   href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
+                  className="dropdown-toggle btn btn-lg bg-light d-flex align-items-center justify-content-start fs-13 fw-normal border"
                   data-bs-toggle="dropdown"
                   data-bs-auto-close="outside"
-                  aria-expanded="true"
+                  aria-expanded="false"
                 >
-                  Select
+                  {filterCompanyIds.length === 0
+                    ? 'Select'
+                    : `${filterCompanyIds.length} Selected`}
                 </a>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
+                <div className="dropdown-menu shadow-lg w-100 dropdown-info p-3" style={{ minWidth: '280px' }}>
                   <div className="mb-3">
                     <div className="input-icon-start position-relative">
                       <span className="input-icon-addon fs-12">
@@ -1298,226 +1306,121 @@ const Companies = () => {
                       <input
                         type="text"
                         className="form-control form-control-sm"
-                        placeholder="Search"
+                        placeholder="Search company"
+                        value={companySearch}
+                        onChange={(e) => setCompanySearch(e.target.value)}
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck="false"
                       />
                     </div>
                   </div>
-                  <ul className="mb-3">
-                    <li className="d-flex align-items-center justify-content-between mb-3">
-                      <label className="d-inline-flex align-items-center text-gray-9">
-                        <input className="form-check-input select-all m-0 me-2" type="checkbox" />{' '}
+                  <ul className="mb-3 list-unstyled p-0" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                    <li className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                      <label className="d-inline-flex align-items-center text-gray-9 mb-0 cursor-pointer">
+                        <input
+                          className="form-check-input select-all m-0 me-2"
+                          type="checkbox"
+                          checked={filterCompanyIds.length === companies.length && companies.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFilterCompanyIds(companies.map(c => c.id));
+                            } else {
+                              setFilterCompanyIds([]);
+                            }
+                          }}
+                        />{' '}
                         Select All
                       </label>
-                      <a href="#" className="link-danger fw-medium text-decoration-underline" onClick={(e) => e.preventDefault()}>
+                      <a
+                        href="#"
+                        className="link-danger fw-medium text-decoration-underline fs-12"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setFilterCompanyIds([]);
+                        }}
+                      >
                         Reset
                       </a>
                     </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-01.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Trend Hive
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-02.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Quick Cart
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-03.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Tech Bazaar
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-04.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Harvest Basket
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-05.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Elite Mart
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <span className="avatar avatar-sm rounded-circle me-2">
-                          <img
-                            src="/assets/img/icons/company-06.svg"
-                            className="flex-shrink-0 rounded-circle"
-                            alt="img"
-                          />
-                        </span>
-                        Prime Mart
-                      </label>
-                    </li>
+                    {companies
+                      .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+                      .map(c => (
+                        <li key={c.id} className="mb-2">
+                          <label className="dropdown-item px-2 d-flex align-items-center text-dark cursor-pointer rounded mb-0">
+                            <input
+                              className="form-check-input m-0 me-2"
+                              type="checkbox"
+                              checked={filterCompanyIds.includes(c.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilterCompanyIds(prev => [...prev, c.id]);
+                                } else {
+                                  setFilterCompanyIds(prev => prev.filter(id => id !== c.id));
+                                }
+                              }}
+                            />
+                            <span className="avatar avatar-sm rounded-circle me-2 flex-shrink-0" style={{ width: '24px', height: '24px' }}>
+                              <img
+                                src={c.logo}
+                                className="rounded-circle"
+                                alt="img"
+                                style={{ width: '24px', height: '24px' }}
+                              />
+                            </span>
+                            <span className="fs-13 text-truncate" style={{ maxWidth: '160px' }}>{c.name}</span>
+                          </label>
+                        </li>
+                      ))
+                    }
                   </ul>
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <a href="#" className="btn btn-outline-white w-100" id="close-filter" onClick={(e) => e.preventDefault()}>
-                        Cancel
-                      </a>
-                    </div>
-                    <div className="col-6">
-                      <a href="#" className="btn btn-primary w-100" onClick={(e) => e.preventDefault()}>
-                        Select
-                      </a>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
+
             <div className="mb-3">
               <label className="form-label">Date Range</label>
-              <div className="input-group position-relative">
-                <input type="text" className="form-control date-range bookingrange rounded-end" />
-                <span className="input-icon-addon fs-16 text-gray-9">
-                  <i className="isax isax-calendar-2"></i>
-                </span>
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Plan</label>
-              <div className="dropdown" style={{ position: "relative" }}>
-                <a
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
-                  data-bs-toggle="dropdown"
-                  data-bs-auto-close="outside"
-                  aria-expanded="true"
-                >
-                  Select
-                </a>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <div className="mb-3">
-                    <div className="input-icon-start position-relative">
-                      <span className="input-icon-addon fs-12">
-                        <i className="isax isax-search-normal"></i>
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Search"
-                      />
-                    </div>
-                  </div>
-                  <ul className="mb-3">
-                    <li className="d-flex align-items-center justify-content-between mb-3">
-                      <label className="d-inline-flex align-items-center text-gray-9">
-                        <input className="form-check-input select-all m-0 me-2" type="checkbox" />{' '}
-                        Select All
-                      </label>
-                      <a href="#" className="link-danger fw-medium text-decoration-underline" onClick={(e) => e.preventDefault()}>
-                        Reset
-                      </a>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> Advanced
-                        (Monthly)
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> Basic
-                        (Yearly)
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" /> Enterprise
-                        (Monthly)
-                      </label>
-                    </li>
-                  </ul>
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <a href="#" className="btn btn-outline-white w-100" id="close-filter1" onClick={(e) => e.preventDefault()}>
-                        Cancel
-                      </a>
-                    </div>
-                    <div className="col-6">
-                      <a href="#" className="btn btn-primary w-100" onClick={(e) => e.preventDefault()}>
-                        Select
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Status</label>
-              <div className="dropdown" style={{ position: "relative" }}>
-                <a
-                  href="#"
-                  className="dropdown-toggle btn btn-lg bg-light  d-flex align-items-center justify-content-start fs-13 fw-normal border"
-                  data-bs-toggle="dropdown"
-                  data-bs-auto-close="outside"
-                  aria-expanded="true"
-                >
-                  Select
-                </a>
-                <div className="dropdown-menu shadow-lg w-100 dropdown-info">
-                  <ul className="mb-3">
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <i className="fa-solid fa-circle fs-6 text-success me-1"></i>Active
-                      </label>
-                    </li>
-                    <li>
-                      <label className="dropdown-item px-2 d-flex align-items-center text-dark">
-                        <input className="form-check-input m-0 me-2" type="checkbox" />
-                        <i className="fa-solid fa-circle fs-6 text-danger me-1"></i>Inactive
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div className="offcanvas-footer">
               <div className="row g-2">
                 <div className="col-6">
-                  <a href="#" className="btn btn-outline-white w-100" onClick={(e) => e.preventDefault()}>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    placeholder="From"
+                  />
+                </div>
+                <div className="col-6">
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    placeholder="To"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Status</label>
+              <select
+                className="form-select form-select-lg bg-light fs-13"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                style={{ height: '46px' }}
+              >
+                <option value="">Select Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div className="offcanvas-footer mt-4">
+              <div className="row g-2">
+                <div className="col-6">
+                  <a href="#" className="btn btn-outline-white w-100" onClick={(e) => { e.preventDefault(); clearFilters(); }}>
                     Reset
                   </a>
                 </div>
@@ -1526,6 +1429,7 @@ const Companies = () => {
                     data-bs-dismiss="offcanvas"
                     className="btn btn-primary w-100"
                     id="filter-submit"
+                    type="button"
                   >
                     Submit
                   </button>
@@ -1556,7 +1460,7 @@ const Companies = () => {
               </button>
             </div>
             <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} autoComplete="off">
                 {/* Business Information */}
                 <div className="card mb-3 shadow-none border">
                   <div className="card-header bg-light-transparent">
@@ -1575,6 +1479,10 @@ const Companies = () => {
                           value={companyData.name}
                           onChange={handleInputChange}
                           placeholder="Enter company name"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
                       </div>
@@ -1590,6 +1498,10 @@ const Companies = () => {
                           value={companyData.legal_name}
                           onChange={handleInputChange}
                           placeholder="As per GST registration"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.legal_name && (
                           <div className="invalid-feedback d-block">{errors.legal_name}</div>
@@ -1598,7 +1510,7 @@ const Companies = () => {
 
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
-                          GSTIN <span className="text-danger">*</span>
+                          GSTIN
                         </label>
                         <input
                           type="text"
@@ -1607,13 +1519,17 @@ const Companies = () => {
                           value={companyData.gstin}
                           onChange={handleInputChange}
                           placeholder="e.g., 29AAPFY0939E1ZV"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
                       </div>
 
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
-                          PAN Number <span className="text-danger">*</span>
+                          PAN Number
                         </label>
                         <input
                           type="text"
@@ -1622,6 +1538,10 @@ const Companies = () => {
                           value={companyData.pan}
                           onChange={handleInputChange}
                           placeholder="e.g., AAPFY0939E"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.pan && <div className="invalid-feedback d-block">{errors.pan}</div>}
                       </div>
@@ -1631,12 +1551,16 @@ const Companies = () => {
                           Phone <span className="text-danger">*</span>
                         </label>
                         <input
-                          type="tel"
+                          type="text"
                           className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
                           name="phone"
                           value={companyData.phone}
                           onChange={handleInputChange}
                           placeholder="10-digit mobile number"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
                       </div>
@@ -1652,9 +1576,112 @@ const Companies = () => {
                           value={companyData.email}
                           onChange={handleInputChange}
                           placeholder="company@example.com"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
                       </div>
+
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Business Nature</label>
+                        <select
+                          className="form-select"
+                          name="business_nature_id"
+                          value={companyData.business_nature_id}
+                          onChange={handleInputChange}
+                        >
+                          <option value="">Select Business Nature</option>
+                          {businessTypes.map((type) => (
+                            <option key={type.id} value={type.id}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">TAN Number</label>
+                        <input
+                          type="text"
+                          className={`form-control ${errors.tan ? 'is-invalid' : ''}`}
+                          name="tan"
+                          value={companyData.tan}
+                          onChange={handleInputChange}
+                          placeholder="e.g., DELK12345F"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
+                        />
+                        {errors.tan && <div className="invalid-feedback d-block">{errors.tan}</div>}
+                      </div>
+
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">CIN Number</label>
+                        <input
+                          type="text"
+                          className={`form-control ${errors.cin ? 'is-invalid' : ''}`}
+                          name="cin"
+                          value={companyData.cin}
+                          onChange={handleInputChange}
+                          placeholder="e.g., U74140DL2026PTC123456"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
+                        />
+                        {errors.cin && <div className="invalid-feedback d-block">{errors.cin}</div>}
+                      </div>
+
+                      {/* <div className="col-md-6 mb-3">
+                        <label className="form-label">Currency</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="currency"
+                          value={companyData.currency}
+                          onChange={handleInputChange}
+                          placeholder="e.g., INR"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
+                        />
+                      </div> */}
+
+                      {/* <div className="col-md-6 mb-3">
+                        <label className="form-label">Country</label>
+                        <input
+                          type="text"
+                          className="form-control bg-light"
+                          name="country"
+                          value={companyData.country}
+                          readOnly
+                          placeholder="e.g., India"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
+                        />
+                      </div> */}
+
+                      {/* <div className="col-md-6 mb-3">
+                        <label className="form-label">Timezone</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="timezone"
+                          value={companyData.timezone}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Asia/Kolkata"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
+                        />
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -1677,6 +1704,10 @@ const Companies = () => {
                           onChange={handleInputChange}
                           placeholder="Full registered address"
                           rows="2"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         ></textarea>
                         {errors.address && (
                           <div className="invalid-feedback d-block">{errors.address}</div>
@@ -1744,6 +1775,10 @@ const Companies = () => {
                           value={companyData.pincode}
                           onChange={handleInputChange}
                           placeholder="Pincode"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck="false"
                         />
                         {errors.pincode && (
                           <div className="invalid-feedback d-block">{errors.pincode}</div>
@@ -1800,32 +1835,7 @@ const Companies = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <div className="modal fade" id="delete_modal">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Delete Company</h5>
-              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body">
-              <div className="text-center">
-                <i className="isax isax-trash text-danger" style={{ fontSize: '48px' }}></i>
-                <h6 className="mt-3">Are you sure you want to delete this company?</h6>
-                <p className="text-muted">This action cannot be undone.</p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-light" data-bs-dismiss="modal">
-                Cancel
-              </button>
-              <button type="button" className="btn btn-danger" onClick={confirmDelete}>
-                <i className="isax isax-trash me-2"></i>Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Status Change Confirmation Modal */}
       <div className="modal fade" id="status_change_modal">

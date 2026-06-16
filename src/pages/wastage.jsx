@@ -360,11 +360,19 @@ const Wastage = () => {
                       <td>{getStatusBadge(w.status || w.approval_status)}</td>
                       <td className="text-end pe-4">
                         {(w.status === 'PENDING' || w.approval_status === 'PENDING') && (
-                          <div className="btn-group">
-                            <button className="btn btn-sm btn-outline-success border-0" title="Approve" onClick={() => handleApproveAction(w)}>
+                          <div className="d-flex justify-content-end align-items-center gap-2">
+                            <button 
+                              className="btn btn-sm btn-soft-success border-0" 
+                              onClick={() => handleApproveAction(w)}
+                              title="Approve Wastage"
+                            >
                               <i className="isax isax-tick-circle fs-16"></i>
                             </button>
-                            <button className="btn btn-sm btn-outline-danger border-0" title="Reject" onClick={() => handleRejectAction(w)}>
+                            <button 
+                              className="btn btn-sm btn-soft-danger border-0" 
+                              onClick={() => handleRejectAction(w)}
+                              title="Reject Wastage"
+                            >
                               <i className="isax isax-close-circle fs-16"></i>
                             </button>
                           </div>

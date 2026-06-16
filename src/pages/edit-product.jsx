@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getItemById, updateItem } from '../services/productService';
+import { getItemById, updateItem, getHsnSacItems } from '../services/itemService';
+import { getCategories } from '../services/categoryService';
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -15,13 +16,27 @@ const EditProduct = () => {
     purchase_price: '',
     gst_rate: '',
     hsn_code: '',
-    opening_stock: '',
+    category_id: '',
     reorder_level: '',
     status: 'Active',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hsnResults, setHsnResults] = useState([]);
+  const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+  const [categoryResults, setCategoryResults] = useState([]);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [units, setUnits] = useState([]);
+
+  // Load units from localStorage (central registry)
+  useEffect(() => {
+    const storedUnits = localStorage.getItem('units');
+    if (storedUnits) {
+      setUnits(JSON.parse(storedUnits));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -33,20 +48,23 @@ const EditProduct = () => {
       try {
         const response = await getItemById(id);
         if (response.success && response.data) {
-          const item = response.data;
+          const item = response.data || response;
           setFormData({
             name: item.name || '',
             sku: item.sku || '',
             description: item.description || '',
             unit: item.unit || 'PCS',
-            sale_price: item.selling_price?.toString() || item.price?.toString() || item.sale_price?.toString() || '',
-            purchase_price: item.purchase_price?.toString() || item.cost_price?.toString() || '',
-            gst_rate: item.tax_rate?.toString() || item.gst_rate?.toString() || '',
+            sale_price: (item.sale_price || item.selling_price || 0).toString(),
+            purchase_price: (item.purchase_price || 0).toString(),
+            gst_rate: parseInt(item.gst_rate ?? item.tax_rate ?? 0).toString(),
             hsn_code: item.hsn_code || '',
-            opening_stock: item.opening_stock?.toString() || item.stock?.toString() || '',
-            reorder_level: item.reorder_level?.toString() || item.min_stock?.toString() || '',
+            category_id: item.category_id || item.category?.id || '',
+            reorder_level: (item.reorder_level || 0).toString(),
             status: item.is_active !== false ? 'Active' : 'Inactive',
           });
+          if (item.category?.name || item.category_name) {
+            setCategorySearch(item.category?.name || item.category_name);
+          }
         } else {
           toast.error('Product not found!', { position: 'top-right', autoClose: 3000 });
           navigate('/products');
@@ -63,10 +81,72 @@ const EditProduct = () => {
     fetchItem();
   }, [id, navigate]);
 
+  const searchHsn = async (query) => {
+    try {
+      const response = await getHsnSacItems(query);
+      const items = response.data?.items || response.data || [];
+      setHsnResults(items);
+      setShowHsnDropdown(true);
+    } catch (error) {
+      console.error('HSN search error:', error);
+    }
+  };
+
+  const selectHsn = (hsn) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      hsn_code: hsn.code,
+      gst_rate: hsn.gst_rate ? hsn.gst_rate.toString() : prev.gst_rate 
+    }));
+    setShowHsnDropdown(false);
+  };
+
+  const searchCategories = async (query) => {
+    try {
+      const response = await getCategories({ search: query, limit: 10 });
+      const items = response.data || [];
+      setCategoryResults(items);
+      setShowCategoryDropdown(true);
+    } catch (error) {
+      console.error('Category search error:', error);
+    }
+  };
+
+  const selectCategory = (category) => {
+    setFormData(prev => ({ ...prev, category_id: category.id }));
+    setCategorySearch(category.name);
+    setShowCategoryDropdown(false);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'hsn_code') {
+      searchHsn(value);
+    }
+    if (name === 'category_search') {
+      setCategorySearch(value);
+      searchCategories(value);
+      if (!value) {
+        setFormData(prev => ({ ...prev, category_id: '' }));
+      }
+    }
   };
+   
+  // Click outside listener for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showHsnDropdown && !event.target.closest('.hsn-dropdown-container')) {
+        setShowHsnDropdown(false);
+      }
+      if (showCategoryDropdown && !event.target.closest('.category-dropdown-container')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showHsnDropdown, showCategoryDropdown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,17 +157,7 @@ const EditProduct = () => {
 
     setIsSubmitting(true);
     try {
-      const itemData = {
-        name: formData.name,
-        description: formData.description,
-        sale_price: parseFloat(formData.sale_price) || 0,
-        purchase_price: parseFloat(formData.purchase_price) || 0,
-        gst_rate: parseFloat(formData.gst_rate) || 0,
-        hsn_code: formData.hsn_code,
-        reorder_level: parseFloat(formData.reorder_level) || 0,
-      };
-
-      await updateItem(id, itemData);
+      await updateItem(id, formData);
       toast.success('Product updated successfully!', { position: 'top-right', autoClose: 3000 });
       navigate('/products');
     } catch (error) {
@@ -146,34 +216,76 @@ const EditProduct = () => {
                 <div className="row">
                   <div className="col-md-6">
                     <div className="mb-3">
-                      <label className="form-label">SKU *</label>
+                      <label className="form-label">SKU</label>
                       <input
                         type="text"
-                        className="form-control"
+                        className="form-control bg-light"
                         name="sku"
                         value={formData.sku}
                         onChange={handleInputChange}
                         placeholder="e.g. HP-LAP-001"
-                        required
+                        disabled
                       />
+                      <small className="text-muted">SKU cannot be changed after creation.</small>
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">Unit</label>
                       <select
-                        className="form-control"
+                        className="form-control bg-light"
                         name="unit"
                         value={formData.unit}
                         onChange={handleInputChange}
+                        disabled
                       >
-                        <option value="PCS">PCS</option>
-                        <option value="KG">KG</option>
-                        <option value="MTR">MTR</option>
-                        <option value="LTR">LTR</option>
-                        <option value="BOX">BOX</option>
-                        <option value="PACK">PACK</option>
+                         <option value="">Select Unit</option>
+                        {units.length > 0 ? (
+                          units.filter(u => u.active).map(u => (
+                            <option key={u.id} value={u.shortName}>{u.name} ({u.shortName})</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="PCS">PCS</option>
+                            <option value="KG">KG</option>
+                            <option value="MTR">MTR</option>
+                            <option value="LTR">LTR</option>
+                            <option value="BOX">BOX</option>
+                            <option value="PACK">PACK</option>
+                          </>
+                        )}
                       </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-12 hsn-dropdown-container category-dropdown-container position-relative">
+                    <div className="mb-3">
+                      <label className="form-label">Category</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        name="category_search" 
+                        value={categorySearch} 
+                        onChange={handleInputChange} 
+                        onFocus={() => searchCategories(categorySearch)}
+                        placeholder="e.g. Electronics" 
+                        autoComplete="off"
+                      />
+                      {showCategoryDropdown && categoryResults.length > 0 && (
+                        <div className="position-absolute w-100 shadow-sm bg-white border rounded-3 mt-1" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                          {categoryResults.map(cat => (
+                            <div 
+                              key={cat.id} 
+                              className="p-2 border-bottom hover-bg-light cursor-pointer fs-13" 
+                              onClick={() => selectCategory(cat)}
+                            >
+                              <strong>{cat.name}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -234,7 +346,7 @@ const EditProduct = () => {
                       />
                     </div>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-6 hsn-dropdown-container position-relative">
                     <div className="mb-3">
                       <label className="form-label">HSN Code</label>
                       <input
@@ -243,27 +355,35 @@ const EditProduct = () => {
                         name="hsn_code"
                         value={formData.hsn_code}
                         onChange={handleInputChange}
-                        placeholder="e.g. 8471"
+                        onFocus={() => {
+                          searchHsn(formData.hsn_code);
+                        }}
+                        placeholder="Lookup or enter code"
+                        autoComplete="off"
                       />
+                      {showHsnDropdown && hsnResults.length > 0 && (
+                        <div className="position-absolute w-100 shadow-sm bg-white border rounded-3 mt-1" style={{ zIndex: 1000, maxHeight: '250px', overflowY: 'auto' }}>
+                          {hsnResults.map(h => (
+                            <div 
+                              key={h.id} 
+                              className="p-2 border-bottom hover-bg-light cursor-pointer fs-13 d-flex justify-content-between align-items-center" 
+                              onClick={() => selectHsn(h)}
+                            >
+                              <div>
+                                  <strong className="text-primary">{h.code}</strong>
+                                  <div className="text-muted text-truncate" style={{ maxWidth: '200px' }}>{h.description}</div>
+                              </div>
+                              <span className="badge bg-soft-info text-info border border-info border-opacity-25">{h.gst_rate}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="row">
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">Opening Stock</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        name="opening_stock"
-                        value={formData.opening_stock}
-                        onChange={handleInputChange}
-                        placeholder="e.g. 10"
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
+                  <div className="col-md-12">
                     <div className="mb-3">
                       <label className="form-label">Reorder Level</label>
                       <input

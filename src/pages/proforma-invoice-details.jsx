@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { 
-  getProformaInvoiceById, 
-  sendProforma, 
-  acceptProforma, 
-  rejectProforma, 
-  convertToInvoice 
+import {
+  getProformaInvoiceById,
+  sendProforma,
+  acceptProforma,
+  rejectProforma,
+  convertToInvoice
 } from '../services/proformaInvoiceService';
 
 const ProformaInvoiceDetails = () => {
@@ -75,7 +75,7 @@ const ProformaInvoiceDetails = () => {
 
   return (
     <div className="container-fluid py-4">
-      <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3 d-print-none">
         <div>
           <h4 className="fw-bold mb-1">Proforma Details</h4>
           <span className={`badge ${getStatusBadge(proforma.status)} rounded-pill px-3 fs-12 uppercase tracking-wider`}>
@@ -86,7 +86,7 @@ const ProformaInvoiceDetails = () => {
           <button className="btn btn-outline-white d-flex align-items-center border-0 shadow-sm transition-all hover-lift px-3 py-2 fs-13" onClick={() => window.print()}>
             <i className="isax isax-printer me-2"></i>Print / PDF
           </button>
-          
+
           <div className="h-divider mx-2 bg-light bg-opacity-50"></div>
 
           {proforma.status === 'DRAFT' && (
@@ -123,140 +123,164 @@ const ProformaInvoiceDetails = () => {
       </div>
 
       <div className="row g-4">
-        <div className="col-lg-8">
-            <div className="card border-0 shadow-sm glass-card overflow-hidden mb-4">
-                <div className="card-body p-5">
-                    <div className="row mb-5 pb-5 border-bottom border-light">
-                        <div className="col-md-6 mb-3">
-                            <h2 className="fw-bold text-primary mb-1">PROFORMA INVOICE</h2>
-                            <p className="text-muted fs-14 mb-0">{proforma.proforma_number || proforma.proformaNumber || `#PRO-${proforma.id}`}</p>
-                        </div>
-                        <div className="col-md-6 text-md-end">
-                            <h5 className="fw-bold mb-1">{proforma.customer_name || 'Customer Name'}</h5>
-                            <p className="text-muted fs-13 mb-1">{proforma.customer_email || 'customer@example.com'}</p>
-                            <p className="text-muted fs-13 mb-0">{proforma.customer_address || 'No address provided'}</p>
-                        </div>
-                    </div>
+        <div className="col-lg-12 print-col-12">
+          <div className="card border-0 shadow-sm glass-card overflow-hidden mb-4">
+            <div className="card-body p-5">
+              <div className="row mb-5 pb-5 border-bottom border-light">
+                <div className="col-md-6 mb-3">
+                  <h2 className="fw-bold text-primary mb-1">PROFORMA INVOICE</h2>
+                  <p className="text-muted fs-14 mb-0">{proforma.proforma_number || proforma.proformaNumber || `#PRO-${proforma.id}`}</p>
+                </div>
+                <div className="col-md-6 text-md-end">
+                  <h5 className="fw-bold mb-1">{proforma.customer?.name || proforma.customer_name || 'Customer Name'}</h5>
+                  <p className="text-muted fs-13 mb-1">{proforma.customer?.email || proforma.customer_email || 'customer@example.com'}</p>
+                  <p className="text-muted fs-13 mb-0">{proforma.customer?.address || proforma.customer_address || 'No address provided'}</p>
+                </div>
+              </div>
 
-                    <div className="row mb-5">
-                        <div className="col-4">
-                            <p className="fs-12 fw-bold text-muted mb-1 text-uppercase">Proforma Date</p>
-                            <h6 className="fw-bold">{proforma.proforma_date || proforma.proformaDate}</h6>
-                        </div>
-                        <div className="col-4">
-                            <p className="fs-12 fw-bold text-muted mb-1 text-uppercase text-primary">Valid Until</p>
-                            <h6 className="fw-bold text-primary">{proforma.valid_until || proforma.validUntil || 'N/A'}</h6>
-                        </div>
-                        <div className="col-4 text-end">
-                            <p className="fs-12 fw-bold text-muted mb-1 text-uppercase">Place of Supply</p>
-                            <h6 className="fw-bold">{proforma.place_of_supply || proforma.placeOfSupply}</h6>
-                        </div>
-                    </div>
+              <div className="row mb-5">
+                <div className="col-4">
+                  <p className="fs-12 fw-bold text-muted mb-1 text-uppercase">Proforma Date</p>
+                  <h6 className="fw-bold">{proforma.proforma_date || proforma.proformaDate}</h6>
+                </div>
+                <div className="col-4">
+                  <p className="fs-12 fw-bold text-muted mb-1 text-uppercase text-primary">Valid Until</p>
+                  <h6 className="fw-bold text-primary">{proforma.valid_until || proforma.validUntil || 'N/A'}</h6>
+                </div>
+                <div className="col-4 text-end">
+                  <p className="fs-12 fw-bold text-muted mb-1 text-uppercase">Place of Supply</p>
+                  <h6 className="fw-bold">{proforma.place_of_supply || proforma.placeOfSupply}</h6>
+                </div>
+              </div>
 
-                    <div className="table-responsive mb-5">
-                        <table className="table border-0">
-                            <thead className="bg-light">
-                                <tr>
-                                    <th className="px-3 py-3 border-0">Description</th>
-                                    <th className="text-center py-3 border-0">Qty</th>
-                                    <th className="text-end py-3 border-0">Rate</th>
-                                    <th className="text-end py-3 border-0 px-3">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(proforma.items || []).map((item, i) => (
-                                    <tr key={i} className="border-bottom border-light border-opacity-50">
-                                        <td className="px-3 py-4">
-                                            <h6 className="fw-bold mb-1 fs-14 text-dark">{item.item_name || item.name}</h6>
-                                            <p className="text-muted fs-12 mb-0">{item.description}</p>
-                                        </td>
-                                        <td className="text-center py-4 fs-14">{item.qty} {item.uom}</td>
-                                        <td className="text-end py-4 fs-14">₹{(item.rate || 0).toLocaleString()}</td>
-                                        <td className="text-end py-4 px-3 fs-14 fw-bold text-dark">₹{((item.qty || 0) * (item.rate || 0)).toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+              <div className="table-responsive mb-5">
+                <table className="table border-0">
+                  <thead className="bg-light">
+                    <tr>
+                      <th className="px-3 py-3 border-0">Description</th>
+                      <th className="text-center py-3 border-0">Qty</th>
+                      <th className="text-end py-3 border-0">Rate</th>
+                      <th className="text-center py-3 border-0">Disc %</th>
+                      <th className="text-center py-3 border-0">GST %</th>
+                      <th className="text-end py-3 border-0 px-3">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(proforma.items || []).map((item, i) => {
+                      const qty = parseFloat(item.qty) || 0;
+                      const rate = parseFloat(item.rate) || 0;
+                      const discountPct = parseFloat(item.discount_percent || item.discount_pct || item.discountPct) || 0;
+                      const gstRate = parseFloat(item.gst_rate || item.gstRate) || 0;
 
-                    <div className="row justify-content-end mb-4">
-                        <div className="col-md-5">
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted fs-14">Sub Total</span>
-                                <span className="fw-bold fs-14">₹{(proforma.sub_total || proforma.subTotal || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                                <span className="text-muted fs-14">Total GST</span>
-                                <span className="fw-bold fs-14">₹{(proforma.total_gst || proforma.totalGst || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <span className="h5 fw-bold mb-0 text-primary">Net Total</span>
-                                <span className="h4 fw-bold mb-0 text-primary">₹{(proforma.net_total || proforma.netTotal || 0).toLocaleString()}</span>
-                            </div>
+                      const amount = qty * rate;
+                      const discount = parseFloat(item.discount_amount) || ((amount * discountPct) / 100);
+                      const taxable = parseFloat(item.taxable_amount) || (amount - discount);
+                      const tax = parseFloat(item.igst_amount || 0) + parseFloat(item.cgst_amount || 0) + parseFloat(item.sgst_amount || 0) || ((taxable * gstRate) / 100);
+                      const lineTotal = parseFloat(item.total_amount) || (taxable + tax);
+
+                      return (
+                        <tr key={i} className="border-bottom border-light border-opacity-50">
+                          <td className="px-3 py-4">
+                            <h6 className="fw-bold mb-1 fs-14 text-dark">{item.item_name || item.name || item.description || (item.item && item.item.name)}</h6>
+                            <p className="text-muted fs-12 mb-0">{item.description}</p>
+                          </td>
+                          <td className="text-center py-4 fs-14">{qty} {item.uom || ''}</td>
+                          <td className="text-end py-4 fs-14">₹{rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-center py-4 fs-14">{discountPct}%</td>
+                          <td className="text-center py-4 fs-14">{gstRate}%</td>
+                          <td className="text-end py-4 px-3 fs-14 fw-bold text-dark">₹{lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {(() => {
+                let subtotal = parseFloat(proforma.gross_total || proforma.sub_total || proforma.subTotal) || 0;
+                let totalDiscount = parseFloat(proforma.discount) || 0;
+                let totalTax = parseFloat(proforma.igst || 0) + parseFloat(proforma.cgst || 0) + parseFloat(proforma.sgst || 0) + parseFloat(proforma.cess || 0);
+                let netTotal = parseFloat(proforma.net_total || proforma.netTotal) || 0;
+                let roundOff = parseFloat(proforma.round_off || proforma.roundOff) || 0;
+
+                if (!proforma.gross_total && !proforma.net_total && !proforma.sub_total) {
+                  subtotal = 0;
+                  totalTax = 0;
+                  totalDiscount = 0;
+                  (proforma.items || []).forEach(item => {
+                    const qty = parseFloat(item.qty) || 0;
+                    const rate = parseFloat(item.rate) || 0;
+                    const discountPct = parseFloat(item.discount_percent || item.discount_pct || item.discountPct) || 0;
+                    const gstRate = parseFloat(item.gst_rate || item.gstRate) || 0;
+
+                    const amount = qty * rate;
+                    const discount = parseFloat(item.discount_amount) || ((amount * discountPct) / 100);
+                    const taxable = parseFloat(item.taxable_amount) || (amount - discount);
+                    const tax = parseFloat(item.igst_amount || 0) + parseFloat(item.cgst_amount || 0) + parseFloat(item.sgst_amount || 0) || ((taxable * gstRate) / 100);
+
+                    subtotal += amount;
+                    totalDiscount += discount;
+                    totalTax += tax;
+                  });
+                  netTotal = Math.round(subtotal - totalDiscount + totalTax);
+                  roundOff = netTotal - (subtotal - totalDiscount + totalTax);
+                }
+
+                return (
+                  <div className="row justify-content-end mb-4">
+                    <div className="col-md-5">
+                      <div className="d-flex justify-content-between mb-2">
+                        <span className="text-muted fs-14">Sub Total</span>
+                        <span className="fw-bold fs-14">₹{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      
+                      {totalDiscount > 0 && (
+                        <div className="d-flex justify-content-between mb-2 text-danger">
+                          <span className="fs-14">Discount</span>
+                          <span className="fw-bold fs-14">- ₹{totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                    </div>
+                      )}
 
-                    {proforma.notes && (
+                      <div className="d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <span className="text-muted fs-14">Total GST</span>
+                        <span className="fw-bold fs-14">₹{totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      
+                      {Math.abs(roundOff) > 0.001 && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span className="text-muted fs-14">Round Off</span>
+                          <span className="fw-bold fs-14">₹{roundOff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+
+                      <div className="d-flex justify-content-between align-items-center mt-3">
+                        <span className="h5 fw-bold mb-0 text-primary">Net Total</span>
+                        <span className="h4 fw-bold mb-0 text-primary">₹{netTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* {proforma.notes && (
                       <div className="bg-primary bg-opacity-10 p-4 rounded-4 mb-4 border border-primary border-opacity-10">
                         <p className="fs-12 fw-bold text-primary mb-2 text-uppercase d-flex align-items-center">
                           <i className="isax isax-document-text me-2 fs-16"></i>Proforma Notes
                         </p>
                         <p className="fs-13 text-dark mb-0 whitespace-pre-wrap">{proforma.notes}</p>
                       </div>
-                    )}
+                    )} */}
 
-                    {proforma.remarks && (
-                      <div className="bg-light p-4 rounded-4 border-0">
-                        <p className="fs-12 fw-bold text-muted mb-2 text-uppercase d-flex align-items-center">
-                          <i className="isax isax-message-text me-2 fs-16"></i>Internal Remarks
-                        </p>
-                        <p className="fs-13 text-muted mb-0 italic">{proforma.remarks}</p>
-                      </div>
-                    )}
+              {proforma.remarks && (
+                <div className="bg-light p-4 rounded-4 border-0">
+                  <p className="fs-12 fw-bold text-muted mb-2 text-uppercase d-flex align-items-center">
+                    <i className="isax isax-message-text me-2 fs-16"></i>Internal Remarks
+                  </p>
+                  <p className="fs-13 text-muted mb-0 italic">{proforma.remarks}</p>
                 </div>
+              )}
             </div>
-        </div>
-        <div className="col-lg-4">
-            <div className="card border-0 shadow-sm glass-card overflow-hidden">
-                <div className="card-header bg-white py-3 border-0">
-                    <h6 className="mb-0 fw-bold d-flex align-items-center"><i className="isax isax-activity me-2 text-primary"></i>Audit Trail</h6>
-                </div>
-                <div className="card-body py-4 px-4 fs-13">
-                  <div className="timeline">
-                    <div className="timeline-item d-flex gap-3 mb-4">
-                      <div className="timeline-icon bg-info rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{width: 28, height: 28}}>
-                        <i className="isax isax-add fs-12 text-white"></i>
-                      </div>
-                      <div>
-                        <p className="fw-bold mb-1">Created</p>
-                        <p className="text-muted mb-0 fs-12">{proforma.created_at || 'Recently'}</p>
-                      </div>
-                    </div>
-                    {proforma.sent_at && (
-                      <div className="timeline-item d-flex gap-3 mb-4">
-                        <div className="timeline-icon bg-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{width: 28, height: 28}}>
-                          <i className="isax isax-send-1 fs-12 text-white"></i>
-                        </div>
-                        <div>
-                          <p className="fw-bold mb-1">Sent to Customer</p>
-                          <p className="text-muted mb-0 fs-12">{proforma.sent_at}</p>
-                        </div>
-                      </div>
-                    )}
-                    {proforma.status === 'REJECTED' && (
-                      <div className="timeline-item d-flex gap-3">
-                        <div className="timeline-icon bg-danger rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{width: 28, height: 28}}>
-                          <i className="isax isax-close-circle fs-12 text-white"></i>
-                        </div>
-                        <div>
-                          <p className="fw-bold mb-1">Rejected</p>
-                          <p className="text-danger mb-0 fs-12">{proforma.rejection_reason || 'No reason specified'}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-            </div>
+          </div>
         </div>
       </div>
 
@@ -282,6 +306,18 @@ const ProformaInvoiceDetails = () => {
           </div>
         </div>
       )}
+
+      <style>{`
+        @media print {
+          @page { margin: 0; }
+          body { margin: 1cm; background: white; }
+          .d-print-none { display: none !important; }
+          .print-col-12 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+          .glass-card { box-shadow: none !important; border: none !important; background: white !important; }
+          .table { border-collapse: collapse !important; }
+          .table th, .table td { border-bottom: 1px solid #dee2e6 !important; }
+        }
+      `}</style>
     </div>
   );
 };

@@ -131,31 +131,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -184,31 +178,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -237,31 +225,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -290,31 +272,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -343,31 +319,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -396,31 +366,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -449,31 +413,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -502,31 +460,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -555,31 +507,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>
@@ -608,31 +554,25 @@ const Contacts = () => {
                   <i className="ti ti-point-filled me-1 fs-11"></i>Active
                 </span>
               </td>
-              <td className="action-item">
-                <Link href="#" data-bs-toggle="dropdown">
-                  <i className="fa-solid fa-ellipsis"></i>
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link
-                      href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit-contact"
-                    >
-                      <i className="isax isax-eye me-2"></i>Edit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#"
-                      className="dropdown-item d-flex align-items-center"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_modal"
-                    >
-                      <i className="isax isax-trash me-2"></i>Delete
-                    </Link>
-                  </li>
-                </ul>
+              <td className="text-end pe-4">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+                  <button 
+                    className="btn btn-sm btn-soft-warning border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#edit-contact"
+                    title="Edit Contact"
+                  >
+                    <i className="isax isax-edit-2 fs-16"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-soft-danger border-0" 
+                    data-bs-toggle="modal"
+                    data-bs-target="#delete_modal"
+                    title="Delete Contact"
+                  >
+                    <i className="isax isax-trash fs-16"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

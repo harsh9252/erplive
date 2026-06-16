@@ -1,132 +1,159 @@
 import { useState, useEffect } from 'react';
 
+const STATES = [
+  { code: '01', name: 'Jammu and Kashmir', short: 'JK' },
+  { code: '02', name: 'Himachal Pradesh', short: 'HP' },
+  { code: '03', name: 'Punjab', short: 'PB' },
+  { code: '04', name: 'Chandigarh', short: 'CH' },
+  { code: '05', name: 'Uttarakhand', short: 'UT' },
+  { code: '06', name: 'Haryana', short: 'HR' },
+  { code: '07', name: 'Delhi', short: 'DL' },
+  { code: '08', name: 'Rajasthan', short: 'RJ' },
+  { code: '09', name: 'Uttar Pradesh', short: 'UP' },
+  { code: '10', name: 'Bihar', short: 'BR' },
+  { code: '11', name: 'Sikkim', short: 'SK' },
+  { code: '12', name: 'Arunachal Pradesh', short: 'AR' },
+  { code: '13', name: 'Nagaland', short: 'NL' },
+  { code: '14', name: 'Manipur', short: 'MN' },
+  { code: '15', name: 'Mizoram', short: 'MZ' },
+  { code: '16', name: 'Tripura', short: 'TR' },
+  { code: '17', name: 'Meghalaya', short: 'ML' },
+  { code: '18', name: 'Assam', short: 'AS' },
+  { code: '19', name: 'West Bengal', short: 'WB' },
+  { code: '20', name: 'Jharkhand', short: 'JH' },
+  { code: '21', name: 'Odisha', short: 'OR' },
+  { code: '22', name: 'Chhattisgarh', short: 'CG' },
+  { code: '23', name: 'Madhya Pradesh', short: 'MP' },
+  { code: '24', name: 'Gujarat', short: 'GJ' },
+  { code: '27', name: 'Maharashtra', short: 'MH' },
+  { code: '29', name: 'Karnataka', short: 'KA' },
+  { code: '30', name: 'Goa', short: 'GA' },
+  { code: '31', name: 'Lakshadweep', short: 'LD' },
+  { code: '32', name: 'Kerala', short: 'KL' },
+  { code: '33', name: 'Tamil Nadu', short: 'TN' },
+  { code: '34', name: 'Puducherry', short: 'PY' },
+  { code: '35', name: 'Andaman and Nicobar Islands', short: 'AN' },
+  { code: '36', name: 'Telangana', short: 'TG' },
+  { code: '37', name: 'Andhra Pradesh', short: 'AP' },
+  { code: '38', name: 'Ladakh', short: 'LA' },
+];
+
 const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
-    display_name: '',
-    company_name: '',
-    customer_type: 'INDIVIDUAL',
     gstin: '',
     pan: '',
-    email: '',
     phone: '',
-    mobile: '',
+    email: '',
     address: '',
     city: '',
     state: '',
     state_code: '',
     pincode: '',
-    credit_limit: '',
-    credit_days: '',
-    opening_balance: '',
+    opening_balance: '0',
     balance_type: 'DR',
-    bank_account: '',
+    credit_limit: '0',
+    payment_terms: 'net30',
+    gst_registration_type: 'Regular',
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
-      setFormData((prev) => ({
-        ...prev,
-        ...initialData,
-        company_name: initialData.company || initialData.company_name || '',
-      }));
+      setFormData({
+        name: initialData.name || '',
+        gstin: initialData.gstin || '',
+        pan: initialData.pan || initialData.pan_no || '',
+        phone: initialData.phone || '',
+        email: initialData.email || '',
+        address: initialData.address || '',
+        city: initialData.city || '',
+        state: initialData.state || '',
+        state_code: initialData.state_code || '',
+        pincode: initialData.pincode || '',
+        opening_balance: String(initialData.ledger?.opening_balance || initialData.opening_balance || '0'),
+        balance_type: initialData.ledger?.balance_type || initialData.balance_type || 'DR',
+        credit_limit: String(initialData.credit_limit || '0'),
+        payment_terms: initialData.payment_terms || 'net30',
+        gst_registration_type: initialData.gst_registration_type || 'Regular',
+      });
     } else {
       setFormData({
         name: '',
-        display_name: '',
-        company_name: '',
-        customer_type: 'INDIVIDUAL',
         gstin: '',
         pan: '',
-        email: '',
         phone: '',
-        mobile: '',
+        email: '',
         address: '',
         city: '',
         state: '',
         state_code: '',
         pincode: '',
-        credit_limit: '',
-        credit_days: '',
-        opening_balance: '',
+        opening_balance: '0',
         balance_type: 'DR',
-        bank_account: '',
+        credit_limit: '0',
+        payment_terms: 'net30',
+        gst_registration_type: 'Regular',
       });
-      setErrors({});
     }
   }, [initialData]);
 
-  const states = [
-    { code: '01', name: 'Jammu and Kashmir' },
-    { code: '02', name: 'Himachal Pradesh' },
-    { code: '03', name: 'Punjab' },
-    { code: '04', name: 'Chandigarh' },
-    { code: '05', name: 'Uttarakhand' },
-    { code: '06', name: 'Haryana' },
-    { code: '07', name: 'Delhi' },
-    { code: '08', name: 'Rajasthan' },
-    { code: '09', name: 'Uttar Pradesh' },
-    { code: '10', name: 'Bihar' },
-    { code: '11', name: 'Sikkim' },
-    { code: '12', name: 'Arunachal Pradesh' },
-    { code: '13', name: 'Nagaland' },
-    { code: '14', name: 'Manipur' },
-    { code: '15', name: 'Mizoram' },
-    { code: '16', name: 'Tripura' },
-    { code: '17', name: 'Meghalaya' },
-    { code: '18', name: 'Assam' },
-    { code: '19', name: 'West Bengal' },
-    { code: '20', name: 'Jharkhand' },
-    { code: '21', name: 'Odisha' },
-    { code: '22', name: 'Chhattisgarh' },
-    { code: '23', name: 'Madhya Pradesh' },
-    { code: '24', name: 'Gujarat' },
-    { code: '25', name: 'Daman and Diu' },
-    { code: '26', name: 'Dadra and Nagar Haveli' },
-    { code: '27', name: 'Maharashtra' },
-    { code: '29', name: 'Karnataka' },
-    { code: '30', name: 'Goa' },
-    { code: '31', name: 'Lakshadweep' },
-    { code: '32', name: 'Kerala' },
-    { code: '33', name: 'Tamil Nadu' },
-    { code: '34', name: 'Puducherry' },
-    { code: '35', name: 'Andaman and Nicobar Islands' },
-    { code: '36', name: 'Telangana' },
-    { code: '37', name: 'Andhra Pradesh' },
-    { code: '38', name: 'Ladakh' },
-  ];
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
 
-  const validateForm = () => {
+    let finalValue = value;
+
+    if (name === 'phone' || name === 'pincode') {
+      finalValue = value.replace(/\D/g, '');
+    } else if (name === 'email') {
+      finalValue = value.replace(/[^\w@.\-]/g, '');
+    } else if (name === 'pan' || name === 'gstin') {
+      finalValue = value.toUpperCase();
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : finalValue
+    }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+  };
+
+  const handleStateChange = (e) => {
+    const selectedName = e.target.value;
+    const stateObj = STATES.find(s => s.name === selectedName);
+    setFormData(prev => ({
+      ...prev,
+      state: selectedName,
+      state_code: stateObj ? stateObj.code : '',
+    }));
+  };
+
+  const validate = () => {
     const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Company Name is required';
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Customer Name is required';
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/.test(formData.gstin)) {
+      newErrors.gstin = 'Invalid GSTIN format';
     }
 
-    if (!formData.customer_type) {
-      newErrors.customer_type = 'Customer Type is required';
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+      newErrors.pan = 'Invalid PAN format (e.g., AABCE1234F)';
     }
 
-    if (!formData.phone || !formData.phone.trim()) {
-      newErrors.phone = 'Phone is required';
-    } else if (formData.phone.replace(/\D/g, '').length < 10) {
-      newErrors.phone = 'Phone must be at least 10 digits';
+    if (formData.pincode && formData.pincode.length !== 6) {
+      newErrors.pincode = 'Pincode must be exactly 6 digits';
     }
 
-    if (formData.gstin && !/^[0-9A-Z]{15}$/.test(formData.gstin)) {
-      newErrors.gstin = 'GSTIN must be 15 characters (alphanumeric)';
+    if (formData.phone) {
+      if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+        newErrors.phone = 'Phone number must be 10 digits and cannot start with 0-5';
+      }
     }
 
-    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
-      newErrors.pincode = 'Pincode must be 6 digits';
-    }
-
-    if (formData.state && !formData.state_code) {
-      const selectedState = states.find((s) => s.name === formData.state);
-      if (selectedState) {
-        formData.state_code = selectedState.code;
+    if (formData.email) {
+      if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
       }
     }
 
@@ -134,396 +161,294 @@ const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-
-      // Auto-fill state code when state is selected
-      if (name === 'state') {
-        const selectedState = states.find((s) => s.name === value);
-        if (selectedState) {
-          updated.state_code = selectedState.code;
-        }
-      }
-
-      return updated;
-    });
-
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      // Construct payload with ONLY allowed fields based on backend validation
-      const submissionData = {
-        name: formData.name,
-        gstin: formData.gstin,
-        pan: formData.pan,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        state_code: formData.state_code,
-        pincode: formData.pincode,
-        credit_limit: parseFloat(formData.credit_limit) || 0
-      };
-
-      onSubmit(submissionData);
+    if (validate()) {
+      onSubmit(formData);
     }
   };
 
   return (
-    <div className="card">
-      <div className="card-body">
-        <form onSubmit={handleSubmit}>
-          {/* Customer Name and Display Name */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">
-                  Customer Name <span className="text-danger">*</span>
-                </label>
+    <form onSubmit={handleSubmit} noValidate>
+      <div className="card shadow-sm border-0 rounded-4 mb-4">
+        <div className="card-header bg-white py-3 border-bottom d-flex align-items-center">
+          <div className="icon-box bg-soft-primary text-primary rounded-pill me-3" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="isax isax-profile-2user fs-20"></i>
+          </div>
+          <h6 className="mb-0 fw-bold">Basic & Identity Information</h6>
+        </div>
+        <div className="card-body p-4">
+          <div className="row g-3">
+            <div className="col-md-9">
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">Customer Name <span className="text-danger">*</span></label>
                 <input
                   type="text"
-                  className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                  className={`form-control bg-light border-0 py-2 ${errors.name ? 'is-invalid' : ''}`}
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Enter customer name"
+                  placeholder="e.g., Rajesh Enterprises"
+                  required
                 />
-                {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
+                {errors.name && <div className="invalid-feedback">{errors.name}</div>}
               </div>
             </div>
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Display Name</label>
+            <div className="col-md-3">
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">PAN Number</label>
                 <input
                   type="text"
-                  className="form-control"
-                  name="display_name"
-                  value={formData.display_name}
+                  className={`form-control bg-light border-0 py-2 ${errors.pan ? 'is-invalid' : ''}`}
+                  name="pan"
+                  value={formData.pan}
                   onChange={handleInputChange}
-                  placeholder="Short name for listings"
+                  placeholder="e.g., AABCE1234F"
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Company and Customer Type */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Company / Firm</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="company_name"
-                  value={formData.company_name}
-                  onChange={handleInputChange}
-                  placeholder="Business name"
-                />
+                {errors.pan && <div className="invalid-feedback">{errors.pan}</div>}
               </div>
             </div>
             <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">
-                  Type <span className="text-danger">*</span>
-                </label>
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">GST Registration Type</label>
                 <select
-                  className={`form-control ${errors.customer_type ? 'is-invalid' : ''}`}
-                  name="customer_type"
-                  value={formData.customer_type}
+                  className="form-control bg-light border-0 py-2"
+                  name="gst_registration_type"
+                  value={formData.gst_registration_type}
                   onChange={handleInputChange}
                 >
-                  <option value="">Select Type</option>
-                  <option value="INDIVIDUAL">Individual</option>
-                  <option value="BUSINESS">Business</option>
-                  <option value="GOVERNMENT">Government</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Composition">Composition</option>
+                  <option value="Unregistered">Unregistered</option>
+                  <option value="Consumer">Consumer</option>
+                  <option value="Overseas">Overseas</option>
+                  <option value="SEZ">SEZ</option>
+                  <option value="Deemed Export">Deemed Export</option>
+                  <option value="Tax Deductor">Tax Deductor</option>
+                  <option value="Input Service Distributor">Input Service Distributor</option>
                 </select>
-                {errors.customer_type && (
-                  <div className="invalid-feedback d-block">{errors.customer_type}</div>
-                )}
               </div>
             </div>
-          </div>
-
-          {/* GSTIN and PAN */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">GSTIN</label>
-                <input
-                  type="text"
-                  className={`form-control ${errors.gstin ? 'is-invalid' : ''}`}
-                  name="gstin"
-                  value={formData.gstin}
-                  onChange={handleInputChange}
-                  placeholder="15-character GSTIN"
-                />
+            <div className="col-md-6 text-uppercase">
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">GSTIN</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><i className="isax isax-building-4"></i></span>
+                  <input
+                    type="text"
+                    className={`form-control bg-light border-0 py-2 ps-0 ${errors.gstin ? 'is-invalid' : ''}`}
+                    name="gstin"
+                    value={formData.gstin}
+                    onChange={handleInputChange}
+                    placeholder="15-digit GST Registration"
+                  />
+                </div>
                 {errors.gstin && <div className="invalid-feedback d-block">{errors.gstin}</div>}
               </div>
             </div>
             <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">PAN</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="pan"
-                  value={formData.pan}
-                  onChange={handleInputChange}
-                  placeholder="PAN number"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Email and Phone */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Email</label>
-                <input
-                  type="email"
-                  className="form-control"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="customer@example.com"
-                />
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">
-                  Phone <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="tel"
-                  className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="10-digit phone number"
-                />
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">Primary Contact (Mobile)</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><i className="isax isax-call"></i></span>
+                  <input
+                    type="tel"
+                    className={`form-control bg-light border-0 py-2 ps-0 ${errors.phone ? 'is-invalid' : ''}`}
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 9876543210"
+                  />
+                </div>
                 {errors.phone && <div className="invalid-feedback d-block">{errors.phone}</div>}
               </div>
             </div>
-          </div>
-
-          {/* Mobile */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Mobile</label>
+            <div className="col-md-12">
+              <div className="form-group">
+                <label className="form-label fw-semibold">Communication Email</label>
                 <input
-                  type="tel"
-                  className="form-control"
-                  name="mobile"
-                  value={formData.mobile}
+                  type="email"
+                  className={`form-control bg-light border-0 py-2 ${errors.email ? 'is-invalid' : ''}`}
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Mobile number"
+                  placeholder="e.g., billing@rajesh.com"
                 />
+                {errors.email && <div className="invalid-feedback d-block">{errors.email}</div>}
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Address */}
+      <div className="card shadow-sm border-0 rounded-4 mb-4">
+        <div className="card-header bg-white py-3 border-bottom d-flex align-items-center">
+          <div className="icon-box bg-soft-info text-info rounded-pill me-3" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="isax isax-location fs-20"></i>
+          </div>
+          <h6 className="mb-0 fw-bold">Address & Location</h6>
+        </div>
+        <div className="card-body p-4">
           <div className="mb-3">
-            <label className="form-label">Address</label>
+            <label className="form-label fw-semibold">Billing Address</label>
             <textarea
-              className="form-control"
+              className="form-control bg-light border-0 py-2"
               name="address"
               value={formData.address}
               onChange={handleInputChange}
+              placeholder="Factory/Office Address, Area, Landmark..."
               rows="3"
-              placeholder="Street address"
             ></textarea>
           </div>
-
-          {/* City, State, Pincode */}
-          <div className="row">
+          <div className="row g-3">
             <div className="col-md-4">
-              <div className="mb-3">
-                <label className="form-label">City</label>
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">City</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control bg-light border-0 py-2"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  placeholder="City"
+                  placeholder="City Name"
                 />
               </div>
             </div>
             <div className="col-md-4">
-              <div className="mb-3">
-                <label className="form-label">State</label>
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">State</label>
                 <select
-                  className="form-control"
+                  className="form-control bg-light border-0 py-2"
                   name="state"
                   value={formData.state}
-                  onChange={handleInputChange}
+                  onChange={handleStateChange}
                 >
                   <option value="">Select State</option>
-                  {states.map((state) => (
-                    <option key={state.code} value={state.name}>
-                      {state.name}
+                  {STATES.map((s) => (
+                    <option key={s.code} value={s.name}>
+                      {s.code} - {s.name}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
             <div className="col-md-4">
-              <div className="mb-3">
-                <label className="form-label">Pincode</label>
+              <div className="form-group mb-3">
+                <label className="form-label fw-semibold">Pincode</label>
                 <input
                   type="text"
-                  className={`form-control ${errors.pincode ? 'is-invalid' : ''}`}
+                  className={`form-control bg-light border-0 py-2 ${errors.pincode ? 'is-invalid' : ''}`}
                   name="pincode"
                   value={formData.pincode}
                   onChange={handleInputChange}
-                  placeholder="6-digit pincode"
+                  placeholder="6-digit ZIP"
+                  maxLength="6"
                 />
-                {errors.pincode && <div className="invalid-feedback d-block">{errors.pincode}</div>}
+                {errors.pincode && <div className="invalid-feedback">{errors.pincode}</div>}
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* State Code (hidden, auto-filled) */}
-          <input type="hidden" name="state_code" value={formData.state_code} />
-
-          {/* Credit Limit and Credit Days */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Credit Limit (₹)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="credit_limit"
-                  value={formData.credit_limit}
-                  onChange={handleInputChange}
-                  placeholder="0 = unlimited"
-                  min="0"
-                />
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Credit Days</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="credit_days"
-                  value={formData.credit_days}
-                  onChange={handleInputChange}
-                  placeholder="Payment due days"
-                  min="0"
-                />
-              </div>
-            </div>
+      <div className="card shadow-sm border-0 rounded-4 mb-4">
+        <div className="card-header bg-white py-3 border-bottom d-flex align-items-center">
+          <div className="icon-box bg-soft-success text-success rounded-pill me-3" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="isax isax-wallet fs-20"></i>
           </div>
-
-          {/* Opening Balance */}
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Opening Balance</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="opening_balance"
-                  value={formData.opening_balance}
-                  onChange={handleInputChange}
-                  placeholder="Opening balance amount"
-                  step="0.01"
-                />
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label className="form-label">Balance Type</label>
-                <div className="d-flex gap-3 mt-2">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="balance_type"
-                      id="balance_dr"
-                      value="DR"
-                      checked={formData.balance_type === 'DR'}
-                      onChange={handleInputChange}
-                    />
-                    <label className="form-check-label" htmlFor="balance_dr">
-                      DR (Debit)
-                    </label>
-                  </div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="balance_type"
-                      id="balance_cr"
-                      value="CR"
-                      checked={formData.balance_type === 'CR'}
-                      onChange={handleInputChange}
-                    />
-                    <label className="form-check-label" htmlFor="balance_cr">
-                      CR (Credit)
-                    </label>
-                  </div>
+          <h6 className="mb-0 fw-bold">Financials & Credit Settings</h6>
+        </div>
+        <div className="card-body p-4">
+          <div className="row g-4 align-items-end">
+            <div className="col-md-4">
+              <div className="form-group mb-0">
+                <label className="form-label fw-semibold">Opening Balance</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0">₹</span>
+                  <input
+                    type="number"
+                    className="form-control bg-light border-0 py-2"
+                    name="opening_balance"
+                    value={formData.opening_balance}
+                    onChange={handleInputChange}
+                    step="0.01"
+                  />
                 </div>
               </div>
             </div>
+            <div className="col-md-3">
+              <div className="d-flex p-2 bg-light rounded-3">
+                <div className="form-check mb-0">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="balance_type"
+                    id="bal_dr"
+                    value="DR"
+                    checked={formData.balance_type === 'DR'}
+                    onChange={handleInputChange}
+                  />
+                  <label className="form-check-label fw-medium" htmlFor="bal_dr">Debit (DR)</label>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-5">
+              <div className="form-group mb-0">
+                <label className="form-label fw-semibold">Credit Limit</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><i className="isax isax-card-tick"></i></span>
+                  <input
+                    type="number"
+                    className="form-control bg-light border-0 py-2"
+                    name="credit_limit"
+                    value={formData.credit_limit}
+                    onChange={handleInputChange}
+                    placeholder="Max receivable amount"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group mb-0">
+                <label className="form-label fw-semibold">Standard Payment Terms</label>
+                <select
+                  className="form-control bg-light border-0 py-2"
+                  name="payment_terms"
+                  value={formData.payment_terms}
+                  onChange={handleInputChange}
+                >
+                  <option value="prepaid">Prepaid / Due on Receipt</option>
+                  <option value="net30">Net 30 Days (Standard)</option>
+                  <option value="net45">Net 45 Days</option>
+                  <option value="net60">Net 60 Days</option>
+                  <option value="custom">Custom Terms</option>
+                </select>
+              </div>
+            </div>
           </div>
-
-          {/* Bank Account */}
-          <div className="mb-3">
-            <label className="form-label">Bank Account</label>
-            <input
-              type="text"
-              className="form-control"
-              name="bank_account"
-              value={formData.bank_account}
-              onChange={handleInputChange}
-              placeholder="Bank account for payment reference"
-            />
-          </div>
-
-          {/* Form Actions */}
-          <div className="d-flex justify-content-end gap-2 mt-4">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Saving...
-                </>
-              ) : (
-                'Save Customer'
-              )}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+
+      <div className="d-flex align-items-center justify-content-end gap-3 mb-5 mt-4">
+        {onClose && (
+          <button type="button" className="btn btn-light px-5 rounded-pill shadow-sm" onClick={onClose} disabled={isLoading}>
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          className="btn btn-primary px-5 rounded-pill shadow-primary"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</>
+          ) : (
+            <><i className="isax isax-save-2 me-2"></i>Save Customer</>
+          )}
+        </button>
+      </div>
+    </form>
   );
 };
 

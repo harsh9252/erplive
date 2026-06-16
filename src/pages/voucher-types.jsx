@@ -32,13 +32,9 @@ const VoucherTypes = () => {
     <div className="row justify-content-center">
       <div className="col-xl-12">
         <div className="row settings-wrapper d-flex">
-          {/* Settings Sidebar */}
-          <div className="col-xl-3 col-lg-4">
-            <SettingsSidebar activeItem="/settings/voucher-types" />
-          </div>
-
+          {/* Settings Sidebar Removed for full-width layout */}
           {/* Main Content */}
-          <div className="col-xl-9 col-lg-8">
+          <div className="col-12">
             <div className="mb-3 pb-3 border-bottom d-flex justify-content-between align-items-center">
               <div>
                 <h6 className="fw-bold mb-0">Voucher Types</h6>

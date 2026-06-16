@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getCreditNotes, cancelCreditNote } from '../services/creditNoteService';
 import customerService from '../services/customerService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const CreditNotes = () => {
+  const navigate = useNavigate();
   const [creditNotes, setCreditNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
@@ -17,18 +19,21 @@ const CreditNotes = () => {
   });
   const [totalCN, setTotalCN] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
 
   const fetchCreditNotes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getCreditNotes(
-        currentPage, 
-        itemsPerPage, 
-        filters.search, 
-        filters.status
+        currentPage,
+        itemsPerPage,
+        filters.search,
+        filters.status,
+        filters.customer_id,
+        filters.from_date,
+        filters.to_date
       );
-      
+
       const cnData = Array.isArray(response.data) ? response.data : (response.data?.rows || []);
       setCreditNotes(cnData);
       setTotalCN(response.total || response.data?.total || cnData.length || 0);
@@ -38,7 +43,7 @@ const CreditNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, filters.search, filters.status]);
+  }, [currentPage, itemsPerPage, filters.search, filters.status, filters.customer_id, filters.from_date, filters.to_date]);
 
   const fetchCustomers = async () => {
     try {
@@ -46,6 +51,7 @@ const CreditNotes = () => {
       setCustomers(Array.isArray(res.data) ? res.data : (res.data?.rows || []));
     } catch (error) {
       console.error('Error fetching customers:', error);
+      toast.error('Failed to load customers');
     }
   };
 
@@ -84,7 +90,17 @@ const CreditNotes = () => {
   };
 
   const handleCancelClick = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this credit note?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to cancel this credit note?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, cancel it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await cancelCreditNote(id);
         toast.success('Credit note cancelled successfully');
@@ -105,7 +121,7 @@ const CreditNotes = () => {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-0 fs-13">
               <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-              <li className="breadcrumb-item">Sales</li>
+
               <li className="breadcrumb-item active">Credit Notes</li>
             </ol>
           </nav>
@@ -163,20 +179,20 @@ const CreditNotes = () => {
             </div>
             <div className="col-md-4">
               <div className="d-flex align-items-center gap-2">
-                <input 
-                  type="date" 
-                  name="from_date" 
-                  className="form-control shadow-none border" 
-                  value={filters.from_date} 
-                  onChange={handleFilterChange} 
+                <input
+                  type="date"
+                  name="from_date"
+                  className="form-control shadow-none border"
+                  value={filters.from_date}
+                  onChange={handleFilterChange}
                 />
                 <span className="text-muted">to</span>
-                <input 
-                  type="date" 
-                  name="to_date" 
-                  className="form-control shadow-none border" 
-                  value={filters.to_date} 
-                  onChange={handleFilterChange} 
+                <input
+                  type="date"
+                  name="to_date"
+                  className="form-control shadow-none border"
+                  value={filters.to_date}
+                  onChange={handleFilterChange}
                 />
               </div>
             </div>
@@ -214,61 +230,62 @@ const CreditNotes = () => {
                   </tr>
                 ) : creditNotes.length > 0 ? (
                   creditNotes.map((cn) => (
-                    <tr key={cn.id}>
+                    <tr key={cn.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoicing/credit-notes/${cn.id}`)}>
                       <td className="ps-4">
                         <Link to={`/invoicing/credit-notes/${cn.id}`} className="fw-bold text-dark text-nowrap">
                           {cn.credit_number || cn.invoice_number || `CN-${cn.id}`}
                         </Link>
                       </td>
-                      <td>{cn.credit_date || cn.date}</td>
+                      <td>{cn.credit_note_date || cn.credit_date || cn.date}</td>
                       <td>
                         <div className="d-flex align-items-center">
                           <span className="fw-semibold text-dark">{cn.customer?.name}</span>
                         </div>
                       </td>
                       <td>
-                        {cn.original_invoice_id ? (
-                          <Link to={`/invoicing/sales/${cn.original_invoice_id}`} className="text-primary fs-12 fw-medium bg-soft-primary px-2 py-1 rounded">
-                            {cn.original_invoice_number || `INV-${cn.original_invoice_id}`}
+                        {cn.original_invoice_id || cn.sales_invoice_id ? (
+                          <Link to={`/invoicing/sales/${cn.original_invoice_id || cn.sales_invoice_id}`} className="text-primary fs-12 fw-medium bg-soft-primary px-2 py-1 rounded">
+                            {cn.original_invoice_number || `INV-${cn.original_invoice_id || cn.sales_invoice_id}`}
                           </Link>
                         ) : (
                           <span className="text-muted fs-12">Direct Return</span>
                         )}
                       </td>
-                      <td className="fw-bold text-dark">₹{Number(cn.net_amount || 0).toLocaleString()}</td>
+                      <td className="fw-bold text-dark">₹{Number(cn.net_total || cn.net_amount || 0).toLocaleString()}</td>
                       <td>
                         <span className={`badge badge-sm rounded-pill ${getStatusBadge(cn.status)}`}>
                           {cn.status}
                         </span>
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="dropdown">
-                          <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown">
-                            <i className="isax isax-more fs-18"></i>
-                          </button>
-                          <ul className="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-12">
-                            <li>
-                              <Link className="dropdown-item py-2" to={`/invoicing/credit-notes/${cn.id}`}>
-                                <i className="isax isax-eye me-2 text-primary"></i>View Details
-                              </Link>
-                            </li>
-                            {cn.status === 'DRAFT' && (
-                              <li>
-                                <Link className="dropdown-item py-2" to={`/invoicing/credit-notes/edit/${cn.id}`}>
-                                  <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Draft
-                                </Link>
-                              </li>
-                            )}
-                            {(cn.status === 'DRAFT' || cn.status === 'POSTED') && (
-                              <li>
-                                <button className="dropdown-item py-2 text-danger" onClick={() => handleCancelClick(cn.id)}>
-                                  <i className="isax isax-trash me-2"></i>Cancel Return
-                                </button>
-                              </li>
-                            )}
-                          </ul>
+                      </td>                       <td className="text-end pe-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Link
+                            className="btn btn-sm btn-soft-primary border-0"
+                            to={`/invoicing/credit-notes/${cn.id}`}
+                            title="View Details"
+                          >
+                            <i className="isax isax-eye fs-16"></i>
+                          </Link>
+                          {cn.status === 'DRAFT' && (
+                            <Link
+                              className="btn btn-sm btn-soft-warning border-0"
+                              to={`/invoicing/credit-notes/edit/${cn.id}`}
+                              title="Edit Draft"
+                            >
+                              <i className="isax isax-edit-2 fs-16"></i>
+                            </Link>
+                          )}
+                          {(cn.status === 'DRAFT' || cn.status === 'POSTED') && (
+                            <button
+                              className="btn btn-sm btn-soft-danger border-0"
+                              onClick={() => handleCancelClick(cn.id)}
+                              title="Cancel Return"
+                            >
+                              <i className="isax isax-trash fs-16"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
+
                     </tr>
                   ))
                 ) : (

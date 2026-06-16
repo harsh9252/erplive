@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { bankReconciliationService } from '../services/bankReconciliationService';
-import { ledgerService } from '../services/ledgerService';
-import { ledgerGroupService } from '../services/ledgerGroupService';
+import { bankAccountService } from '../services/bankAccountService';
 
+// BR-4 fix: removed unused navigate - added back for SPA routing
 const BankReconciliation = () => {
   const navigate = useNavigate();
   const [reconciliations, setReconciliations] = useState([]);
@@ -18,27 +18,26 @@ const BankReconciliation = () => {
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [pagination, setPagination] = useState({
     total_count: 0,
     total_pages: 1
   });
 
+  // BR-2 fix: bank accounts only need to be fetched once on mount
   useEffect(() => {
     fetchBankAccounts();
+  }, []);
+
+  useEffect(() => {
     fetchReconciliations();
   }, [currentPage, itemsPerPage, selectedBank, statusFilter]);
 
   const fetchBankAccounts = async () => {
     try {
-      // 1. Get all groups to find "Bank Accounts"
-      const groupsResp = await ledgerGroupService.getGroups();
-      const bankGroup = (groupsResp.data || []).find(g => g.name === 'Bank Accounts');
-      
-      if (bankGroup) {
-        // 2. Get ledgers under this group
-        const ledgersResp = await ledgerService.getLedgers({ group_id: bankGroup.id, limit: 100 });
-        setBankAccounts(ledgersResp.data || []);
+      const response = await bankAccountService.getBankAccounts();
+      if (response.success) {
+        setBankAccounts(response.data || []);
       }
     } catch (error) {
       console.error('Error fetching bank accounts:', error);
@@ -109,7 +108,9 @@ const BankReconciliation = () => {
               >
                 <option value="All">All Bank Accounts</option>
                 {bankAccounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.name} ({acc.account_number || acc.accountNo || 'N/A'})</option>
+                  <option key={acc.id} value={acc.id}>
+                    {acc.bank_name} - {acc.account_number}
+                  </option>
                 ))}
               </select>
             </div>
@@ -162,8 +163,16 @@ const BankReconciliation = () => {
                   </tr>
                 ) : reconciliations.length > 0 ? (
                   reconciliations.map((rec) => (
-                    <tr key={rec.id}>
-                      <td className="fw-600">{rec.bank_account_name || rec.bank_account?.name || 'Unknown Bank'}</td>
+                    <tr 
+                      key={rec.id}
+                      onClick={() => navigate(`/accounting/bank-reconciliation/${rec.id}`)}
+                      style={{ cursor: 'pointer' }}
+                      className="cursor-pointer"
+                    >
+                      <td className="fw-600">
+                        {rec.bankAccount?.bank_name || rec.bank_account_name || rec.bank_account?.name || 'Unknown Bank'} 
+                        <span className="text-muted small ms-1">({rec.bankAccount?.account_number || rec.bankAccount?.accountNo})</span>
+                      </td>
                       <td>{rec.statement_date}</td>
                       <td className="text-end fw-500">
                         {parseFloat(rec.statement_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, style: 'currency', currency: 'INR' })}
@@ -171,38 +180,14 @@ const BankReconciliation = () => {
                       <td className="text-center">{getStatusBadge(rec.status)}</td>
                       <td className="text-center">
                         <div className="d-flex align-items-center justify-content-center gap-2">
+                          {/* BR-3 fix: use correct namespaced route */}
                           <Link 
-                            to={`/bank-reconciliation/${rec.id}`}
+                            to={`/accounting/bank-reconciliation/${rec.id}`}
                             className="btn btn-sm btn-icon btn-soft-primary"
                             title="Open Matching Screen"
                           >
                             <i className="isax isax-link-21"></i>
                           </Link>
-                          {rec.status === 'PENDING' && (
-                             <button
-                               className="btn btn-sm btn-icon btn-soft-danger"
-                               title="Delete"
-                               onClick={() => {
-                                 Swal.fire({
-                                   title: 'Are you sure?',
-                                   text: "You won't be able to revert this!",
-                                   icon: 'warning',
-                                   showCancelButton: true,
-                                   confirmButtonColor: '#3085d6',
-                                   cancelButtonColor: '#d33',
-                                   confirmButtonText: 'Yes, delete it!'
-                                 }).then((result) => {
-                                   if (result.isConfirmed) {
-                                     // Service method for delete could be added if supported
-                                     toast.success("Deleted successfully!");
-                                     fetchReconciliations();
-                                   }
-                                 })
-                               }}
-                             >
-                               <i className="isax isax-trash"></i>
-                             </button>
-                          )}
                         </div>
                       </td>
                     </tr>

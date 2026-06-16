@@ -1,85 +1,240 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import ConfirmDialog from '../components/ConfirmDialog';
-
-const initialAccounts = [
-  { id: 1, name: 'Emily Clark', avatar: '/assets/img/profiles/avatar-28.jpg', accountNo: '3298784309485', type: 'Savings Account', notes: 'Account that allows individuals to save money', balance: 200, status: 'Active' },
-  { id: 2, name: 'Michael Smith', avatar: '/assets/img/profiles/avatar-27.jpg', accountNo: '4829302839210', type: 'Current Account', notes: 'Business current account', balance: 15400, status: 'Inactive' },
-  { id: 3, name: 'Sarah Johnson', avatar: '/assets/img/profiles/avatar-26.jpg', accountNo: '9843823483921', type: 'Savings Account', notes: 'Personal savings', balance: 3500, status: 'Active' },
-];
+import { bankAccountService } from '../services/bankAccountService';
+import { ledgerService } from '../services/ledgerService';
 
 const BankAccounts = () => {
-  const [accounts, setAccounts] = useState(initialAccounts);
+  const [accounts, setAccounts] = useState([]);
+  const [ledgers, setLedgers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filters, setFilters] = useState({ page: 1, limit: 20 });
+  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [sortOrder, setSortOrder] = useState("Latest"); // Latest, Oldest
   const [columns, setColumns] = useState({
-    accountHolder: true,
-    accountNo: true,
-    accountType: true,
-    notes: true,
-    openingBalance: true,
-    status: true
+    bank_name: true,
+    account_number: true,
+    ifsc_code: true,
+    ledger: true
   });
   const [currentAccount, setCurrentAccount] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, account: null });
+  const [errors, setErrors] = useState({});
+
+  const fetchBankAccounts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await bankAccountService.getBankAccounts({
+          ...filters,
+          search: debouncedSearch,
+          sort: sortOrder === 'Latest' ? 'desc' : 'asc',
+          sortBy: 'id'
+      });
+      if (response.success) {
+        setAccounts(response.data || []);
+        setPagination({
+            total: response.pagination?.totalItems || response.total || response.data?.total || (Array.isArray(response.data) ? response.data.length : 0),
+            pages: response.pagination?.totalPages || 1
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching bank accounts:", error);
+      toast.error("Failed to load bank accounts");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, debouncedSearch, sortOrder]);
+
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchText);
+          setFilters(prev => ({ ...prev, page: 1 }));
+      }, 600);
+      return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const fetchBankLedgers = async () => {
+    try {
+      const response = await ledgerService.getLedgersByType('bank');
+      if (response.success) {
+        setLedgers(response.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching bank ledgers:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBankAccounts();
+  }, [fetchBankAccounts]);
+
+  useEffect(() => {
+    fetchBankLedgers();
+  }, []);
 
   const handleColumnToggle = (column) => {
     setColumns(prev => ({ ...prev, [column]: !prev[column] }));
   };
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
     const form = e.target;
-    const newAccount = {
-      id: accounts.length ? Math.max(...accounts.map(a => a.id)) + 1 : 1,
-      name: form.elements[0].value || 'New Account',
-      avatar: '/assets/img/profiles/avatar-28.jpg',
-      accountNo: form.elements[3].value || '1234567890',
-      type: form.elements[5].options[form.elements[5].selectedIndex].text,
-      notes: '',
-      balance: parseFloat(form.elements[6].value) || 0,
-      status: 'Active'
+    const data = {
+      bank_name: form.elements.bank_name.value.trim(),
+      account_number: form.elements.account_number.value.trim(),
+      ifsc_code: form.elements.ifsc_code.value.trim(),
+      ledger_id: form.elements.ledger_id.value,
     };
-    setAccounts([...accounts, newAccount]);
-    toast.success("Bank account added successfully!");
+
+    if (!data.bank_name || !data.account_number || !data.ifsc_code || !data.ledger_id) {
+      const newErrors = {};
+      if (!data.bank_name) newErrors.bank_name = 'Bank Name is required';
+      if (!data.account_number) newErrors.account_number = 'Account Number is required';
+      if (!data.ifsc_code) newErrors.ifsc_code = 'IFSC Code is required';
+      if (!data.ledger_id) newErrors.ledger_id = 'Linked Ledger is required';
+      setErrors(newErrors);
+      toast.error('Please fill all required fields (Bank Name, Account No, IFSC, Linked Ledger)');
+      return;
+    }
+
+    setErrors({});
+
+    try {
+      const response = await bankAccountService.createBankAccount(data);
+      if (response.success) {
+        toast.success("Bank account added successfully!");
+        fetchBankAccounts();
+        form.reset();
+        window.bootstrap.Modal.getInstance(document.getElementById('add_modal'))?.hide();
+      }
+    } catch (error) {
+      console.error("Error adding bank account:", error);
+      toast.error(error.response?.data?.message || "Failed to add bank account");
+    }
   };
 
-  const handleEdit = (e) => {
+  const handleEdit = async (e) => {
     e.preventDefault();
-    if (currentAccount) {
-      const form = e.target;
-      const updatedAccount = {
-        ...currentAccount,
-        name: form.elements[0].value,
-        accountNo: form.elements[3].value,
-        type: form.elements[5].options[form.elements[5].selectedIndex].text,
-        balance: parseFloat(form.elements[6].value) || 0,
-      };
-      setAccounts(accounts.map(a => a.id === updatedAccount.id ? updatedAccount : a));
+    if (!currentAccount) return;
+
+    const form = e.target;
+    const data = {
+      bank_name: form.elements.bank_name.value.trim(),
+      account_number: form.elements.account_number.value.trim(),
+      ifsc_code: form.elements.ifsc_code.value.trim(),
+      ledger_id: form.elements.ledger_id.value,
+    };
+
+    if (!data.bank_name || !data.account_number || !data.ifsc_code || !data.ledger_id) {
+      const newErrors = {};
+      if (!data.bank_name) newErrors.bank_name = 'Bank Name is required';
+      if (!data.account_number) newErrors.account_number = 'Account Number is required';
+      if (!data.ifsc_code) newErrors.ifsc_code = 'IFSC Code is required';
+      if (!data.ledger_id) newErrors.ledger_id = 'Linked Ledger is required';
+      setErrors(newErrors);
+      toast.error('Please fill all required fields (Bank Name, Account No, IFSC, Linked Ledger)');
+      return;
     }
-    toast.success("Bank account updated successfully!");
+
+    setErrors({});
+
+    try {
+      const response = await bankAccountService.updateBankAccount(currentAccount.id, data);
+      if (response.success) {
+        toast.success("Bank account updated successfully!");
+        fetchBankAccounts();
+        setCurrentAccount(null);
+        window.bootstrap.Modal.getInstance(document.getElementById('edit_modal'))?.hide();
+      }
+    } catch (error) {
+      console.error("Error updating bank account:", error);
+      toast.error(error.response?.data?.message || "Failed to update bank account");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmDialog.account) {
-      setAccounts(accounts.filter(a => a.id !== confirmDialog.account.id));
-      toast.success("Bank account deleted successfully!");
-      setConfirmDialog({ isOpen: false, account: null });
+      try {
+        const response = await bankAccountService.deleteBankAccount(confirmDialog.account.id);
+        if (response.success) {
+          toast.success("Bank account deleted successfully!");
+          fetchBankAccounts();
+          setConfirmDialog({ isOpen: false, account: null });
+        }
+      } catch (error) {
+        console.error("Error deleting bank account:", error);
+        toast.error("Failed to delete bank account");
+      }
     }
   };
 
-  let filteredAccounts = accounts.filter(item =>
-    item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.accountNo.includes(searchText) ||
-    item.type.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const handleExportPDF = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const doc = new jsPDF();
+      
+      const tableColumn = ["Bank Name", "Account No", "IFSC Code", "Linked Ledger"];
+      const tableRows = accounts.map(acc => [
+        acc.bank_name,
+        acc.account_number,
+        acc.ifsc_code,
+        acc.ledger?.name || "---"
+      ]);
+      
+      doc.text("Bank Accounts", 14, 15);
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+      
+      doc.save("Bank_Accounts.pdf");
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("PDF Export error:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
 
-  if (sortOrder === "Latest") {
-    filteredAccounts = [...filteredAccounts].sort((a, b) => b.id - a.id);
-  } else if (sortOrder === "Oldest") {
-    filteredAccounts = [...filteredAccounts].sort((a, b) => a.id - b.id);
-  }
+  const handleExportExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const tableData = accounts.map(acc => ({
+        "Bank Name": acc.bank_name,
+        "Account No": acc.account_number,
+        "IFSC Code": acc.ifsc_code,
+        "Linked Ledger": acc.ledger?.name || "---"
+      }));
+      
+      const ws = XLSX.utils.json_to_sheet(tableData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Bank Accounts");
+      
+      XLSX.writeFile(wb, "Bank_Accounts.xlsx");
+      toast.success("Excel exported successfully");
+    } catch (error) {
+      console.error("Excel Export error:", error);
+      toast.error("Failed to export Excel");
+    }
+  };
+
+  const filteredAccounts = searchText.trim()
+    ? accounts.filter(acc => {
+        const q = searchText.toLowerCase();
+        return (
+          acc.bank_name?.toLowerCase().includes(q) ||
+          acc.account_number?.toLowerCase().includes(q) ||
+          acc.ifsc_code?.toLowerCase().includes(q) ||
+          acc.ledger?.name?.toLowerCase().includes(q)
+        );
+      })
+    : accounts;
 
   return (
     <>
@@ -88,7 +243,7 @@ const BankAccounts = () => {
         onClose={() => setConfirmDialog({ isOpen: false, account: null })}
         onConfirm={handleDelete}
         title="Delete Bank Account"
-        message={`Are you sure you want to delete ${confirmDialog.account?.name}? This action cannot be undone.`}
+        message={`Are you sure you want to delete account ${confirmDialog.account?.account_number}? This action cannot be undone.`}
         confirmText="Yes, Delete"
         cancelText="Cancel"
         type="danger"
@@ -107,24 +262,22 @@ const BankAccounts = () => {
             </Link>
             <ul className="dropdown-menu">
               <li>
-                <Link className="dropdown-item" href="#">
+                <button className="dropdown-item" onClick={handleExportPDF}>
                   Download as PDF
-                </Link>
+                </button>
               </li>
               <li>
-                <Link className="dropdown-item" href="#">
+                <button className="dropdown-item" onClick={handleExportExcel}>
                   Download as Excel
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
-          <Link to="/bank-accounts-type" className="btn btn-dark d-inline-flex align-items-center">
-            Account Type
-          </Link>
           <button
             className="btn btn-primary d-flex align-items-center justify-content-center"
             data-bs-toggle="modal"
             data-bs-target="#add_modal"
+            onClick={() => setErrors({})}
           >
             <i className="isax isax-add-circle5 me-1"></i>New Bank Account
           </button>
@@ -149,91 +302,8 @@ const BankAccounts = () => {
                 </Link>
               </div>
             </div>
-            <Link
-              className="btn btn-outline-white fw-normal d-inline-flex align-items-center"
-              href="#"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#customcanvas"
-            >
-              <i className="isax isax-filter me-1"></i>Filter
-            </Link>
           </div>
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="dropdown">
-              <Link href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center fw-medium"
-                data-bs-toggle="dropdown"
-              >
-                <i className="isax isax-sort me-1"></i>Sort By :{' '}
-                <span className="fw-normal ms-1">{sortOrder}</span>
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu-end">
-                <li>
-                  <button className="dropdown-item" onClick={() => setSortOrder("Latest")}>
-                    Latest
-                  </button>
-                </li>
-                <li>
-                  <button className="dropdown-item" onClick={() => setSortOrder("Oldest")}>
-                    Oldest
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div className="dropdown">
-              <Link href="#"
-                className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-              >
-                <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
-              <ul className="dropdown-menu  dropdown-menu">
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.accountHolder} onChange={() => handleColumnToggle('accountHolder')} />
-                    <span>Account Holder</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.accountNo} onChange={() => handleColumnToggle('accountNo')} />
-                    <span>Account No</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.accountType} onChange={() => handleColumnToggle('accountType')} />
-                    <span>Account Type</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.notes} onChange={() => handleColumnToggle('notes')} />
-                    <span>Notes</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.openingBalance} onChange={() => handleColumnToggle('openingBalance')} />
-                    <span>Opening Balance</span>
-                  </label>
-                </li>
-                <li>
-                  <label className="dropdown-item d-flex align-items-center form-switch">
-                    <i className="fa-solid fa-grip-vertical me-3 text-default"></i>
-                    <input className="form-check-input m-0 me-2" type="checkbox" checked={columns.status} onChange={() => handleColumnToggle('status')} />
-                    <span>Status</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -241,96 +311,98 @@ const BankAccounts = () => {
         <table className="table table-nowrap datatable">
           <thead className="thead-light">
             <tr>
-              <th className="no-sort">
-                <div className="form-check form-check-md">
-                  <input className="form-check-input" type="checkbox" id="select-all" />
-                </div>
-              </th>
-              {columns.accountHolder && <th className="no-sort">Account Holder Name</th>}
-              {columns.accountNo && <th className="no-sort">Account No</th>}
-              {columns.accountType && <th className="no-sort">Account Type</th>}
-              {columns.notes && <th className="no-sort">Notes</th>}
-              {columns.openingBalance && <th>Opening Balance</th>}
-              {columns.status && <th className="no-sort">Status</th>}
+              {columns.bank_name && <th className="no-sort">Bank Name</th>}
+              {columns.account_number && <th className="no-sort">Account No</th>}
+              {columns.ifsc_code && <th className="no-sort">IFSC Code</th>}
+              {columns.ledger && <th className="no-sort">Linked Ledger</th>}
               <th className="no-sort"></th>
             </tr>
           </thead>
           <tbody>
-            {filteredAccounts.map(account => (
-              <tr key={account.id}>
-                <td>
-                  <div className="form-check form-check-md">
-                    <input className="form-check-input" type="checkbox" />
-                  </div>
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status"></div>
                 </td>
-                {columns.accountHolder && (
+              </tr>
+            ) : filteredAccounts.map(account => (
+              <tr 
+                key={account.id}
+                onClick={() => { setCurrentAccount(account); setErrors({}); }}
+                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
+                data-bs-toggle="modal" 
+                data-bs-target="#edit_modal"
+              >
+                {columns.bank_name && (
                   <td>
                     <div className="d-flex align-items-center">
-                      <Link href="#" className="avatar avatar-sm rounded-circle me-2 flex-shrink-0">
-                        <img
-                          src={account.avatar}
-                          className="rounded-circle"
-                          alt="img"
-                        />
-                      </Link>
+                      <div className="avatar avatar-sm rounded-circle me-2 flex-shrink-0 bg-primary-transparent text-primary">
+                        <i className="isax isax-bank"></i>
+                      </div>
                       <div>
                         <h6 className="fs-14 fw-medium mb-0">
-                          <Link href="#">{account.name}</Link>
+                          {account.bank_name}
                         </h6>
                       </div>
                     </div>
                   </td>
                 )}
-                {columns.accountNo && <td>{account.accountNo}</td>}
-                {columns.accountType && <td>{account.type}</td>}
-                {columns.notes && <td>{account.notes}</td>}
-                {columns.openingBalance && <td className="text-dark">${account.balance}</td>}
-                {columns.status && (
-                  <td>
-                    <div className="d-flex align-items-center">
-                      {account.status === 'Active' ? (
-                        <span className="badge badge-soft-success badge-sm d-inline-flex align-items-center">
-                          Active <i className="isax isax-tick-circle4 ms-1"></i>
-                        </span>
-                      ) : (
-                        <span className="badge badge-soft-danger badge-sm d-inline-flex align-items-center">
-                          Inactive <i className="fa-solid fa-xmark ms-1"></i>
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                )}
-                <td className="action-item">
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_modal"
-                      onClick={() => setCurrentAccount(account)}
+                {columns.account_number && <td>{account.account_number}</td>}
+                {columns.ifsc_code && <td>{account.ifsc_code}</td>}
+                {columns.ledger && <td>{account.ledger?.name || "---"}</td>}
+                 <td className="text-end pe-4">
+                  <div className="d-flex justify-content-end align-items-center gap-2">
+                    <button 
+                      className="btn btn-sm btn-soft-warning border-0" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#edit_modal" 
+                      onClick={(e) => { e.stopPropagation(); setCurrentAccount(account); setErrors({}); }}
+                      title="Edit Account"
                     >
-                      <i className="isax isax-edit"></i>
+                      <i className="isax isax-edit-2 fs-16"></i>
                     </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => setConfirmDialog({ isOpen: true, account })}
+                    <button 
+                      className="btn btn-sm btn-soft-danger border-0" 
+                      onClick={(e) => { e.stopPropagation(); setConfirmDialog({ isOpen: true, account }); }}
+                      title="Delete Account"
                     >
-                      <i className="isax isax-trash"></i>
+                      <i className="isax isax-trash fs-16"></i>
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
-            {filteredAccounts.length === 0 && (
+            {!loading && filteredAccounts.length === 0 && (
               <tr>
-                <td colSpan="8" className="text-center">No bank accounts found!</td>
+                <td colSpan="6" className="text-center py-5 text-muted">No bank accounts found!</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+      
+      {pagination.total > filters.limit && (
+        <div className="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+          <div className="fs-13 text-muted">
+            Showing {(filters.page - 1) * filters.limit + 1} to {Math.min(filters.page * filters.limit, pagination.total)} of {pagination.total}
+          </div>
+          <nav>
+            <ul className="pagination pagination-sm mb-0">
+              <li className={`page-item ${filters.page === 1 ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))} disabled={filters.page === 1}>Previous</button>
+              </li>
+              <li className="page-item active"><span className="page-link">{filters.page}</span></li>
+              <li className={`page-item ${accounts.length < filters.limit ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={accounts.length < filters.limit}>Next</button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
 
       {/* Add Modal */}
-      <div id="add_modal" className="modal fade">
+      <div id="add_modal" className="modal fade" tabIndex="-1">
         <div className="modal-dialog modal-dialog-centered modal-lg">
           <div className="modal-content">
             <div className="modal-header">
@@ -347,26 +419,13 @@ const BankAccounts = () => {
             <form onSubmit={handleAdd}>
               <div className="modal-body">
                 <div className="row">
-                  <div className="col-md-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Account Name<span className="text-danger ms-1">*</span>
-                      </label>
-                      <input type="text" className="form-control" placeholder="e.g., Main Business Account" required />
-                    </div>
-                  </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">
                         Bank Name<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" placeholder="e.g., State Bank of India" required />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">Branch</label>
-                      <input type="text" className="form-control" placeholder="e.g., Mumbai Main Branch" />
+                      <input type="text" name="bank_name" className={`form-control ${errors.bank_name ? 'is-invalid' : ''}`} placeholder="e.g., HDFC Bank" />
+                      {errors.bank_name && <div className="invalid-feedback">{errors.bank_name}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -374,7 +433,8 @@ const BankAccounts = () => {
                       <label className="form-label">
                         Account Number<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" placeholder="e.g., 1234567890" required />
+                      <input type="text" name="account_number" className={`form-control ${errors.account_number ? 'is-invalid' : ''}`} placeholder="e.g., 1234567890" />
+                      {errors.account_number && <div className="invalid-feedback">{errors.account_number}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -382,39 +442,22 @@ const BankAccounts = () => {
                       <label className="form-label">
                         IFSC Code<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" placeholder="e.g., SBIN0001234" required />
+                      <input type="text" name="ifsc_code" className={`form-control ${errors.ifsc_code ? 'is-invalid' : ''}`} placeholder="e.g., HDFC0001234" />
+                      {errors.ifsc_code && <div className="invalid-feedback">{errors.ifsc_code}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Account Type<span className="text-danger ms-1">*</span>
-                      </label>
-                      <select className="form-select" required>
-                        <option value="">Select Account Type</option>
-                        <option value="SAVINGS">Savings</option>
-                        <option value="CURRENT">Current</option>
-                        <option value="CASH_CREDIT">Cash Credit</option>
-                        <option value="OVERDRAFT">Overdraft</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">Opening Balance</label>
-                      <input type="number" className="form-control" placeholder="0.00" step="0.01" />
-                    </div>
-                  </div>
-                  <div className="col-md-12">
                     <div className="mb-3">
                       <label className="form-label">
                         Linked Ledger<span className="text-danger ms-1">*</span>
                       </label>
-                      <select className="form-select" required>
+                      <select name="ledger_id" className={`form-select ${errors.ledger_id ? 'is-invalid' : ''}`}>
                         <option value="">Select Ledger</option>
-                        <option value="bank_ledger_1">Bank Account - Main</option>
-                        <option value="bank_ledger_2">Bank Account - Secondary</option>
+                        {ledgers.map(l => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
                       </select>
+                      {errors.ledger_id && <div className="invalid-feedback">{errors.ledger_id}</div>}
                     </div>
                   </div>
                 </div>
@@ -423,8 +466,8 @@ const BankAccounts = () => {
                 <button type="button" className="btn btn-outline-white" data-bs-dismiss="modal">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" data-bs-dismiss="modal">
-                  Add New
+                <button type="submit" className="btn btn-primary">
+                  Add Account
                 </button>
               </div>
             </form>
@@ -433,7 +476,7 @@ const BankAccounts = () => {
       </div>
 
       {/* Edit Modal */}
-      <div id="edit_modal" className="modal fade">
+      <div id="edit_modal" className="modal fade" tabIndex="-1">
         <div className="modal-dialog modal-dialog-centered modal-lg">
           <div className="modal-content">
             <div className="modal-header">
@@ -447,29 +490,16 @@ const BankAccounts = () => {
                 <i className="fa-solid fa-x"></i>
               </button>
             </div>
-            <form onSubmit={handleEdit}>
+            <form onSubmit={handleEdit} key={currentAccount?.id || 'new'}>
               <div className="modal-body">
                 <div className="row">
-                  <div className="col-md-12">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Account Name<span className="text-danger ms-1">*</span>
-                      </label>
-                      <input type="text" className="form-control" defaultValue={currentAccount?.name || ""} required />
-                    </div>
-                  </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">
                         Bank Name<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" defaultValue="Global Trust Bank" required />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">Branch</label>
-                      <input type="text" className="form-control" defaultValue="New York" />
+                      <input type="text" name="bank_name" className={`form-control ${errors.bank_name ? 'is-invalid' : ''}`} defaultValue={currentAccount?.bank_name || ""} />
+                      {errors.bank_name && <div className="invalid-feedback">{errors.bank_name}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -477,7 +507,8 @@ const BankAccounts = () => {
                       <label className="form-label">
                         Account Number<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" defaultValue={currentAccount?.accountNo || ""} required />
+                      <input type="text" name="account_number" className={`form-control ${errors.account_number ? 'is-invalid' : ''}`} defaultValue={currentAccount?.account_number || ""} />
+                      {errors.account_number && <div className="invalid-feedback">{errors.account_number}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -485,39 +516,22 @@ const BankAccounts = () => {
                       <label className="form-label">
                         IFSC Code<span className="text-danger ms-1">*</span>
                       </label>
-                      <input type="text" className="form-control" defaultValue="GTBK0001234" required />
+                      <input type="text" name="ifsc_code" className={`form-control ${errors.ifsc_code ? 'is-invalid' : ''}`} defaultValue={currentAccount?.ifsc_code || ""} />
+                      {errors.ifsc_code && <div className="invalid-feedback">{errors.ifsc_code}</div>}
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Account Type<span className="text-danger ms-1">*</span>
-                      </label>
-                      <select className="form-select" required>
-                        <option value="">Select Account Type</option>
-                        <option value="SAVINGS" selected>Savings</option>
-                        <option value="CURRENT">Current</option>
-                        <option value="CASH_CREDIT">Cash Credit</option>
-                        <option value="OVERDRAFT">Overdraft</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label">Opening Balance</label>
-                      <input type="number" className="form-control" defaultValue={currentAccount?.balance || ""} step="0.01" />
-                    </div>
-                  </div>
-                  <div className="col-md-12">
                     <div className="mb-3">
                       <label className="form-label">
                         Linked Ledger<span className="text-danger ms-1">*</span>
                       </label>
-                      <select className="form-select" required>
+                      <select name="ledger_id" className={`form-select ${errors.ledger_id ? 'is-invalid' : ''}`} defaultValue={currentAccount?.ledger_id || ""}>
                         <option value="">Select Ledger</option>
-                        <option value="bank_ledger_1" selected>Bank Account - Main</option>
-                        <option value="bank_ledger_2">Bank Account - Secondary</option>
+                        {ledgers.map(l => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
                       </select>
+                      {errors.ledger_id && <div className="invalid-feedback">{errors.ledger_id}</div>}
                     </div>
                   </div>
                 </div>
@@ -526,7 +540,7 @@ const BankAccounts = () => {
                 <button type="button" className="btn btn-outline-white" data-bs-dismiss="modal">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" data-bs-dismiss="modal">
+                <button type="submit" className="btn btn-primary">
                   Save Changes
                 </button>
               </div>

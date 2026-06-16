@@ -1,0 +1,2750 @@
+{
+  "total_postman": 263,
+  "total_missing": 143,
+  "total_implemented": 120,
+  "missing": [
+    {
+      "name": "\ud83c\udfe2 COMPANY > List My Companies",
+      "method": "GET",
+      "path": "/api/company/my-companies",
+      "body": "",
+      "norm_path": "/api/company/my-companies"
+    },
+    {
+      "name": "\ud83c\udfe2 COMPANY > Get Company",
+      "method": "GET",
+      "path": "/api/company",
+      "body": "",
+      "norm_path": "/api/company"
+    },
+    {
+      "name": "\ud83c\udfe2 COMPANY > Create Additional Company",
+      "method": "POST",
+      "path": "/api/company",
+      "body": "{\n  \"name\": \"Yani Books Second Company Pvt Ltd\",\n  \"legal_name\": \"Yani Books Second Company Private Limited\",\n  \"gstin\": \"29AAPFY0939E1ZV\",\n  \"pan\": \"AAPFY0939E\",\n  \"address\": \"789 Growth Avenue, Bengaluru\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"state_code\": \"29\",\n  \"pincode\": \"560001\",\n  \"phone\": \"9876543210\",\n  \"email\": \"second@yanibooks.com\"\n}",
+      "norm_path": "/api/company"
+    },
+    {
+      "name": "\ud83c\udfe2 COMPANY > Update Company",
+      "method": "PUT",
+      "path": "/api/company/{{active_company_id}}",
+      "body": "{\n  \"name\": \"Yani Books Pvt Ltd\",\n  \"phone\": \"9876543210\",\n  \"address\": \"456 New Street, Mumbai\"\n}",
+      "norm_path": "/api/company/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Get User by ID",
+      "method": "GET",
+      "path": "/api/users/{{created_user_id}}",
+      "body": "",
+      "norm_path": "/api/users/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Update User",
+      "method": "PUT",
+      "path": "/api/users/{{created_user_id}}",
+      "body": "{\n  \"name\": \"Alice Johnson\",\n  \"phone\": \"9876543211\"\n}",
+      "norm_path": "/api/users/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Update Role Permissions",
+      "method": "PUT",
+      "path": "/api/roles/{{role_id}}/permissions",
+      "body": "{\n  \"permissions\": [\n    { \"module\": \"sales_invoice\", \"can_create\": true, \"can_read\": true, \"can_update\": true, \"can_delete\": false },\n    { \"module\": \"purchase_invoice\", \"can_create\": false, \"can_read\": true, \"can_update\": false, \"can_delete\": false }\n  ]\n}",
+      "norm_path": "/api/roles/{VAR}/permissions"
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Update Role",
+      "method": "PUT",
+      "path": "/api/roles/{{role_id}}",
+      "body": "{\n  \"name\": \"accounts_manager_v2\",\n  \"description\": \"Updated description\"\n}",
+      "norm_path": "/api/roles/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Delete Role",
+      "method": "DELETE",
+      "path": "/api/roles/{{role_id}}",
+      "body": "",
+      "norm_path": "/api/roles/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > Search Customers (Autocomplete)",
+      "method": "GET",
+      "path": "/api/customers/search?q=ABC&limit=20",
+      "body": "",
+      "norm_path": "/api/customers/search"
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > Get Customer by ID",
+      "method": "GET",
+      "path": "/api/customers/1",
+      "body": "",
+      "norm_path": "/api/customers/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > Update Customer",
+      "method": "PUT",
+      "path": "/api/customers/1",
+      "body": "{\n  \"name\": \"Rajesh Enterprises Updated\",\n  \"phone\": \"9876543299\",\n  \"city\": \"Pune\",\n  \"state\": \"Maharashtra\",\n  \"pan\": \"AABCE1234F\",\n  \"credit_limit\": 150000,\n  \"payment_terms\": \"net45\"\n}",
+      "norm_path": "/api/customers/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > Delete Customer",
+      "method": "DELETE",
+      "path": "/api/customers/1",
+      "body": "",
+      "norm_path": "/api/customers/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed VENDORS > Search Vendors (Autocomplete)",
+      "method": "GET",
+      "path": "/api/vendors/search?q=XYZ&limit=20",
+      "body": "",
+      "norm_path": "/api/vendors/search"
+    },
+    {
+      "name": "\ud83c\udfed VENDORS > Get Vendor by ID",
+      "method": "GET",
+      "path": "/api/vendors/1",
+      "body": "",
+      "norm_path": "/api/vendors/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed VENDORS > Update Vendor",
+      "method": "PUT",
+      "path": "/api/vendors/1",
+      "body": "{\n  \"name\": \"Sharma Suppliers Updated\",\n  \"phone\": \"9123456799\"\n}",
+      "norm_path": "/api/vendors/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Search Items (Autocomplete for Invoice)",
+      "method": "GET",
+      "path": "/api/items/search?q=laptop&limit=30",
+      "body": "",
+      "norm_path": "/api/items/search"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Get Item by ID",
+      "method": "GET",
+      "path": "/api/items/1",
+      "body": "",
+      "norm_path": "/api/items/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Update Item",
+      "method": "PUT",
+      "path": "/api/items/1",
+      "body": "{\n  \"sale_price\": 56000,\n  \"purchase_price\": 46000\n}",
+      "norm_path": "/api/items/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Delete Item",
+      "method": "DELETE",
+      "path": "/api/items/1",
+      "body": "",
+      "norm_path": "/api/items/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Stock Ageing Report",
+      "method": "GET",
+      "path": "/api/items/reports/stock-ageing?warehouse_id=1",
+      "body": "",
+      "norm_path": "/api/items/reports/stock-ageing"
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Expiry Management Report",
+      "method": "GET",
+      "path": "/api/items/reports/expiry?days_ahead=90",
+      "body": "",
+      "norm_path": "/api/items/reports/expiry"
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > Get Cash & Bank Ledgers (for Voucher Dropdowns)",
+      "method": "GET",
+      "path": "/api/ledgers/by-type?type=cash_bank",
+      "body": "",
+      "norm_path": "/api/ledgers/by-type"
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > Get Bank Ledgers Only",
+      "method": "GET",
+      "path": "/api/ledgers/by-type?type=bank",
+      "body": "",
+      "norm_path": "/api/ledgers/by-type"
+    },
+    {
+      "name": "\ud83d\udcdd VOUCHERS > Get Voucher by ID",
+      "method": "GET",
+      "path": "/api/vouchers/{{created_voucher_id}}",
+      "body": "",
+      "norm_path": "/api/vouchers/{VAR}"
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > Get Sales Invoice by ID",
+      "method": "GET",
+      "path": "/api/sales-invoices/1",
+      "body": "",
+      "norm_path": "/api/sales-invoices/{VAR}"
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > Post Sales Invoice (DRAFT \u2192 POSTED)",
+      "method": "POST",
+      "path": "/api/sales-invoices/1/post",
+      "body": "",
+      "norm_path": "/api/sales-invoices/{VAR}/post"
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > Collect Payment",
+      "method": "POST",
+      "path": "/api/sales-invoices/1/payment",
+      "body": "{\n  \"amount\": 129800,\n  \"payment_date\": \"2026-03-12\",\n  \"payment_mode\": \"BANK\",\n  \"reference\": \"NEFT/20260312/001\"\n}",
+      "norm_path": "/api/sales-invoices/{VAR}/payment"
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > Cancel Sales Invoice",
+      "method": "POST",
+      "path": "/api/sales-invoices/1/cancel",
+      "body": "",
+      "norm_path": "/api/sales-invoices/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > Get Purchase Invoice by ID",
+      "method": "GET",
+      "path": "/api/purchase-invoices/1",
+      "body": "",
+      "norm_path": "/api/purchase-invoices/{VAR}"
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > Post Purchase Invoice (DRAFT \u2192 POSTED)",
+      "method": "POST",
+      "path": "/api/purchase-invoices/1/post",
+      "body": "",
+      "norm_path": "/api/purchase-invoices/{VAR}/post"
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > Record Payment",
+      "method": "POST",
+      "path": "/api/purchase-invoices/1/payment",
+      "body": "{\n  \"amount\": 265650,\n  \"payment_date\": \"2026-03-12\",\n  \"payment_mode\": \"BANK\",\n  \"reference\": \"NEFT/20260312/002\"\n}",
+      "norm_path": "/api/purchase-invoices/{VAR}/payment"
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > Cancel Purchase Invoice",
+      "method": "POST",
+      "path": "/api/purchase-invoices/1/cancel",
+      "body": "",
+      "norm_path": "/api/purchase-invoices/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83d\udccb SALES ORDERS > Get Sales Order by ID",
+      "method": "GET",
+      "path": "/api/sales-orders/1",
+      "body": "",
+      "norm_path": "/api/sales-orders/{VAR}"
+    },
+    {
+      "name": "\ud83d\udccb SALES ORDERS > Update Sales Order",
+      "method": "PUT",
+      "path": "/api/sales-orders/1",
+      "body": "{\n  \"items\": [\n    { \"item_id\": 1, \"qty\": 5, \"rate\": 55000 }\n  ]\n}",
+      "norm_path": "/api/sales-orders/{VAR}"
+    },
+    {
+      "name": "\ud83d\udccb SALES ORDERS > Cancel Sales Order",
+      "method": "POST",
+      "path": "/api/sales-orders/1/cancel",
+      "body": "",
+      "norm_path": "/api/sales-orders/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK ACCOUNTS > List Bank Accounts",
+      "method": "GET",
+      "path": "/api/bank-accounts",
+      "body": "",
+      "norm_path": "/api/bank-accounts"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK ACCOUNTS > Create Bank Account",
+      "method": "POST",
+      "path": "/api/bank-accounts",
+      "body": "{\n  \"ledger_id\": 1,\n  \"account_number\": \"1234567890\",\n  \"bank_name\": \"HDFC Bank\",\n  \"ifsc_code\": \"HDFC0001234\"\n}",
+      "norm_path": "/api/bank-accounts"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK ACCOUNTS > Get Bank Account by ID",
+      "method": "GET",
+      "path": "/api/bank-accounts/1",
+      "body": "",
+      "norm_path": "/api/bank-accounts/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK ACCOUNTS > Update Bank Account",
+      "method": "PUT",
+      "path": "/api/bank-accounts/1",
+      "body": "{\n  \"bank_name\": \"HDFC Bank Ltd\",\n  \"ifsc_code\": \"HDFC0005678\"\n}",
+      "norm_path": "/api/bank-accounts/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK ACCOUNTS > Delete Bank Account",
+      "method": "DELETE",
+      "path": "/api/bank-accounts/1",
+      "body": "",
+      "norm_path": "/api/bank-accounts/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Get Reconciliation by ID",
+      "method": "GET",
+      "path": "/api/bank-reconciliations/1",
+      "body": "",
+      "norm_path": "/api/bank-reconciliations/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Get Unmatched Transactions",
+      "method": "GET",
+      "path": "/api/bank-reconciliations/1/unmatched",
+      "body": "",
+      "norm_path": "/api/bank-reconciliations/{VAR}/unmatched"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Get Matched Transactions",
+      "method": "GET",
+      "path": "/api/bank-reconciliations/1/matched",
+      "body": "",
+      "norm_path": "/api/bank-reconciliations/{VAR}/matched"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Finalize Reconciliation",
+      "method": "POST",
+      "path": "/api/bank-reconciliations/1/finalize",
+      "body": "{}",
+      "norm_path": "/api/bank-reconciliations/{VAR}/finalize"
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Get Reconciliation Summary",
+      "method": "GET",
+      "path": "/api/bank-reconciliations/account/1/summary",
+      "body": "",
+      "norm_path": "/api/bank-reconciliations/account/{VAR}/summary"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Update Warehouse",
+      "method": "PUT",
+      "path": "/api/settings/warehouses/1",
+      "body": "{\n  \"name\": \"Delhi Warehouse - Main\",\n  \"location\": \"Okhla Phase 2, Delhi\"\n}",
+      "norm_path": "/api/settings/warehouses/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] PUT Financial Year (Update)",
+      "method": "PUT",
+      "path": "/api/settings/financial-years/1",
+      "body": "{\n  \"name\": \"FY 2025-26 Updated\",\n  \"start_date\": \"2025-04-01\",\n  \"end_date\": \"2026-03-31\"\n}",
+      "norm_path": "/api/settings/financial-years/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] DELETE Financial Year",
+      "method": "DELETE",
+      "path": "/api/settings/financial-years/1",
+      "body": "",
+      "norm_path": "/api/settings/financial-years/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] Switch Active Financial Year",
+      "method": "POST",
+      "path": "/api/settings/financial-years/1/switch",
+      "body": "",
+      "norm_path": "/api/settings/financial-years/{VAR}/switch"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] GET Business Natures",
+      "method": "GET",
+      "path": "/api/settings/business-natures",
+      "body": "",
+      "norm_path": "/api/settings/business-natures"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] POST Business Nature (Create)",
+      "method": "POST",
+      "path": "/api/settings/business-natures",
+      "body": "{\n  \"code\": \"MANUF_001\",\n  \"name\": \"Manufacturing\",\n  \"description\": \"Goods manufacturing & trading\",\n  \"category\": \"MANUFACTURING\"\n}",
+      "norm_path": "/api/settings/business-natures"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] PUT Business Nature (Update)",
+      "method": "PUT",
+      "path": "/api/settings/business-natures/1",
+      "body": "{\n  \"name\": \"Manufacturing (Updated)\",\n  \"description\": \"Updated description\"\n}",
+      "norm_path": "/api/settings/business-natures/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] DELETE Business Nature",
+      "method": "DELETE",
+      "path": "/api/settings/business-natures/1",
+      "body": "",
+      "norm_path": "/api/settings/business-natures/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] GET Backup Details",
+      "method": "GET",
+      "path": "/api/settings/backups/1",
+      "body": "",
+      "norm_path": "/api/settings/backups/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] POST Restore Backup",
+      "method": "POST",
+      "path": "/api/settings/backups/1/restore",
+      "body": "",
+      "norm_path": "/api/settings/backups/{VAR}/restore"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] DELETE Backup",
+      "method": "DELETE",
+      "path": "/api/settings/backups/1",
+      "body": "",
+      "norm_path": "/api/settings/backups/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Voucher Number Series",
+      "method": "GET",
+      "path": "/api/settings/voucher-series",
+      "body": "",
+      "norm_path": "/api/settings/voucher-series"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Create Voucher Number Series",
+      "method": "POST",
+      "path": "/api/settings/voucher-series",
+      "body": "{\n  \"voucher_type_id\": 5,\n  \"name\": \"Products Sales\",\n  \"prefix\": \"PV\",\n  \"starting_number\": 1,\n  \"padding\": 4,\n  \"reset_period\": \"YEARLY\",\n  \"is_default\": false\n}",
+      "norm_path": "/api/settings/voucher-series"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Update Voucher Number Series",
+      "method": "PUT",
+      "path": "/api/settings/voucher-series/1",
+      "body": "{\n  \"prefix\": \"SV\",\n  \"is_default\": true\n}",
+      "norm_path": "/api/settings/voucher-series/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Delete Voucher Number Series",
+      "method": "DELETE",
+      "path": "/api/settings/voucher-series/1",
+      "body": "",
+      "norm_path": "/api/settings/voucher-series/{VAR}"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Payroll Settings",
+      "method": "GET",
+      "path": "/api/settings/payroll",
+      "body": "",
+      "norm_path": "/api/settings/payroll"
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Update Payroll Settings",
+      "method": "PUT",
+      "path": "/api/settings/payroll",
+      "body": "{\n  \"pf_applicable\": true,\n  \"pf_employer_rate\": 12,\n  \"pf_employee_rate\": 12,\n  \"esi_applicable\": true,\n  \"esi_employer_rate\": 3.25,\n  \"esi_employee_rate\": 0.75,\n  \"esi_wage_ceiling\": 21000,\n  \"pt_applicable\": true,\n  \"pt_state\": \"27\",\n  \"lwf_applicable\": false,\n  \"gratuity_applicable\": true,\n  \"tds_on_salary_applicable\": true\n}",
+      "norm_path": "/api/settings/payroll"
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > Get Credit Note by ID",
+      "method": "GET",
+      "path": "/api/credit-notes/1",
+      "body": "",
+      "norm_path": "/api/credit-notes/{VAR}"
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > Update Credit Note",
+      "method": "PUT",
+      "path": "/api/credit-notes/1",
+      "body": "{\n  \"remarks\": \"Customer returned defective goods\"\n}",
+      "norm_path": "/api/credit-notes/{VAR}"
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > Post Credit Note",
+      "method": "POST",
+      "path": "/api/credit-notes/1/post",
+      "body": "",
+      "norm_path": "/api/credit-notes/{VAR}/post"
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > Cancel Credit Note",
+      "method": "POST",
+      "path": "/api/credit-notes/1/cancel",
+      "body": "",
+      "norm_path": "/api/credit-notes/{VAR}/cancel"
+    },
+    {
+      "name": "\u21aa\ufe0f DEBIT NOTES (Purchase Returns) > Get Debit Note by ID",
+      "method": "GET",
+      "path": "/api/debit-notes/1",
+      "body": "",
+      "norm_path": "/api/debit-notes/{VAR}"
+    },
+    {
+      "name": "\u21aa\ufe0f DEBIT NOTES (Purchase Returns) > Post Debit Note",
+      "method": "POST",
+      "path": "/api/debit-notes/1/post",
+      "body": "",
+      "norm_path": "/api/debit-notes/{VAR}/post"
+    },
+    {
+      "name": "\u21aa\ufe0f DEBIT NOTES (Purchase Returns) > Cancel Debit Note",
+      "method": "POST",
+      "path": "/api/debit-notes/1/cancel",
+      "body": "",
+      "norm_path": "/api/debit-notes/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > Get Purchase Order by ID",
+      "method": "GET",
+      "path": "/api/purchase-orders/1",
+      "body": "",
+      "norm_path": "/api/purchase-orders/{VAR}"
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > Update Purchase Order",
+      "method": "PUT",
+      "path": "/api/purchase-orders/1",
+      "body": "{\n  \"total_amount\": 12000,\n  \"notes\": \"Updated order\"\n}",
+      "norm_path": "/api/purchase-orders/{VAR}"
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > Confirm Purchase Order",
+      "method": "POST",
+      "path": "/api/purchase-orders/1/confirm",
+      "body": "",
+      "norm_path": "/api/purchase-orders/{VAR}/confirm"
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > Cancel Purchase Order",
+      "method": "POST",
+      "path": "/api/purchase-orders/1/cancel",
+      "body": "",
+      "norm_path": "/api/purchase-orders/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Get Proforma Invoice by ID",
+      "method": "GET",
+      "path": "/api/proforma-invoices/1",
+      "body": "",
+      "norm_path": "/api/proforma-invoices/{VAR}"
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Send Proforma Invoice",
+      "method": "POST",
+      "path": "/api/proforma-invoices/1/send",
+      "body": "",
+      "norm_path": "/api/proforma-invoices/{VAR}/send"
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Accept Proforma Invoice",
+      "method": "POST",
+      "path": "/api/proforma-invoices/1/accept",
+      "body": "",
+      "norm_path": "/api/proforma-invoices/{VAR}/accept"
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Reject Proforma Invoice",
+      "method": "POST",
+      "path": "/api/proforma-invoices/1/reject",
+      "body": "{\n  \"reason\": \"Price too high\"\n}",
+      "norm_path": "/api/proforma-invoices/{VAR}/reject"
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Convert to Sales Invoice",
+      "method": "POST",
+      "path": "/api/proforma-invoices/1/convert",
+      "body": "",
+      "norm_path": "/api/proforma-invoices/{VAR}/convert"
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Get Budget Variance",
+      "method": "GET",
+      "path": "/api/budgets/1/variance",
+      "body": "",
+      "norm_path": "/api/budgets/{VAR}/variance"
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Update Budget",
+      "method": "PUT",
+      "path": "/api/budgets/1",
+      "body": "{\n  \"name\": \"Revised Annual Budget\",\n  \"notes\": \"Revised in Q2\"\n}",
+      "norm_path": "/api/budgets/{VAR}"
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Delete Budget",
+      "method": "DELETE",
+      "path": "/api/budgets/1",
+      "body": "",
+      "norm_path": "/api/budgets/{VAR}"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > Update HSN/SAC Code",
+      "method": "PUT",
+      "path": "/api/hsn-sac/1",
+      "body": "{\n  \"gst_rate\": 12\n}",
+      "norm_path": "/api/hsn-sac/{VAR}"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > Get Effective Rate on Date",
+      "method": "GET",
+      "path": "/api/hsn-sac/1/rate?date=2025-08-01",
+      "body": "",
+      "norm_path": "/api/hsn-sac/{VAR}/rate"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > List Rate History",
+      "method": "GET",
+      "path": "/api/hsn-sac/1/rates",
+      "body": "",
+      "norm_path": "/api/hsn-sac/{VAR}/rates"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > Add Rate History (Date-Effective Change)",
+      "method": "POST",
+      "path": "/api/hsn-sac/1/rates",
+      "body": "{\n  \"gst_rate\": 5,\n  \"effective_from\": \"2025-08-01\",\n  \"notification_ref\": \"CBIC Notification 45/2025\",\n  \"remarks\": \"GST rate reduced from 12% to 5% w.e.f. 01-Aug-2025\"\n}",
+      "norm_path": "/api/hsn-sac/{VAR}/rates"
+    },
+    {
+      "name": "\u267b\ufe0f WASTAGE > Get Wastage by ID",
+      "method": "GET",
+      "path": "/api/wastage/1",
+      "body": "",
+      "norm_path": "/api/wastage/{VAR}"
+    },
+    {
+      "name": "\u267b\ufe0f WASTAGE > Approve Wastage",
+      "method": "POST",
+      "path": "/api/wastage/1/approve",
+      "body": "{\n  \"remarks\": \"Verified and approved\"\n}",
+      "norm_path": "/api/wastage/{VAR}/approve"
+    },
+    {
+      "name": "\u267b\ufe0f WASTAGE > Reject Wastage",
+      "method": "POST",
+      "path": "/api/wastage/1/reject",
+      "body": "{\n  \"remarks\": \"Not enough evidence\"\n}",
+      "norm_path": "/api/wastage/{VAR}/reject"
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > Get Verification by ID",
+      "method": "GET",
+      "path": "/api/stock-verification/1",
+      "body": "",
+      "norm_path": "/api/stock-verification/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > Submit Physical Count",
+      "method": "POST",
+      "path": "/api/stock-verification/1/count",
+      "body": "{\n  \"counts\": [\n    { \"item_id\": 1, \"physical_qty\": 48 },\n    { \"item_id\": 2, \"physical_qty\": 95 }\n  ]\n}",
+      "norm_path": "/api/stock-verification/{VAR}/count"
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > Get Variance Report",
+      "method": "GET",
+      "path": "/api/stock-verification/1/variance",
+      "body": "",
+      "norm_path": "/api/stock-verification/{VAR}/variance"
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > Post Adjustments",
+      "method": "POST",
+      "path": "/api/stock-verification/1/post",
+      "body": "",
+      "norm_path": "/api/stock-verification/{VAR}/post"
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > Clear Cheque",
+      "method": "POST",
+      "path": "/api/cheques/1/clear",
+      "body": "{\n  \"cleared_date\": \"2026-04-15\",\n  \"remarks\": \"Deposited and cleared\"\n}",
+      "norm_path": "/api/cheques/{VAR}/clear"
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > Bounce Cheque",
+      "method": "POST",
+      "path": "/api/cheques/1/bounce",
+      "body": "{\n  \"reason\": \"Insufficient funds\",\n  \"charge\": 500\n}",
+      "norm_path": "/api/cheques/{VAR}/bounce"
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > Cancel Cheque",
+      "method": "POST",
+      "path": "/api/cheques/1/cancel",
+      "body": "",
+      "norm_path": "/api/cheques/{VAR}/cancel"
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > Get Due Soon Cheques",
+      "method": "GET",
+      "path": "/api/cheques/due-soon",
+      "body": "",
+      "norm_path": "/api/cheques/due-soon"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > Get BOM by ID",
+      "method": "GET",
+      "path": "/api/manufacturing/bom/1",
+      "body": "",
+      "norm_path": "/api/manufacturing/bom/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > Explode BOM (Material Requirement)",
+      "method": "GET",
+      "path": "/api/manufacturing/bom/1/explode",
+      "body": "",
+      "norm_path": "/api/manufacturing/bom/{VAR}/explode"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > Update BOM",
+      "method": "PUT",
+      "path": "/api/manufacturing/bom/1",
+      "body": "{\n  \"version\": \"1.1\",\n  \"status\": \"ACTIVE\"\n}",
+      "norm_path": "/api/manufacturing/bom/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > Delete BOM",
+      "method": "DELETE",
+      "path": "/api/manufacturing/bom/1",
+      "body": "",
+      "norm_path": "/api/manufacturing/bom/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 PRODUCTION ORDERS \u2014 > Get Production Order by ID",
+      "method": "GET",
+      "path": "/api/manufacturing/production-orders/1",
+      "body": "",
+      "norm_path": "/api/manufacturing/production-orders/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 PRODUCTION ORDERS \u2014 > Release Production Order",
+      "method": "POST",
+      "path": "/api/manufacturing/production-orders/1/release",
+      "body": "",
+      "norm_path": "/api/manufacturing/production-orders/{VAR}/release"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 PRODUCTION ORDERS \u2014 > Complete Production Order",
+      "method": "POST",
+      "path": "/api/manufacturing/production-orders/1/complete",
+      "body": "{\n  \"qty_produced\": 98,\n  \"notes\": \"2 units scrapped\"\n}",
+      "norm_path": "/api/manufacturing/production-orders/{VAR}/complete"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > Get Job Work by ID",
+      "method": "GET",
+      "path": "/api/manufacturing/job-work/1",
+      "body": "",
+      "norm_path": "/api/manufacturing/job-work/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > Update Job Work",
+      "method": "PUT",
+      "path": "/api/manufacturing/job-work/1",
+      "body": "{\n  \"expected_return_date\": \"2026-04-25\",\n  \"charges\": 1500,\n  \"notes\": \"Updated job work notes\"\n}",
+      "norm_path": "/api/manufacturing/job-work/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > Delete Job Work",
+      "method": "DELETE",
+      "path": "/api/manufacturing/job-work/1",
+      "body": "",
+      "norm_path": "/api/manufacturing/job-work/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 EMPLOYEES \u2014 > Get Employee by ID",
+      "method": "GET",
+      "path": "/api/payroll/employees/1",
+      "body": "",
+      "norm_path": "/api/payroll/employees/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 EMPLOYEES \u2014 > Update Employee",
+      "method": "PUT",
+      "path": "/api/payroll/employees/1",
+      "body": "{\n  \"designation\": \"Senior Software Engineer\",\n  \"basic_salary\": 65000,\n  \"uan_number\": \"100123456789\",\n  \"pran_number\": \"110012345678\"\n}",
+      "norm_path": "/api/payroll/employees/{VAR}"
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > Get Salary Structure",
+      "method": "GET",
+      "path": "/api/payroll/employees/1/salary-structure",
+      "body": "",
+      "norm_path": "/api/payroll/employees/{VAR}/salary-structure"
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > Approve Payslip",
+      "method": "POST",
+      "path": "/api/payroll/payslips/1/approve",
+      "body": "",
+      "norm_path": "/api/payroll/payslips/{VAR}/approve"
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > Mark Payslip Paid",
+      "method": "POST",
+      "path": "/api/payroll/payslips/1/pay",
+      "body": "",
+      "norm_path": "/api/payroll/payslips/{VAR}/pay"
+    },
+    {
+      "name": "\ud83d\udcb1 CURRENCIES > Update Exchange Rate",
+      "method": "PUT",
+      "path": "/api/currencies/rate",
+      "body": "{\n  \"code\": \"USD\",\n  \"exchange_rate\": 84.25\n}",
+      "norm_path": "/api/currencies/rate"
+    },
+    {
+      "name": "\ud83d\udcca DASHBOARD > Sales Chart (Monthly Trend)",
+      "method": "GET",
+      "path": "/api/dashboard/sales-chart",
+      "body": "",
+      "norm_path": "/api/dashboard/sales-chart"
+    },
+    {
+      "name": "\ud83d\udcca DASHBOARD > Top Customers",
+      "method": "GET",
+      "path": "/api/dashboard/top-customers",
+      "body": "",
+      "norm_path": "/api/dashboard/top-customers"
+    },
+    {
+      "name": "\u2705 APPROVAL WORKFLOW > Approve Request",
+      "method": "POST",
+      "path": "/api/approvals/1/approve",
+      "body": "{\n  \"remarks\": \"Approved after verification\"\n}",
+      "norm_path": "/api/approvals/{VAR}/approve"
+    },
+    {
+      "name": "\u2705 APPROVAL WORKFLOW > Reject Request",
+      "method": "POST",
+      "path": "/api/approvals/1/reject",
+      "body": "{\n  \"reason\": \"Amount exceeds budget limit\"\n}",
+      "norm_path": "/api/approvals/{VAR}/reject"
+    },
+    {
+      "name": "\ud83d\udcbe DATA BACKUP > List Backups",
+      "method": "GET",
+      "path": "/api/backups",
+      "body": "",
+      "norm_path": "/api/backups"
+    },
+    {
+      "name": "\ud83d\udcbe DATA BACKUP > Create Backup",
+      "method": "POST",
+      "path": "/api/backups",
+      "body": "",
+      "norm_path": "/api/backups"
+    },
+    {
+      "name": "\ud83d\udcbe DATA BACKUP > Download Backup",
+      "method": "GET",
+      "path": "/api/backups/backup_20260327_000000.sql/download",
+      "body": "",
+      "norm_path": "/api/backups/backup_20260327_000000.sql/download"
+    },
+    {
+      "name": "\ud83d\udcbe DATA BACKUP > Delete Backup",
+      "method": "DELETE",
+      "path": "/api/backups/backup_20260327_000000.sql",
+      "body": "",
+      "norm_path": "/api/backups/backup_20260327_000000.sql"
+    },
+    {
+      "name": "\ud83d\udcc8 REPORTS (New) > Ledger Account Report",
+      "method": "GET",
+      "path": "/api/reports/ledger/1",
+      "body": "",
+      "norm_path": "/api/reports/ledger/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] POST Create TDS Rule",
+      "method": "POST",
+      "path": "/api/compliance/tds-master",
+      "body": "{\n  \"nature_of_payment\": \"Professional Fees\",\n  \"section\": \"194J\",\n  \"threshold_amount\": 30000,\n  \"tds_rate\": 10\n}",
+      "norm_path": "/api/compliance/tds-master"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] PUT Update TDS Rule",
+      "method": "PUT",
+      "path": "/api/compliance/tds-master/1",
+      "body": "{\n  \"tds_rate\": 10.5,\n  \"threshold_amount\": 35000\n}",
+      "norm_path": "/api/compliance/tds-master/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] DELETE TDS Rule",
+      "method": "DELETE",
+      "path": "/api/compliance/tds-master/1",
+      "body": "",
+      "norm_path": "/api/compliance/tds-master/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] POST Create TCS Rule",
+      "method": "POST",
+      "path": "/api/compliance/tcs-master",
+      "body": "{\n  \"product_category\": \"Goods\",\n  \"section\": \"206C\",\n  \"threshold_amount\": 50000,\n  \"tcs_rate\": 1\n}",
+      "norm_path": "/api/compliance/tcs-master"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] PUT Update TCS Rule",
+      "method": "PUT",
+      "path": "/api/compliance/tcs-master/1",
+      "body": "{\n  \"tcs_rate\": 1.5\n}",
+      "norm_path": "/api/compliance/tcs-master/{VAR}"
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] DELETE TCS Rule",
+      "method": "DELETE",
+      "path": "/api/compliance/tcs-master/1",
+      "body": "",
+      "norm_path": "/api/compliance/tcs-master/{VAR}"
+    },
+    {
+      "name": "\ud83d\udcca AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Log Details",
+      "method": "GET",
+      "path": "/api/audit-logs/1",
+      "body": "",
+      "norm_path": "/api/audit-logs/{VAR}"
+    },
+    {
+      "name": "\ud83d\udcca AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Summary by Module",
+      "method": "GET",
+      "path": "/api/audit-logs/summary/sales_invoice",
+      "body": "",
+      "norm_path": "/api/audit-logs/summary/sales_invoice"
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > Get Category by ID",
+      "method": "GET",
+      "path": "/api/stock-categories/1",
+      "body": "",
+      "norm_path": "/api/stock-categories/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > Update Stock Category",
+      "method": "PUT",
+      "path": "/api/stock-categories/1",
+      "body": "{\n  \"name\": \"Consumer Electronics\"\n}",
+      "norm_path": "/api/stock-categories/{VAR}"
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > Delete Stock Category",
+      "method": "DELETE",
+      "path": "/api/stock-categories/1",
+      "body": "",
+      "norm_path": "/api/stock-categories/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > Get Alert by ID",
+      "method": "GET",
+      "path": "/api/stock-alerts/1",
+      "body": "",
+      "norm_path": "/api/stock-alerts/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > Update Stock Alert",
+      "method": "PUT",
+      "path": "/api/stock-alerts/1",
+      "body": "{\n  \"threshold_qty\": 15,\n  \"reorder_qty\": 100,\n  \"is_active\": true\n}",
+      "norm_path": "/api/stock-alerts/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > Delete Stock Alert",
+      "method": "DELETE",
+      "path": "/api/stock-alerts/1",
+      "body": "",
+      "norm_path": "/api/stock-alerts/{VAR}"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > Get Batch by ID",
+      "method": "GET",
+      "path": "/api/batches/1",
+      "body": "",
+      "norm_path": "/api/batches/{VAR}"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > Update Batch",
+      "method": "PUT",
+      "path": "/api/batches/1",
+      "body": "{\n  \"qty\": 85,\n  \"status\": \"ACTIVE\",\n  \"remarks\": \"Updated after physical count\"\n}",
+      "norm_path": "/api/batches/{VAR}"
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > Delete Batch",
+      "method": "DELETE",
+      "path": "/api/batches/1",
+      "body": "",
+      "norm_path": "/api/batches/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > Lookup by Serial Number",
+      "method": "GET",
+      "path": "/api/serial-numbers/lookup/SN-2026-001",
+      "body": "",
+      "norm_path": "/api/serial-numbers/lookup/SN-2026-001"
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > Get Serial Number by ID",
+      "method": "GET",
+      "path": "/api/serial-numbers/1",
+      "body": "",
+      "norm_path": "/api/serial-numbers/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > Update Serial Number (Mark Sold)",
+      "method": "PUT",
+      "path": "/api/serial-numbers/1",
+      "body": "{\n  \"status\": \"SOLD\",\n  \"customer_id\": 1,\n  \"sales_invoice_id\": 5,\n  \"sold_date\": \"2026-04-07\",\n  \"sold_rate\": 48000\n}",
+      "norm_path": "/api/serial-numbers/{VAR}"
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > Update Serial Number (Warranty Claim)",
+      "method": "PUT",
+      "path": "/api/serial-numbers/1",
+      "body": "{\n  \"status\": \"WARRANTY_CLAIM\",\n  \"remarks\": \"Customer reported defect\"\n}",
+      "norm_path": "/api/serial-numbers/{VAR}"
+    }
+  ],
+  "implemented": [
+    {
+      "name": "\ud83d\ude80 ONBOARDING (Start Here) > 01 Register Owner (Step 1)",
+      "method": "POST",
+      "path": "/api/onboarding/register-owner",
+      "body": "{\n  \"name\": \"Ankit Panwar\",\n  \"email\": \"owner@yanibooks.com\",\n  \"password\": \"SecurePass@123\",\n  \"phone\": \"9876543210\"\n}",
+      "norm_path": "/api/onboarding/register-owner",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/onboarding/register-owner",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\ude80 ONBOARDING (Start Here) > 02 Login (Step 2 - saves token automatically)",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "body": "{\n  \"email\": \"owner@yanibooks.com\",\n  \"password\": \"SecurePass@123\"\n}",
+      "norm_path": "/api/auth/login",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/auth/login",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\ude80 ONBOARDING (Start Here) > 03 Create Company (Step 3 - seeds all data)",
+      "method": "POST",
+      "path": "/api/onboarding/company",
+      "body": "{\n  \"name\": \"Yani Books Pvt Ltd\",\n  \"legal_name\": \"Yani Books Private Limited\",\n  \"gstin\": \"27AAPFU0939F1ZV\",\n  \"pan\": \"AAPFU0939F\",\n  \"address\": \"123 Business Street, Mumbai\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"state_code\": \"27\",\n  \"pincode\": \"400001\",\n  \"phone\": \"9876543210\",\n  \"email\": \"info@yanibooks.com\"\n}",
+      "norm_path": "/api/onboarding/company",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/onboarding/company",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 AUTH > Get Profile",
+      "method": "GET",
+      "path": "/api/auth/profile",
+      "body": "",
+      "norm_path": "/api/auth/profile",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/auth/profile",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 AUTH > Refresh Token",
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "body": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+      "norm_path": "/api/auth/refresh",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/auth/refresh",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 AUTH > Logout",
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "body": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+      "norm_path": "/api/auth/logout",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/auth/logout",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 AUTH > Switch Active Company",
+      "method": "POST",
+      "path": "/api/auth/switch-company",
+      "body": "{\n  \"company_id\": {{switch_company_id}}\n}",
+      "norm_path": "/api/auth/switch-company",
+      "implemented_in": [
+        {
+          "file": "authService.js",
+          "path": "/api/auth/switch-company",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > List Users",
+      "method": "GET",
+      "path": "/api/users",
+      "body": "",
+      "norm_path": "/api/users",
+      "implemented_in": [
+        {
+          "file": "userService.js",
+          "path": "/api/users",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Create Sub-User",
+      "method": "POST",
+      "path": "/api/users",
+      "body": "{\n  \"name\": \"Alice Smith\",\n  \"email\": \"alice@yanibooks.com\",\n  \"password\": \"SecurePass@456\",\n  \"role_ids\": [{{role_id}}]\n}",
+      "norm_path": "/api/users",
+      "implemented_in": [
+        {
+          "file": "userService.js",
+          "path": "/api/users",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > List Roles",
+      "method": "GET",
+      "path": "/api/roles",
+      "body": "",
+      "norm_path": "/api/roles",
+      "implemented_in": [
+        {
+          "file": "roleService.js",
+          "path": "/api/roles",
+          "method": "GET"
+        },
+        {
+          "file": "userService.js",
+          "path": "/api/roles",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc65 USERS & ROLES > Create Custom Role",
+      "method": "POST",
+      "path": "/api/roles",
+      "body": "{\n  \"name\": \"accounts_manager\",\n  \"description\": \"Manages accounting operations\"\n}",
+      "norm_path": "/api/roles",
+      "implemented_in": [
+        {
+          "file": "roleService.js",
+          "path": "/api/roles",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > List Customers",
+      "method": "GET",
+      "path": "/api/customers",
+      "body": "",
+      "norm_path": "/api/customers",
+      "implemented_in": [
+        {
+          "file": "customerService.js",
+          "path": "/api/customers",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc64 CUSTOMERS > Create Customer",
+      "method": "POST",
+      "path": "/api/customers",
+      "body": "{\n  \"name\": \"ABC Enterprises\",\n  \"contact_person\": \"Ramesh Kumar\",\n  \"email\": \"ramesh@abc.com\",\n  \"phone\": \"9876543210\",\n  \"gstin\": \"27ABCDE1234F1ZA\",\n  \"gst_registration_type\": \"Regular\",\n  \"state_code\": \"27\",\n  \"state\": \"Maharashtra\",\n  \"city\": \"Mumbai\",\n  \"payment_terms\": \"net30\",\n  \"credit_limit\": 100000\n}",
+      "norm_path": "/api/customers",
+      "implemented_in": [
+        {
+          "file": "customerService.js",
+          "path": "/api/customers",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed VENDORS > List Vendors",
+      "method": "GET",
+      "path": "/api/vendors",
+      "body": "",
+      "norm_path": "/api/vendors",
+      "implemented_in": [
+        {
+          "file": "vendorService.js",
+          "path": "/api/vendors",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed VENDORS > Create Vendor",
+      "method": "POST",
+      "path": "/api/vendors",
+      "body": "{\n  \"name\": \"XYZ Suppliers Pvt Ltd\",\n  \"contact_person\": \"Suresh Patel\",\n  \"email\": \"suresh@xyz.com\",\n  \"phone\": \"9123456789\",\n  \"gstin\": \"29ABCDE5678G1ZB\",\n  \"gst_registration_type\": \"Regular\",\n  \"state_code\": \"29\",\n  \"state\": \"Karnataka\",\n  \"city\": \"Bangalore\",\n  \"liable_to_tds\": false\n}",
+      "norm_path": "/api/vendors",
+      "implemented_in": [
+        {
+          "file": "vendorService.js",
+          "path": "/api/vendors",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > List Items",
+      "method": "GET",
+      "path": "/api/items",
+      "body": "",
+      "norm_path": "/api/items",
+      "implemented_in": [
+        {
+          "file": "itemService.js",
+          "path": "/api/items",
+          "method": "GET"
+        },
+        {
+          "file": "productService.js",
+          "path": "/api/items",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 ITEMS (Products) > Create Item",
+      "method": "POST",
+      "path": "/api/items",
+      "body": "{\n  \"name\": \"Laptop Dell Inspiron\",\n  \"sku\": \"DELL-INSP-001\",\n  \"hsn_code\": \"8471\",\n  \"category_id\": 1,\n  \"uom_id\": 1,\n  \"selling_price\": 55000,\n  \"purchase_price\": 45000,\n  \"tax_rate\": 18,\n  \"unit\": \"PCS\",\n  \"inventory_type\": \"Stock\",\n  \"track_batch\": false,\n  \"track_serial\": true,\n  \"track_expiry\": false,\n  \"reorder_level\": 5,\n  \"reorder_qty\": 10\n}",
+      "norm_path": "/api/items",
+      "implemented_in": [
+        {
+          "file": "itemService.js",
+          "path": "/api/items",
+          "method": "POST"
+        },
+        {
+          "file": "productService.js",
+          "path": "/api/items",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > List Ledger Groups",
+      "method": "GET",
+      "path": "/api/ledger-groups",
+      "body": "",
+      "norm_path": "/api/ledger-groups",
+      "implemented_in": [
+        {
+          "file": "ledgerGroupService.js",
+          "path": "/api/ledger-groups",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > Create Ledger Group",
+      "method": "POST",
+      "path": "/api/ledger-groups",
+      "body": "{\n  \"name\": \"Travel Expenses\",\n  \"nature\": \"EXPENSE\",\n  \"parent_group_id\": null\n}",
+      "norm_path": "/api/ledger-groups",
+      "implemented_in": [
+        {
+          "file": "ledgerGroupService.js",
+          "path": "/api/ledger-groups",
+          "method": "POST"
+        },
+        {
+          "file": "ledgerService.js",
+          "path": "/api/ledger-groups",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > List Ledgers",
+      "method": "GET",
+      "path": "/api/ledgers",
+      "body": "",
+      "norm_path": "/api/ledgers",
+      "implemented_in": [
+        {
+          "file": "ledgerService.js",
+          "path": "/api/ledgers",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd2 LEDGERS > Create Ledger",
+      "method": "POST",
+      "path": "/api/ledgers",
+      "body": "{\n  \"name\": \"HDFC Bank\",\n  \"ledger_group_id\": 16,\n  \"opening_balance\": 100000,\n  \"balance_type\": \"DR\"\n}",
+      "norm_path": "/api/ledgers",
+      "implemented_in": [
+        {
+          "file": "ledgerService.js",
+          "path": "/api/ledgers",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcdd VOUCHERS > List Vouchers",
+      "method": "GET",
+      "path": "/api/vouchers",
+      "body": "",
+      "norm_path": "/api/vouchers",
+      "implemented_in": [
+        {
+          "file": "voucherService.js",
+          "path": "/api/vouchers",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcdd VOUCHERS > Create Voucher (Payment)",
+      "method": "POST",
+      "path": "/api/vouchers",
+      "body": "{\n  \"voucher_type_id\": {{voucher_type_id}},\n  \"voucher_date\": \"2026-03-12\",\n  \"narration\": \"Office rent payment\",\n  \"entries\": [\n    { \"ledger_id\": {{voucher_dr_ledger_id}}, \"dr_cr\": \"DR\", \"amount\": 25000 },\n    { \"ledger_id\": {{voucher_cr_ledger_id}}, \"dr_cr\": \"CR\", \"amount\": 25000 }\n  ]\n}",
+      "norm_path": "/api/vouchers",
+      "implemented_in": [
+        {
+          "file": "voucherService.js",
+          "path": "/api/vouchers",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > List Sales Invoices",
+      "method": "GET",
+      "path": "/api/sales-invoices",
+      "body": "",
+      "norm_path": "/api/sales-invoices",
+      "implemented_in": [
+        {
+          "file": "salesInvoiceService.js",
+          "path": "/api/sales-invoices",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\uddfe SALES INVOICES > Create Sales Invoice (DRAFT)",
+      "method": "POST",
+      "path": "/api/sales-invoices",
+      "body": "{\n  \"customer_id\": 1,\n  \"invoice_date\": \"2026-03-12\",\n  \"due_date\": \"2026-04-12\",\n  \"place_of_supply\": \"27\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"warehouse_id\": 1,\n      \"qty\": 2,\n      \"rate\": 55000,\n      \"gst_rate\": 18,\n      \"discount_pct\": 0\n    }\n  ]\n}",
+      "norm_path": "/api/sales-invoices",
+      "implemented_in": [
+        {
+          "file": "salesInvoiceService.js",
+          "path": "/api/sales-invoices",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > List Purchase Invoices",
+      "method": "GET",
+      "path": "/api/purchase-invoices",
+      "body": "",
+      "norm_path": "/api/purchase-invoices",
+      "implemented_in": [
+        {
+          "file": "purchaseInvoiceService.js",
+          "path": "/api/purchase-invoices",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\uded2 PURCHASE INVOICES > Create Purchase Invoice (DRAFT)",
+      "method": "POST",
+      "path": "/api/purchase-invoices",
+      "body": "{\n  \"vendor_id\": 1,\n  \"invoice_date\": \"2026-03-12\",\n  \"due_date\": \"2026-04-12\",\n  \"place_of_supply\": \"27\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"warehouse_id\": 1,\n      \"qty\": 5,\n      \"rate\": 45000,\n      \"gst_rate\": 18,\n      \"discount_pct\": 0,\n      \"itc_eligibility\": \"ELIGIBLE\"\n    }\n  ]\n}",
+      "norm_path": "/api/purchase-invoices",
+      "implemented_in": [
+        {
+          "file": "purchaseInvoiceService.js",
+          "path": "/api/purchase-invoices",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb SALES ORDERS > List Sales Orders",
+      "method": "GET",
+      "path": "/api/sales-orders",
+      "body": "",
+      "norm_path": "/api/sales-orders",
+      "implemented_in": [
+        {
+          "file": "salesOrderService.js",
+          "path": "/api/sales-orders",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb SALES ORDERS > Create Sales Order",
+      "method": "POST",
+      "path": "/api/sales-orders",
+      "body": "{\n  \"customer_id\": 1,\n  \"order_date\": \"2026-03-12\",\n  \"items\": [\n    { \"item_id\": 1, \"qty\": 3, \"rate\": 55000 }\n  ]\n}",
+      "norm_path": "/api/sales-orders",
+      "implemented_in": [
+        {
+          "file": "salesOrderService.js",
+          "path": "/api/sales-orders",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfea INVENTORY > Stock Summary",
+      "method": "GET",
+      "path": "/api/inventory",
+      "body": "",
+      "norm_path": "/api/inventory",
+      "implemented_in": [
+        {
+          "file": "inventoryService.js",
+          "path": "/api/inventory",
+          "method": "GET"
+        },
+        {
+          "file": "inventoryService.js",
+          "path": "/api/inventory",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfea INVENTORY > Stock Ledger (Item History)",
+      "method": "GET",
+      "path": "/api/inventory",
+      "body": "",
+      "norm_path": "/api/inventory",
+      "implemented_in": [
+        {
+          "file": "inventoryService.js",
+          "path": "/api/inventory",
+          "method": "GET"
+        },
+        {
+          "file": "inventoryService.js",
+          "path": "/api/inventory",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Trial Balance",
+      "method": "GET",
+      "path": "/api/reports/trial-balance",
+      "body": "",
+      "norm_path": "/api/reports/trial-balance",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/trial-balance",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Profit & Loss",
+      "method": "GET",
+      "path": "/api/reports/profit-loss",
+      "body": "",
+      "norm_path": "/api/reports/profit-loss",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/profit-loss",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Balance Sheet",
+      "method": "GET",
+      "path": "/api/reports/balance-sheet",
+      "body": "",
+      "norm_path": "/api/reports/balance-sheet",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/balance-sheet",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Outstanding Receivables",
+      "method": "GET",
+      "path": "/api/reports/outstanding-receivables",
+      "body": "",
+      "norm_path": "/api/reports/outstanding-receivables",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/outstanding-receivables",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Outstanding Payables",
+      "method": "GET",
+      "path": "/api/reports/outstanding-payables",
+      "body": "",
+      "norm_path": "/api/reports/outstanding-payables",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/outstanding-payables",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Stock Summary Report",
+      "method": "GET",
+      "path": "/api/reports/stock-summary",
+      "body": "",
+      "norm_path": "/api/reports/stock-summary",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/stock-summary",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > GST Summary",
+      "method": "GET",
+      "path": "/api/reports/gst-summary",
+      "body": "",
+      "norm_path": "/api/reports/gst-summary",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/gst-summary",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Cash Flow Report \u2728 NEW",
+      "method": "GET",
+      "path": "/api/reports/cash-flow",
+      "body": "",
+      "norm_path": "/api/reports/cash-flow",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/cash-flow",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Fund Flow Report \u2728 NEW",
+      "method": "GET",
+      "path": "/api/reports/fund-flow",
+      "body": "",
+      "norm_path": "/api/reports/fund-flow",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/fund-flow",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Cash/Bank Book Report \u2728 NEW",
+      "method": "GET",
+      "path": "/api/reports/cash-bank-book",
+      "body": "",
+      "norm_path": "/api/reports/cash-bank-book",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/cash-bank-book",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca REPORTS > Day Book Report \u2728 NEW",
+      "method": "GET",
+      "path": "/api/reports/day-book",
+      "body": "",
+      "norm_path": "/api/reports/day-book",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/day-book",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Create Reconciliation",
+      "method": "POST",
+      "path": "/api/bank-reconciliations",
+      "body": "{\n  \"bank_account_id\": 1,\n  \"statement_date\": \"2026-03-31\",\n  \"statement_balance\": 50000.00,\n  \"transactions\": [\n    {\n      \"transaction_date\": \"2026-03-30\",\n      \"cheque_no\": \"CHQ001\",\n      \"description\": \"Check deposit from customer\",\n      \"debit_amount\": 25000.00,\n      \"credit_amount\": 0.00\n    },\n    {\n      \"transaction_date\": \"2026-03-31\",\n      \"cheque_no\": null,\n      \"description\": \"Bank interest credited\",\n      \"debit_amount\": 500.00,\n      \"credit_amount\": 0.00\n    }\n  ]\n}",
+      "norm_path": "/api/bank-reconciliations",
+      "implemented_in": [
+        {
+          "file": "bankReconciliationService.js",
+          "path": "/api/bank-reconciliations",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > List Reconciliations",
+      "method": "GET",
+      "path": "/api/bank-reconciliations",
+      "body": "",
+      "norm_path": "/api/bank-reconciliations",
+      "implemented_in": [
+        {
+          "file": "bankReconciliationService.js",
+          "path": "/api/bank-reconciliations",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Match Transaction to Voucher",
+      "method": "POST",
+      "path": "/api/bank-reconciliations/match-transaction",
+      "body": "{\n  \"reconciliation_id\": 1,\n  \"bank_transaction_id\": 1,\n  \"voucher_id\": 100\n}",
+      "norm_path": "/api/bank-reconciliations/match-transaction",
+      "implemented_in": [
+        {
+          "file": "bankReconciliationService.js",
+          "path": "/api/bank-reconciliations/match-transaction",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 BANK RECONCILIATION \u2728 NEW > Unmatch Transaction",
+      "method": "POST",
+      "path": "/api/bank-reconciliations/unmatch-transaction",
+      "body": "{\n  \"reconciliation_id\": 1,\n  \"bank_transaction_id\": 1\n}",
+      "norm_path": "/api/bank-reconciliations/unmatch-transaction",
+      "implemented_in": [
+        {
+          "file": "bankReconciliationService.js",
+          "path": "/api/bank-reconciliations/unmatch-transaction",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get System Settings",
+      "method": "GET",
+      "path": "/api/settings/system",
+      "body": "",
+      "norm_path": "/api/settings/system",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/system",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Company Settings",
+      "method": "GET",
+      "path": "/api/settings/company",
+      "body": "",
+      "norm_path": "/api/settings/company",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/company",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Update Company Settings",
+      "method": "PUT",
+      "path": "/api/settings/company",
+      "body": "{\n  \"gstin\": \"27AAPFU0939F1ZV\",\n  \"state_code\": \"27\"\n}",
+      "norm_path": "/api/settings/company",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/company",
+          "method": "PUT"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Financial Years",
+      "method": "GET",
+      "path": "/api/settings/financial-years",
+      "body": "",
+      "norm_path": "/api/settings/financial-years",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/financial-years",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Create Financial Year",
+      "method": "POST",
+      "path": "/api/settings/financial-years",
+      "body": "{\n  \"name\": \"FY 2026-27\",\n  \"start_date\": \"2026-04-01\",\n  \"end_date\": \"2027-03-31\",\n  \"is_active\": true\n}",
+      "norm_path": "/api/settings/financial-years",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/financial-years",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Voucher Types",
+      "method": "GET",
+      "path": "/api/settings/voucher-types",
+      "body": "",
+      "norm_path": "/api/settings/voucher-types",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/voucher-types",
+          "method": "GET"
+        },
+        {
+          "file": "voucherService.js",
+          "path": "/api/settings/voucher-types",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Get Warehouses",
+      "method": "GET",
+      "path": "/api/settings/warehouses",
+      "body": "",
+      "norm_path": "/api/settings/warehouses",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/warehouses",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > Create Warehouse",
+      "method": "POST",
+      "path": "/api/settings/warehouses",
+      "body": "{\n  \"name\": \"Delhi Warehouse\",\n  \"location\": \"Okhla Industrial Area, Delhi\"\n}",
+      "norm_path": "/api/settings/warehouses",
+      "implemented_in": [
+        {
+          "file": "settingsService.js",
+          "path": "/api/settings/warehouses",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] GET Backups List",
+      "method": "GET",
+      "path": "/api/settings/backups",
+      "body": "",
+      "norm_path": "/api/settings/backups",
+      "implemented_in": [
+        {
+          "file": "backupService.js",
+          "path": "/api/settings/backups",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f SETTINGS > [NEW 2026-04-07] POST Create Backup",
+      "method": "POST",
+      "path": "/api/settings/backups",
+      "body": "{\n  \"name\": \"Monthly Backup - April 2026\",\n  \"fy_id\": 1,\n  \"description\": \"End of month backup for FY 2026\"\n}",
+      "norm_path": "/api/settings/backups",
+      "implemented_in": [
+        {
+          "file": "backupService.js",
+          "path": "/api/settings/backups",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > List Credit Notes",
+      "method": "GET",
+      "path": "/api/credit-notes",
+      "body": "",
+      "norm_path": "/api/credit-notes",
+      "implemented_in": [
+        {
+          "file": "creditNoteService.js",
+          "path": "/api/credit-notes",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u21a9\ufe0f CREDIT NOTES (Sales Returns) > Create Credit Note (DRAFT)",
+      "method": "POST",
+      "path": "/api/credit-notes",
+      "body": "{\n  \"customer_id\": 1,\n  \"sales_invoice_id\": 1,\n  \"place_of_supply\": \"27\",\n  \"reason\": \"Goods returned\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"qty\": 1,\n      \"rate\": 100,\n      \"gst_rate\": 18,\n      \"description\": \"Return of damaged item\"\n    }\n  ]\n}",
+      "norm_path": "/api/credit-notes",
+      "implemented_in": [
+        {
+          "file": "creditNoteService.js",
+          "path": "/api/credit-notes",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u21aa\ufe0f DEBIT NOTES (Purchase Returns) > List Debit Notes",
+      "method": "GET",
+      "path": "/api/debit-notes",
+      "body": "",
+      "norm_path": "/api/debit-notes",
+      "implemented_in": [
+        {
+          "file": "debitNoteService.js",
+          "path": "/api/debit-notes",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u21aa\ufe0f DEBIT NOTES (Purchase Returns) > Create Debit Note (DRAFT)",
+      "method": "POST",
+      "path": "/api/debit-notes",
+      "body": "{\n  \"vendor_id\": 1,\n  \"purchase_invoice_id\": 1,\n  \"place_of_supply\": \"27\",\n  \"reason\": \"Goods returned to vendor\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"qty\": 2,\n      \"rate\": 500,\n      \"gst_rate\": 18,\n      \"description\": \"Defective goods\"\n    }\n  ]\n}",
+      "norm_path": "/api/debit-notes",
+      "implemented_in": [
+        {
+          "file": "debitNoteService.js",
+          "path": "/api/debit-notes",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > List Purchase Orders",
+      "method": "GET",
+      "path": "/api/purchase-orders",
+      "body": "",
+      "norm_path": "/api/purchase-orders",
+      "implemented_in": [
+        {
+          "file": "purchaseOrderService.js",
+          "path": "/api/purchase-orders",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\uddd2\ufe0f PURCHASE ORDERS > Create Purchase Order",
+      "method": "POST",
+      "path": "/api/purchase-orders",
+      "body": "{\n  \"vendor_id\": 1,\n  \"order_date\": \"2026-04-10\",\n  \"expected_delivery_date\": \"2026-04-20\",\n  \"notes\": \"Urgent order\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"qty\": 10,\n      \"rate\": 500.0,\n      \"description\": \"Item 1\"\n    },\n    {\n      \"item_id\": 2,\n      \"qty\": 5,\n      \"rate\": 1200.0,\n      \"description\": \"Item 2\"\n    }\n  ]\n}",
+      "norm_path": "/api/purchase-orders",
+      "implemented_in": [
+        {
+          "file": "purchaseOrderService.js",
+          "path": "/api/purchase-orders",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > List Proforma Invoices",
+      "method": "GET",
+      "path": "/api/proforma-invoices",
+      "body": "",
+      "norm_path": "/api/proforma-invoices",
+      "implemented_in": [
+        {
+          "file": "proformaInvoiceService.js",
+          "path": "/api/proforma-invoices",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcc4 PROFORMA INVOICES > Create Proforma Invoice",
+      "method": "POST",
+      "path": "/api/proforma-invoices",
+      "body": "{\n  \"customer_id\": 1,\n  \"place_of_supply\": \"27\",\n  \"valid_until\": \"2026-04-30\",\n  \"notes\": \"Valid for 30 days\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"qty\": 5,\n      \"rate\": 1000,\n      \"gst_rate\": 18\n    }\n  ]\n}",
+      "norm_path": "/api/proforma-invoices",
+      "implemented_in": [
+        {
+          "file": "proformaInvoiceService.js",
+          "path": "/api/proforma-invoices",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > List Cost Categories",
+      "method": "GET",
+      "path": "/api/cost-centres/categories",
+      "body": "",
+      "norm_path": "/api/cost-centres/categories",
+      "implemented_in": [
+        {
+          "file": "costCategoryService.js",
+          "path": "/api/cost-centres/categories",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Create Cost Category",
+      "method": "POST",
+      "path": "/api/cost-centres/categories",
+      "body": "{\n  \"name\": \"Operations\",\n  \"description\": \"All operational expenses\"\n}",
+      "norm_path": "/api/cost-centres/categories",
+      "implemented_in": [
+        {
+          "file": "costCategoryService.js",
+          "path": "/api/cost-centres/categories",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > List Cost Centres",
+      "method": "GET",
+      "path": "/api/cost-centres",
+      "body": "",
+      "norm_path": "/api/cost-centres",
+      "implemented_in": [
+        {
+          "file": "costCenterService.js",
+          "path": "/api/cost-centres",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Create Cost Centre",
+      "method": "POST",
+      "path": "/api/cost-centres",
+      "body": "{\n  \"name\": \"Mumbai Branch\",\n  \"category_id\": 1,\n  \"description\": \"Mumbai operations centre\"\n}",
+      "norm_path": "/api/cost-centres",
+      "implemented_in": [
+        {
+          "file": "costCenterService.js",
+          "path": "/api/cost-centres",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > List Budgets",
+      "method": "GET",
+      "path": "/api/budgets",
+      "body": "",
+      "norm_path": "/api/budgets",
+      "implemented_in": [
+        {
+          "file": "budgetService.js",
+          "path": "/api/budgets",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 COST CENTRES & BUDGET > Create Budget",
+      "method": "POST",
+      "path": "/api/budgets",
+      "body": "{\n  \"name\": \"FY 2025-26 Annual Budget\",\n  \"period_type\": \"ANNUAL\",\n  \"from_date\": \"2025-04-01\",\n  \"to_date\": \"2026-03-31\",\n  \"items\": [\n    {\n      \"ledger_id\": 1,\n      \"period_label\": \"FY2025-26\",\n      \"amount\": 500000\n    }\n  ]\n}",
+      "norm_path": "/api/budgets",
+      "implemented_in": [
+        {
+          "file": "budgetService.js",
+          "path": "/api/budgets",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > List HSN/SAC Codes",
+      "method": "GET",
+      "path": "/api/hsn-sac",
+      "body": "",
+      "norm_path": "/api/hsn-sac",
+      "implemented_in": [
+        {
+          "file": "hsnSacService.js",
+          "path": "/api/hsn-sac",
+          "method": "GET"
+        },
+        {
+          "file": "itemService.js",
+          "path": "/api/hsn-sac",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f HSN / SAC CODES > Create HSN/SAC Code",
+      "method": "POST",
+      "path": "/api/hsn-sac",
+      "body": "{\n  \"code\": \"8471\",\n  \"type\": \"HSN\",\n  \"description\": \"Automatic data-processing machines\",\n  \"gst_rate\": 18,\n  \"cess_rate\": 0\n}",
+      "norm_path": "/api/hsn-sac",
+      "implemented_in": [
+        {
+          "file": "hsnSacService.js",
+          "path": "/api/hsn-sac",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\u267b\ufe0f WASTAGE > List Wastage Records",
+      "method": "GET",
+      "path": "/api/wastage",
+      "body": "",
+      "norm_path": "/api/wastage",
+      "implemented_in": [
+        {
+          "file": "wastageService.js",
+          "path": "/api/wastage",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u267b\ufe0f WASTAGE > Create Wastage Record",
+      "method": "POST",
+      "path": "/api/wastage",
+      "body": "{\n  \"item_id\": 1,\n  \"warehouse_id\": 1,\n  \"quantity\": 5,\n  \"wastage_date\": \"2026-03-01\",\n  \"reason\": \"Damaged during storage\",\n  \"remarks\": \"Found during audit\"\n}",
+      "norm_path": "/api/wastage",
+      "implemented_in": [
+        {
+          "file": "wastageService.js",
+          "path": "/api/wastage",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > List Stock Verifications",
+      "method": "GET",
+      "path": "/api/stock-verification",
+      "body": "",
+      "norm_path": "/api/stock-verification",
+      "implemented_in": [
+        {
+          "file": "stockVerificationService.js",
+          "path": "/api/stock-verification",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd0d STOCK VERIFICATION > Create Stock Verification",
+      "method": "POST",
+      "path": "/api/stock-verification",
+      "body": "{\n  \"warehouse_id\": 1,\n  \"verification_date\": \"2026-03-31\",\n  \"notes\": \"Year-end stock count\"\n}",
+      "norm_path": "/api/stock-verification",
+      "implemented_in": [
+        {
+          "file": "stockVerificationService.js",
+          "path": "/api/stock-verification",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > List Cheques",
+      "method": "GET",
+      "path": "/api/cheques",
+      "body": "",
+      "norm_path": "/api/cheques",
+      "implemented_in": [
+        {
+          "file": "chequeService.js",
+          "path": "/api/cheques",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe6 POST-DATED CHEQUES > Create Post-Dated Cheque",
+      "method": "POST",
+      "path": "/api/cheques",
+      "body": "{\n  \"type\": \"RECEIVED\",\n  \"party_type\": \"CUSTOMER\",\n  \"party_id\": 1,\n  \"cheque_number\": \"CHQ001234\",\n  \"bank_name\": \"HDFC Bank\",\n  \"cheque_date\": \"2026-04-15\",\n  \"amount\": 50000,\n  \"remarks\": \"Against invoice INV-001\"\n}",
+      "norm_path": "/api/cheques",
+      "implemented_in": [
+        {
+          "file": "chequeService.js",
+          "path": "/api/cheques",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd0 INTEREST CALCULATION > Interest on Receivables",
+      "method": "GET",
+      "path": "/api/interest/receivables",
+      "body": "",
+      "norm_path": "/api/interest/receivables",
+      "implemented_in": [
+        {
+          "file": "interestService.js",
+          "path": "/api/interest/receivables",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcd0 INTEREST CALCULATION > Interest on Payables",
+      "method": "GET",
+      "path": "/api/interest/payables",
+      "body": "",
+      "norm_path": "/api/interest/payables",
+      "implemented_in": [
+        {
+          "file": "interestService.js",
+          "path": "/api/interest/payables",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > List BOMs",
+      "method": "GET",
+      "path": "/api/manufacturing/bom",
+      "body": "",
+      "norm_path": "/api/manufacturing/bom",
+      "implemented_in": [
+        {
+          "file": "bomService.js",
+          "path": "/api/manufacturing/bom",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 BILL OF MATERIALS (BOM) \u2014 > Create BOM",
+      "method": "POST",
+      "path": "/api/manufacturing/bom",
+      "body": "{\n  \"finished_item_id\": 1,\n  \"version\": \"1.0\",\n  \"qty_produced\": 1,\n  \"items\": [\n    {\n      \"item_id\": 2,\n      \"qty\": 5,\n      \"wastage_pct\": 2\n    },\n    {\n      \"item_id\": 3,\n      \"qty\": 2,\n      \"wastage_pct\": 0\n    }\n  ]\n}",
+      "norm_path": "/api/manufacturing/bom",
+      "implemented_in": [
+        {
+          "file": "bomService.js",
+          "path": "/api/manufacturing/bom",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 PRODUCTION ORDERS \u2014 > List Production Orders",
+      "method": "GET",
+      "path": "/api/manufacturing/production-orders",
+      "body": "",
+      "norm_path": "/api/manufacturing/production-orders",
+      "implemented_in": [
+        {
+          "file": "productionOrderService.js",
+          "path": "/api/manufacturing/production-orders",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 PRODUCTION ORDERS \u2014 > Create Production Order",
+      "method": "POST",
+      "path": "/api/manufacturing/production-orders",
+      "body": "{\n  \"bom_id\": 1,\n  \"finished_item_id\": 1,\n  \"qty_to_produce\": 100,\n  \"warehouse_id\": 1,\n  \"planned_start\": \"2026-04-01\",\n  \"planned_end\": \"2026-04-10\",\n  \"notes\": \"Q1 production run\"\n}",
+      "norm_path": "/api/manufacturing/production-orders",
+      "implemented_in": [
+        {
+          "file": "productionOrderService.js",
+          "path": "/api/manufacturing/production-orders",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 JOB WORK \u2014 > List Job Work Orders",
+      "method": "GET",
+      "path": "/api/manufacturing/job-work",
+      "body": "",
+      "norm_path": "/api/manufacturing/job-work",
+      "implemented_in": [
+        {
+          "file": "jobWorkService.js",
+          "path": "/api/manufacturing/job-work",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfed MANUFACTURING > \u2014 JOB WORK \u2014 > Create Job Work Order",
+      "method": "POST",
+      "path": "/api/manufacturing/job-work",
+      "body": "{\n  \"type\": \"OUT\",\n  \"vendor_id\": 1,\n  \"item_id\": 1,\n  \"qty_sent\": 100,\n  \"sent_date\": \"2026-03-01\",\n  \"expected_return\": \"2026-03-15\",\n  \"job_charges\": 5000,\n  \"notes\": \"Painting work\"\n}",
+      "norm_path": "/api/manufacturing/job-work",
+      "implemented_in": [
+        {
+          "file": "jobWorkService.js",
+          "path": "/api/manufacturing/job-work",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 EMPLOYEES \u2014 > List Employees",
+      "method": "GET",
+      "path": "/api/payroll/employees",
+      "body": "",
+      "norm_path": "/api/payroll/employees",
+      "implemented_in": [
+        {
+          "file": "employeeService.js",
+          "path": "/api/payroll/employees",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 EMPLOYEES \u2014 > Create Employee",
+      "method": "POST",
+      "path": "/api/payroll/employees",
+      "body": "{\n  \"employee_code\": \"EMP001\",\n  \"name\": \"Rahul Sharma\",\n  \"email\": \"rahul@company.com\",\n  \"phone\": \"9876543210\",\n  \"department\": \"Engineering\",\n  \"designation\": \"Software Engineer\",\n  \"date_of_joining\": \"2025-01-01\",\n  \"basic_salary\": 50000,\n  \"pan\": \"ABCDE1234F\",\n  \"bank_account\": \"12345678901\",\n  \"bank_ifsc\": \"HDFC0001234\",\n  \"bank_name\": \"HDFC Bank\",\n  \"uan_number\": \"100123456789\",\n  \"pran_number\": \"110012345678\"\n}",
+      "norm_path": "/api/payroll/employees",
+      "implemented_in": [
+        {
+          "file": "employeeService.js",
+          "path": "/api/payroll/employees",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 ATTENDANCE \u2014 > Mark Attendance",
+      "method": "POST",
+      "path": "/api/payroll/attendance",
+      "body": "{\n  \"employee_id\": 1,\n  \"attendance_date\": \"2026-03-01\",\n  \"status\": \"PRESENT\",\n  \"check_in\": \"09:00\",\n  \"check_out\": \"18:00\"\n}",
+      "norm_path": "/api/payroll/attendance",
+      "implemented_in": [
+        {
+          "file": "attendanceService.js",
+          "path": "/api/payroll/attendance",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 ATTENDANCE \u2014 > Bulk Mark Attendance",
+      "method": "POST",
+      "path": "/api/payroll/attendance/bulk",
+      "body": "{\n  \"attendance_date\": \"2026-03-01\",\n  \"records\": [\n    { \"employee_id\": 1, \"status\": \"PRESENT\" },\n    { \"employee_id\": 2, \"status\": \"ABSENT\" },\n    { \"employee_id\": 3, \"status\": \"HALF_DAY\" }\n  ]\n}",
+      "norm_path": "/api/payroll/attendance/bulk",
+      "implemented_in": [
+        {
+          "file": "attendanceService.js",
+          "path": "/api/payroll/attendance/bulk",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 ATTENDANCE \u2014 > Get Employee Attendance",
+      "method": "GET",
+      "path": "/api/payroll/attendance",
+      "body": "",
+      "norm_path": "/api/payroll/attendance",
+      "implemented_in": [
+        {
+          "file": "attendanceService.js",
+          "path": "/api/payroll/attendance",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > Set Salary Structure",
+      "method": "POST",
+      "path": "/api/payroll/salary-structure",
+      "body": "{\n  \"employee_id\": 1,\n  \"effective_from\": \"2026-04-01\",\n  \"basic\": 50000,\n  \"hra\": 20000,\n  \"da\": 5000,\n  \"special_allowance\": 10000,\n  \"travel_allowance\": 3000,\n  \"medical_allowance\": 2000,\n  \"other_allowances\": 0\n}",
+      "norm_path": "/api/payroll/salary-structure",
+      "implemented_in": [
+        {
+          "file": "salaryStructureService.js",
+          "path": "/api/payroll/salary-structure",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > List Payslips",
+      "method": "GET",
+      "path": "/api/payroll/payslips",
+      "body": "",
+      "norm_path": "/api/payroll/payslips",
+      "implemented_in": [
+        {
+          "file": "payslipService.js",
+          "path": "/api/payroll/payslips",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc77 PAYROLL & HR > \u2014 SALARY & PAYSLIP \u2014 > Generate Payslip",
+      "method": "POST",
+      "path": "/api/payroll/payslips/generate",
+      "body": "{\n  \"employee_id\": 1,\n  \"salary_month\": \"2026-03\"\n}",
+      "norm_path": "/api/payroll/payslips/generate",
+      "implemented_in": [
+        {
+          "file": "payslipService.js",
+          "path": "/api/payroll/payslips/generate",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb1 CURRENCIES > List Currencies",
+      "method": "GET",
+      "path": "/api/currencies",
+      "body": "",
+      "norm_path": "/api/currencies",
+      "implemented_in": [
+        {
+          "file": "currencyService.js",
+          "path": "/api/currencies",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb1 CURRENCIES > Add Currency",
+      "method": "POST",
+      "path": "/api/currencies",
+      "body": "{\n  \"code\": \"USD\",\n  \"name\": \"US Dollar\",\n  \"symbol\": \"$\",\n  \"exchange_rate\": 83.50\n}",
+      "norm_path": "/api/currencies",
+      "implemented_in": [
+        {
+          "file": "currencyService.js",
+          "path": "/api/currencies",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb1 CURRENCIES > Convert Currency",
+      "method": "GET",
+      "path": "/api/currencies/convert",
+      "body": "",
+      "norm_path": "/api/currencies/convert",
+      "implemented_in": [
+        {
+          "file": "currencyService.js",
+          "path": "/api/currencies/convert",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca DASHBOARD > Dashboard Summary",
+      "method": "GET",
+      "path": "/api/dashboard/summary",
+      "body": "",
+      "norm_path": "/api/dashboard/summary",
+      "implemented_in": [
+        {
+          "file": "dashboardService.js",
+          "path": "/api/dashboard/summary",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb GST: REVERSE CHARGE (RCM) > RCM Transactions",
+      "method": "GET",
+      "path": "/api/rcm/transactions",
+      "body": "",
+      "norm_path": "/api/rcm/transactions",
+      "implemented_in": [
+        {
+          "file": "rcmService.js",
+          "path": "/api/rcm/transactions",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb GST: REVERSE CHARGE (RCM) > RCM Liability Summary",
+      "method": "GET",
+      "path": "/api/rcm/liability",
+      "body": "",
+      "norm_path": "/api/rcm/liability",
+      "implemented_in": [
+        {
+          "file": "rcmService.js",
+          "path": "/api/rcm/liability",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2705 APPROVAL WORKFLOW > List All Approvals",
+      "method": "GET",
+      "path": "/api/approvals",
+      "body": "",
+      "norm_path": "/api/approvals",
+      "implemented_in": [
+        {
+          "file": "approvalService.js",
+          "path": "/api/approvals",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2705 APPROVAL WORKFLOW > My Pending Approvals",
+      "method": "GET",
+      "path": "/api/approvals/pending",
+      "body": "",
+      "norm_path": "/api/approvals/pending",
+      "implemented_in": [
+        {
+          "file": "approvalService.js",
+          "path": "/api/approvals/pending",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\u2705 APPROVAL WORKFLOW > Submit for Approval",
+      "method": "POST",
+      "path": "/api/approvals",
+      "body": "{\n  \"entity_type\": \"SALES_INVOICE\",\n  \"entity_id\": 1,\n  \"remarks\": \"Please approve this invoice for posting\"\n}",
+      "norm_path": "/api/approvals",
+      "implemented_in": [
+        {
+          "file": "approvalService.js",
+          "path": "/api/approvals",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcc8 REPORTS (New) > Sales Analysis",
+      "method": "GET",
+      "path": "/api/reports/sales-analysis",
+      "body": "",
+      "norm_path": "/api/reports/sales-analysis",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/sales-analysis",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcc8 REPORTS (New) > Purchase Analysis",
+      "method": "GET",
+      "path": "/api/reports/purchase-analysis",
+      "body": "",
+      "norm_path": "/api/reports/purchase-analysis",
+      "implemented_in": [
+        {
+          "file": "reportService.js",
+          "path": "/api/reports/purchase-analysis",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] GET TDS Rules",
+      "method": "GET",
+      "path": "/api/compliance/tds-master",
+      "body": "",
+      "norm_path": "/api/compliance/tds-master",
+      "implemented_in": [
+        {
+          "file": "complianceService.js",
+          "path": "/api/compliance/tds-master",
+          "method": "GET"
+        },
+        {
+          "file": "complianceService.js",
+          "path": "/api/compliance/tds-master",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfdb\ufe0f COMPLIANCE (TDS/TCS) [2026-04-07] > [NEW 2026-04-07] GET TCS Rules",
+      "method": "GET",
+      "path": "/api/compliance/tcs-master",
+      "body": "",
+      "norm_path": "/api/compliance/tcs-master",
+      "implemented_in": [
+        {
+          "file": "complianceService.js",
+          "path": "/api/compliance/tcs-master",
+          "method": "GET"
+        },
+        {
+          "file": "complianceService.js",
+          "path": "/api/compliance/tcs-master",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca AUDIT LOGS [2026-04-07] > [NEW 2026-04-07] GET Audit Logs (List)",
+      "method": "GET",
+      "path": "/api/audit-logs",
+      "body": "",
+      "norm_path": "/api/audit-logs",
+      "implemented_in": [
+        {
+          "file": "auditLogService.js",
+          "path": "/api/audit-logs",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > List Stock Categories",
+      "method": "GET",
+      "path": "/api/stock-categories",
+      "body": "",
+      "norm_path": "/api/stock-categories",
+      "implemented_in": [
+        {
+          "file": "categoryService.js",
+          "path": "/api/stock-categories",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > List Top-Level (Stock Groups)",
+      "method": "GET",
+      "path": "/api/stock-categories",
+      "body": "",
+      "norm_path": "/api/stock-categories",
+      "implemented_in": [
+        {
+          "file": "categoryService.js",
+          "path": "/api/stock-categories",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > Create Stock Category",
+      "method": "POST",
+      "path": "/api/stock-categories",
+      "body": "{\n  \"name\": \"Electronics\",\n  \"parent_category_id\": null\n}",
+      "norm_path": "/api/stock-categories",
+      "implemented_in": [
+        {
+          "file": "categoryService.js",
+          "path": "/api/stock-categories",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 STOCK CATEGORIES & GROUPS [2026-04-07] > Create Sub-Category (Stock Group child)",
+      "method": "POST",
+      "path": "/api/stock-categories",
+      "body": "{\n  \"name\": \"Mobile Phones\",\n  \"parent_category_id\": 1\n}",
+      "norm_path": "/api/stock-categories",
+      "implemented_in": [
+        {
+          "file": "categoryService.js",
+          "path": "/api/stock-categories",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > List Stock Alerts",
+      "method": "GET",
+      "path": "/api/stock-alerts",
+      "body": "",
+      "norm_path": "/api/stock-alerts",
+      "implemented_in": [
+        {
+          "file": "stockAlertService.js",
+          "path": "/api/stock-alerts",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > Create / Update Stock Alert",
+      "method": "POST",
+      "path": "/api/stock-alerts",
+      "body": "{\n  \"item_id\": 1,\n  \"alert_type\": \"LOW_STOCK\",\n  \"threshold_qty\": 10,\n  \"reorder_qty\": 50,\n  \"alert_enabled\": true,\n  \"email_notification\": true,\n  \"sms_notification\": false,\n  \"alert_frequency_hours\": 24\n}",
+      "norm_path": "/api/stock-alerts",
+      "implemented_in": [
+        {
+          "file": "stockAlertService.js",
+          "path": "/api/stock-alerts",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd14 STOCK ALERTS [2026-04-07] > Check Triggered Alerts",
+      "method": "GET",
+      "path": "/api/stock-alerts/check",
+      "body": "",
+      "norm_path": "/api/stock-alerts/check",
+      "implemented_in": [
+        {
+          "file": "stockAlertService.js",
+          "path": "/api/stock-alerts/check",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > List Batches",
+      "method": "GET",
+      "path": "/api/batches",
+      "body": "",
+      "norm_path": "/api/batches",
+      "implemented_in": [
+        {
+          "file": "batchService.js",
+          "path": "/api/batches",
+          "method": "GET"
+        },
+        {
+          "file": "batchService.js",
+          "path": "/api/batches",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > List Expiring Soon",
+      "method": "GET",
+      "path": "/api/batches",
+      "body": "",
+      "norm_path": "/api/batches",
+      "implemented_in": [
+        {
+          "file": "batchService.js",
+          "path": "/api/batches",
+          "method": "GET"
+        },
+        {
+          "file": "batchService.js",
+          "path": "/api/batches",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udff7\ufe0f BATCH TRACKING [2026-04-07] > Create Batch",
+      "method": "POST",
+      "path": "/api/batches",
+      "body": "{\n  \"item_id\": 1,\n  \"warehouse_id\": 1,\n  \"batch_number\": \"BATCH-2026-001\",\n  \"mfg_date\": \"2026-01-01\",\n  \"expiry_date\": \"2027-01-01\",\n  \"qty\": 100,\n  \"mrp\": 500,\n  \"purchase_rate\": 350,\n  \"sale_rate\": 480,\n  \"remarks\": \"First batch of the year\"\n}",
+      "norm_path": "/api/batches",
+      "implemented_in": [
+        {
+          "file": "batchService.js",
+          "path": "/api/batches",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > List Serial Numbers",
+      "method": "GET",
+      "path": "/api/serial-numbers",
+      "body": "",
+      "norm_path": "/api/serial-numbers",
+      "implemented_in": [
+        {
+          "file": "serialService.js",
+          "path": "/api/serial-numbers",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd22 SERIAL NUMBER TRACKING [2026-04-07] > Create Serial Number",
+      "method": "POST",
+      "path": "/api/serial-numbers",
+      "body": "{\n  \"item_id\": 1,\n  \"warehouse_id\": 1,\n  \"serial_number\": \"SN-2026-001\",\n  \"imei_number\": \"123456789012345\",\n  \"purchase_invoice_id\": null,\n  \"purchase_date\": \"2026-01-15\",\n  \"purchase_rate\": 35000,\n  \"warranty_period_months\": 12,\n  \"warranty_start_date\": \"2026-01-15\",\n  \"warranty_end_date\": \"2027-01-15\",\n  \"remarks\": \"Imported unit\"\n}",
+      "norm_path": "/api/serial-numbers",
+      "implemented_in": [
+        {
+          "file": "serialService.js",
+          "path": "/api/serial-numbers",
+          "method": "POST"
+        }
+      ]
+    }
+  ]
+}

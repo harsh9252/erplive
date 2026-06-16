@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import ledgerService from '../services/ledgerService';
+import customerService from '../services/customerService';
+import vendorService from '../services/vendorService';
+import bankAccountService from '../services/bankAccountService';
 
 const EditLedger = () => {
   const navigate = useNavigate();
@@ -11,6 +16,8 @@ const EditLedger = () => {
     opening_balance_type: 'DR',
     gstin: '',
     pan: '',
+    mobile: '',
+    address: '',
     is_bank_account: false,
     bank_name: '',
     account_number: '',
@@ -18,9 +25,16 @@ const EditLedger = () => {
     description: '',
   });
 
+  // Suggestions state
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+
   const [ledgerGroups, setLedgerGroups] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
+  const [originalName, setOriginalName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Sample ledger groups for dropdown
   useEffect(() => {
@@ -45,34 +59,36 @@ const EditLedger = () => {
 
   // Load ledger data
   useEffect(() => {
-    const sampleLedger = {
-      id: id,
-      name: 'HDFC Bank',
-      ledger_group_id: '12',
-      opening_balance: '100000',
-      opening_balance_type: 'DR',
-      gstin: '',
-      pan: '',
-      is_bank_account: true,
-      bank_name: 'HDFC Bank',
-      account_number: '1234567890',
-      ifsc_code: 'HDFC0001234',
-      description: 'Main operating bank account',
+    const fetchLedger = async () => {
+      try {
+        setLoading(true);
+        const response = await ledgerService.getLedger(id);
+        const data = response.data || response;
+        setFormData({
+          name: data.name || '',
+          ledger_group_id: data.ledger_group_id || '',
+          opening_balance: data.opening_balance || '',
+          opening_balance_type: data.opening_balance_type || 'DR',
+          gstin: data.gstin || '',
+          pan: data.pan || '',
+          mobile: data.mobile || '',
+          address: data.address || '',
+          is_bank_account: !!data.is_bank_account,
+          bank_name: data.bank_name || '',
+          account_number: data.account_number || '',
+          ifsc_code: data.ifsc_code || '',
+          description: data.description || '',
+        });
+        setOriginalName(data.name || '');
+      } catch (err) {
+        console.error('Error fetching ledger:', err);
+        toast.error('Failed to load ledger data');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setFormData(sampleLedger);
-    setLoading(false);
-
-    // TODO: Call API when backend is ready
-    // ledgerService.getLedger(id)
-    //   .then(data => {
-    //     setFormData(data);
-    //     setLoading(false);
-    //   })
-    //   .catch(err => {
-    //     console.error('Error:', err);
-    //     setLoading(false);
-    //   });
+    fetchLedger();
   }, [id]);
 
   const handleInputChange = (e) => {
@@ -86,6 +102,94 @@ const EditLedger = () => {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
+
+  const handleSelectSuggestion = (item) => {
+    setFormData(prev => ({
+        ...prev,
+        name: item.name || item.bank_name,
+        gstin: item.gstin || prev.gstin,
+        mobile: item.phone || item.mobile || prev.mobile,
+        address: item.address || prev.address,
+        bank_name: item.bank_name || prev.bank_name,
+        account_number: item.account_number || prev.account_number,
+        ifsc_code: item.ifsc_code || prev.ifsc_code
+    }));
+    setShowSuggestions(false);
+  };
+
+  const handleGroupChange = (groupId) => {
+    setFormData({
+        name: '',
+        ledger_group_id: groupId,
+        opening_balance: '',
+        opening_balance_type: 'DR',
+        gstin: '',
+        pan: '',
+        mobile: '',
+        address: '',
+        is_bank_account: false,
+        bank_name: '',
+        account_number: '',
+        ifsc_code: '',
+        description: '',
+    });
+    setSuggestions([]);
+    setShowSuggestions(false);
+    // Clear error for this field
+    if (errors.ledger_group_id) {
+      setErrors((prev) => ({ ...prev, ledger_group_id: '' }));
+    }
+  };
+
+  // Suggestions fetching effect
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+        const selectedGroup = ledgerGroups.find(g => 
+            g.id?.toString() === formData.ledger_group_id?.toString()
+        );
+        const groupName = selectedGroup?.name?.toLowerCase() || '';
+        const isSundryDebtor = groupName.includes('sundry debtor') || formData.ledger_group_id?.toString() === '10';
+        const isSundryCreditor = groupName.includes('sundry creditor') || formData.ledger_group_id?.toString() === '11';
+        const isBankGroup = groupName.includes('bank account') || formData.ledger_group_id?.toString() === '12';
+
+        if (isSundryDebtor || isSundryCreditor || isBankGroup) {
+            try {
+                setIsSearchingSuggestions(true);
+                const trimmedName = formData.name?.trim() || '';
+                
+                // Don't fetch if name exactly matches a selected suggestion
+                if (suggestions.some(s => (s.name || s.bank_name) === trimmedName) && !showSuggestions && trimmedName !== '') {
+                    return;
+                }
+
+                let response;
+                if (isSundryDebtor) {
+                    response = await customerService.searchCustomers(trimmedName, 20);
+                } else if (isSundryCreditor) {
+                    response = await vendorService.searchVendors(trimmedName, 20);
+                } else {
+                    response = await bankAccountService.getBankAccounts({ search: trimmedName, limit: 20 });
+                }
+                
+                const items = Array.isArray(response) ? response : (response.data || response.items || []);
+                setSuggestions(items);
+                if (items.length > 0) {
+                    setShowSuggestions(true);
+                }
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            } finally {
+                setIsSearchingSuggestions(false);
+            }
+        } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+        }
+    };
+
+    const timer = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timer);
+  }, [formData.name, formData.ledger_group_id, ledgerGroups]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -114,35 +218,51 @@ const EditLedger = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    // Prepare data for API
-    const submitData = {
-      name: formData.name.trim(),
-      ledger_group_id: formData.ledger_group_id,
-      opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : 0,
-      opening_balance_type: formData.opening_balance_type,
-      gstin: formData.gstin.trim() || null,
-      pan: formData.pan.trim() || null,
-      is_bank_account: formData.is_bank_account,
-      bank_name: formData.is_bank_account ? formData.bank_name.trim() : null,
-      account_number: formData.is_bank_account ? formData.account_number.trim() : null,
-      ifsc_code: formData.is_bank_account ? formData.ifsc_code.trim() : null,
-      description: formData.description.trim() || null,
-    };
+    try {
+      setIsSaving(true);
+      // Check for duplicate name if name has changed
+      if (formData.name.trim().toLowerCase() !== originalName.toLowerCase()) {
+        const exists = await ledgerService.checkNameExists(formData.name);
+        if (exists) {
+          toast.error('A ledger with this name already exists');
+          setIsSaving(false);
+          return;
+        }
+      }
 
-    console.log('Ledger updated:', submitData);
-    // TODO: Call API when backend is ready
-    // ledgerService.updateLedger(id, submitData)
-    //   .then(() => navigate('/ledgers'))
-    //   .catch(err => console.error('Error:', err));
+      // Prepare data for API
+      const submitData = {
+        name: formData.name.trim(),
+        ledger_group_id: formData.ledger_group_id,
+        opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : 0,
+        opening_balance_type: formData.opening_balance_type,
+        gstin: formData.gstin.trim() || null,
+        pan: formData.pan.trim() || null,
+        mobile: formData.mobile.trim() || null,
+        address: formData.address.trim() || null,
+        is_bank_account: formData.is_bank_account,
+        bank_name: formData.is_bank_account ? formData.bank_name.trim() : null,
+        account_number: formData.is_bank_account ? formData.account_number.trim() : null,
+        ifsc_code: formData.is_bank_account ? formData.ifsc_code.trim() : null,
+        description: formData.description.trim() || null,
+      };
 
-    navigate('/ledgers');
+      await ledgerService.updateLedger(id, submitData);
+      toast.success('Ledger updated successfully');
+      navigate('/accounting/ledgers');
+    } catch (err) {
+      console.error('Error updating ledger:', err);
+      toast.error(err.message || 'Failed to update ledger');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -192,7 +312,7 @@ const EditLedger = () => {
                 <i className="isax isax-info-circle me-2"></i>Basic Information
               </h6>
               <div className="row mb-3">
-                <div className="col-md-6">
+                <div className="col-md-6 position-relative">
                   <label className="form-label">
                     Ledger Name <span className="text-danger">*</span>
                   </label>
@@ -201,9 +321,33 @@ const EditLedger = () => {
                     className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                     name="name"
                     value={formData.name}
-                    onChange={handleInputChange}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+                    onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                     placeholder="e.g., Cash in Hand"
+                    autoComplete="off"
                   />
+                  {showSuggestions && suggestions.length > 0 && (
+                      <div className="position-absolute w-100 bg-white border rounded shadow-lg z-3 mt-1 overflow-auto" style={{ maxHeight: '200px', zIndex: 1060 }}>
+                          {suggestions.map((item) => (
+                              <div 
+                                  key={item.id} 
+                                  className="px-3 py-2 cursor-pointer border-bottom hover-bg-light small d-flex flex-column"
+                                  onClick={() => handleSelectSuggestion(item)}
+                              >
+                                  <span className="fw-bold">{item.name || item.bank_name}</span>
+                                  {item.gstin && <span className="text-muted fs-11">GSTIN: {item.gstin}</span>}
+                                  {item.phone && <span className="text-muted fs-11">Phone: {item.phone}</span>}
+                                  {item.account_number && <span className="text-muted fs-11 text-primary">A/c: {item.account_number}</span>}
+                              </div>
+                          ))}
+                      </div>
+                  )}
+                  {isSearchingSuggestions && (
+                      <div className="position-absolute end-0 top-0 mt-4 me-3 pt-2">
+                          <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+                      </div>
+                  )}
                   {errors.name && (
                     <div className="invalid-feedback d-block">{errors.name}</div>
                   )}
@@ -217,7 +361,7 @@ const EditLedger = () => {
                     className={`form-control ${errors.ledger_group_id ? 'is-invalid' : ''}`}
                     name="ledger_group_id"
                     value={formData.ledger_group_id}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleGroupChange(e.target.value)}
                   >
                     <option value="">Select Ledger Group</option>
                     {ledgerGroups.map((group) => (
@@ -311,6 +455,30 @@ const EditLedger = () => {
                     onChange={handleInputChange}
                     placeholder="e.g., AAAPA1234A"
                   />
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label">Phone/Mobile</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 9876543210"
+                  />
+                </div>
+
+                <div className="col-md-12">
+                  <label className="form-label">Address</label>
+                  <textarea
+                    className="form-control"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder="Full billing address..."
+                    rows="2"
+                  ></textarea>
                 </div>
               </div>
             </div>
@@ -419,8 +587,12 @@ const EditLedger = () => {
               >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary">
-                <i className="isax isax-save-2 me-2"></i>Update Ledger
+              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                {isSaving ? (
+                  <><span className="spinner-border spinner-border-sm me-2"></span>Updating...</>
+                ) : (
+                  <><i className="isax isax-save-2 me-2"></i>Update Ledger</>
+                )}
               </button>
             </div>
           </form>

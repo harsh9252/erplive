@@ -173,31 +173,31 @@ const CustomerDetails = () => {
                     <i className="fa-solid fa-circle fs-10 text-primary me-2"></i> Total
                     Invoice{' '}
                   </p>
-                  <h6 className="fs-16 fw-600"> $56900.54</h6>
+                  <h6 className="fs-16 fw-600"> ₹56,900.54</h6>
                 </li>
                 <li>
                   <p className="mb-2">
                     <i className="fa-solid fa-circle fs-10 text-info me-2"></i> Outstanding{' '}
                   </p>
-                  <h6 className="fs-16 fw-600"> $56900.54</h6>
+                  <h6 className="fs-16 fw-600"> ₹56,900.54</h6>
                 </li>
                 <li>
                   <p className="mb-2">
                     <i className="fa-solid fa-circle fs-10 text-danger me-2"></i> Overdue{' '}
                   </p>
-                  <h6 className="fs-16 fw-600"> $56900.54</h6>
+                  <h6 className="fs-16 fw-600"> ₹56,900.54</h6>
                 </li>
                 <li>
                   <p className="mb-2">
                     <i className="fa-solid fa-circle fs-10 text-purple me-2"></i> Draft{' '}
                   </p>
-                  <h6 className="fs-16 fw-600"> $56900.54</h6>
+                  <h6 className="fs-16 fw-600"> ₹56,900.54</h6>
                 </li>
                 <li>
                   <p className="mb-2">
                     <i className="fa-solid fa-circle fs-10 text-error me-2"></i> Cancelled{' '}
                   </p>
-                  <h6 className="fs-16 fw-600"> $56900.54</h6>
+                  <h6 className="fs-16 fw-600"> ₹56,900.54</h6>
                 </li>
               </ul>
             </div>
@@ -226,8 +226,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>22 Feb 2025</td>
-                      <td className="text-dark">$10,000</td>
-                      <td className="">$5,000</td>
+                      <td className="text-dark">₹10,000</td>
+                      <td className="">₹5,000</td>
                       <td>
                         <span className="badge badge-soft-success badge-sm d-inline-flex align-items-center">
                           Paid<i className="isax isax-tick-circle ms-1"></i>
@@ -277,8 +277,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>07 Feb 2025</td>
-                      <td className="text-dark">$25,750</td>
-                      <td className="">$10,750</td>
+                      <td className="text-dark">₹25,750</td>
+                      <td className="">₹10,750</td>
                       <td>
                         <span className="badge badge-soft-warning badge-sm d-inline-flex align-items-center">
                           Unpaid<i className="isax isax-slash ms-1"></i>
@@ -328,8 +328,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>30 Jan 2025</td>
-                      <td className="text-dark">$50,125</td>
-                      <td className="">$20,000</td>
+                      <td className="text-dark">₹50,125</td>
+                      <td className="">₹20,000</td>
                       <td>
                         <span className="badge badge-soft-danger badge-sm d-inline-flex align-items-center">
                           Cancelled<i className="isax isax-close-circle ms-1"></i>
@@ -379,8 +379,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>17 Jan 2025</td>
-                      <td className="text-dark">$75,900</td>
-                      <td className="">$50,000</td>
+                      <td className="text-dark">₹75,900</td>
+                      <td className="">₹50,000</td>
                       <td>
                         <span className="badge badge-soft-primary badge-sm d-inline-flex align-items-center">
                           Partially Paid<i className="isax isax-timer ms-1"></i>
@@ -430,8 +430,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>02 Dec 2024</td>
-                      <td className="text-dark">$2,50,000</td>
-                      <td className="">$1,25,000</td>
+                      <td className="text-dark">₹2,50,000</td>
+                      <td className="">₹1,25,000</td>
                       <td>
                         <span className="badge badge-soft-warning badge-sm d-inline-flex align-items-center">
                           Unpaid<i className="isax isax-slash ms-1"></i>
@@ -481,8 +481,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>30 Nov 2024</td>
-                      <td className="text-dark">$7,50,300</td>
-                      <td className="">$2,50,500</td>
+                      <td className="text-dark">₹7,50,300</td>
+                      <td className="">₹2,50,500</td>
                       <td>
                         <span className="badge badge-soft-primary badge-sm d-inline-flex align-items-center">
                           Partially Paid<i className="isax isax-timer ms-1"></i>
@@ -532,8 +532,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>12 Oct 2024</td>
-                      <td className="text-dark">$9,99,999</td>
-                      <td className="">$4,00,000</td>
+                      <td className="text-dark">₹9,99,999</td>
+                      <td className="">₹4,00,000</td>
                       <td>
                         <span className="badge badge-soft-danger badge-sm d-inline-flex align-items-center">
                           Uncollectable<i className="isax isax-danger ms-1"></i>
@@ -583,8 +583,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>09 Sep 2024</td>
-                      <td className="text-dark">$10,000</td>
-                      <td className="">$5,000</td>
+                      <td className="text-dark">₹10,000</td>
+                      <td className="">₹5,000</td>
                       <td>
                         <span className="badge badge-soft-success badge-sm d-inline-flex align-items-center">
                           Paid<i className="isax isax-tick-circle ms-1"></i>
@@ -634,8 +634,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>13 Sep 2025</td>
-                      <td className="text-dark">$10,000</td>
-                      <td className="">$5,000</td>
+                      <td className="text-dark">₹10,000</td>
+                      <td className="">₹5,000</td>
                       <td>
                         <span className="badge badge-soft-success badge-sm d-inline-flex align-items-center">
                           Paid<i className="isax isax-tick-circle ms-1"></i>
@@ -685,8 +685,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>12 Sep 2025</td>
-                      <td className="text-dark">$10,000</td>
-                      <td className="">$5,000</td>
+                      <td className="text-dark">₹10,000</td>
+                      <td className="">₹5,000</td>
                       <td>
                         <span className="badge badge-soft-success badge-sm d-inline-flex align-items-center">
                           Paid<i className="isax isax-tick-circle ms-1"></i>
@@ -736,8 +736,8 @@ const CustomerDetails = () => {
                         </Link>
                       </td>
                       <td>10 Aug 2025</td>
-                      <td className="text-dark">$10,000</td>
-                      <td className="">$5,000</td>
+                      <td className="text-dark">₹10,000</td>
+                      <td className="">₹5,000</td>
                       <td>
                         <span className="badge badge-soft-primary badge-sm d-inline-flex align-items-center">
                           Partially Paid<i className="isax isax-timer ms-1"></i>

@@ -2,25 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getGstSummaryReport } from '../services/reportService';
 
-const initialTaxData = [
-  { id: 1, ref: 'CN0014', customer: 'Emily Clark', avatar: '/assets/img/profiles/avatar-28.jpg', date: '22 Feb 2025', category: 'Smartphones', amount: 10000, mode: 'Cash', discount: 10000, tax: 75900 },
-  { id: 2, ref: 'CN0013', customer: 'John Carter', avatar: '/assets/img/profiles/avatar-29.jpg', date: '07 Feb 2025', category: 'Laptops', amount: 25750, mode: 'Cheque', discount: 25750, tax: 250000 },
-  { id: 3, ref: 'CN0012', customer: 'Sophia White', avatar: '/assets/img/profiles/avatar-12.jpg', date: '30 Jan 2025', category: 'Headphones', amount: 50125, mode: 'Cash', discount: 50125, tax: 750300 },
-  { id: 4, ref: 'CN0011', customer: 'Michael Johnson', avatar: '/assets/img/profiles/avatar-06.jpg', date: '17 Jan 2025', category: 'Computer Service', amount: 75900, mode: 'Cheque', discount: 75900, tax: 87650 },
-  { id: 5, ref: 'CN0010', customer: 'Olivia Harris', avatar: '/assets/img/profiles/avatar-30.jpg', date: '04 Jan 2025', category: 'Footwear', amount: 99999, mode: 'Cheque', discount: 99999, tax: 10000 },
-  { id: 6, ref: 'CN0009', customer: 'David Anderson', avatar: '/assets/img/profiles/avatar-16.jpg', date: '09 Dec 2024', category: 'Kitchen', amount: 120500, mode: 'Cash', discount: 120500, tax: 69420 },
-  { id: 7, ref: 'CN0008', customer: 'Emma Lewis', avatar: '/assets/img/profiles/avatar-17.jpg', date: '02 Dec 2024', category: 'Cleaning', amount: 250000, mode: 'Cash', discount: 250000, tax: 33210 },
-  { id: 8, ref: 'CN0007', customer: 'Robert Thomas', avatar: '/assets/img/profiles/avatar-23.jpg', date: '15 Nov 2024', category: 'Laptops', amount: 500750, mode: 'Cheque', discount: 500750, tax: 210000 },
-  { id: 9, ref: 'CN0006', customer: 'Isabella Scott', avatar: '/assets/img/profiles/avatar-07.jpg', date: '30 Nov 2024', category: 'Haircare', amount: 750300, mode: 'Cheque', discount: 750300, tax: 25750 },
-  { id: 10, ref: 'CN0005', customer: 'Daniel Martinez', avatar: '/assets/img/profiles/avatar-31.jpg', date: '12 Oct 2024', category: 'Headphones', amount: 999999, mode: 'Cash', discount: 999999, tax: 50125 }
-];
-
+// Removed hardcoded fake data
 const TaxReport = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText);
+      setPage(1);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [searchText]);
   const [columns, setColumns] = useState({
     ref: true,
     customer: true,
@@ -44,6 +44,9 @@ const TaxReport = () => {
       const finalParams = {
         from_date: firstDayOfMonth,
         to_date: today,
+        search: debouncedSearch,
+        page,
+        limit,
         ...params
       };
       const response = await getGstSummaryReport(finalParams);
@@ -59,6 +62,7 @@ const TaxReport = () => {
       }));
       
       setData(mappedItems);
+      setTotalItems(response.pagination?.total || response.total || response.data?.total || mappedItems.length || 0);
       setError(null);
     } catch (err) {
       console.error("Error fetching GST summary:", err);
@@ -67,6 +71,10 @@ const TaxReport = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReportData();
+  }, [debouncedSearch, page, limit]);
 
   const handleColumnToggle = (column) => {
     setColumns(prev => ({ ...prev, [column]: !prev[column] }));
@@ -80,11 +88,7 @@ const TaxReport = () => {
     setSortConfig({ key, direction });
   };
 
-  let filteredData = data.filter(item =>
-    (item.customer || '').toLowerCase().includes(searchText.toLowerCase()) ||
-    (item.ref || item.reference_id || '').toLowerCase().includes(searchText.toLowerCase()) ||
-    (item.category || '').toLowerCase().includes(searchText.toLowerCase())
-  );
+  let filteredData = [...data];
 
   if (sortConfig.key) {
     filteredData.sort((a, b) => {
@@ -108,12 +112,12 @@ const TaxReport = () => {
         </div>
         <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
           <div className="dropdown">
-            <Link href="#" className="btn btn-outline-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+            <button className="btn btn-outline-white d-inline-flex align-items-center shadow-none" data-bs-toggle="dropdown">
               <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
+            </button>
             <ul className="dropdown-menu">
-              <li><Link className="dropdown-item" href="#">Download as PDF</Link></li>
-              <li><Link className="dropdown-item" href="#">Download as Excel</Link></li>
+              <li><button className="dropdown-item bg-transparent border-0 py-2">Download as PDF</button></li>
+              <li><button className="dropdown-item bg-transparent border-0 py-2">Download as Excel</button></li>
             </ul>
           </div>
         </div>
@@ -121,9 +125,9 @@ const TaxReport = () => {
 
       <div className="row">
         {[
-          { label: 'Total Tax Collected', amount: `$${data.reduce((sum, i) => sum + (Number(i.tax) || 0), 0).toLocaleString()}`, change: '+5.62%', icon: 'dollar-circle', color: 'primary' },
-          { label: 'Taxable Amount', amount: `$${data.reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString()}`, change: '+11.4%', icon: 'money-3', color: 'success' },
-          { label: 'Total Discount', amount: `$${data.reduce((sum, i) => sum + (Number(i.discount) || 0), 0).toLocaleString()}`, change: '+8.12%', icon: 'money-4', color: 'warning' },
+          { label: 'Total Tax Collected', amount: `₹${data.reduce((sum, i) => sum + (Number(i.tax) || 0), 0).toLocaleString()}`, change: '+5.62%', icon: 'wallet-money', color: 'primary' },
+          { label: 'Taxable Amount', amount: `₹${data.reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString()}`, change: '+11.4%', icon: 'money-3', color: 'success' },
+          { label: 'Total Discount', amount: `₹${data.reduce((sum, i) => sum + (Number(i.discount) || 0), 0).toLocaleString()}`, change: '+8.12%', icon: 'money-4', color: 'warning' },
           { label: 'Total Transactions', amount: data.length, change: '+7.45%', icon: 'money', color: 'danger' }
         ].map((card, idx) => (
           <div className="col-xl-3 col-lg-4 col-md-6" key={idx}>
@@ -162,18 +166,20 @@ const TaxReport = () => {
                   onChange={(e) => setSearchText(e.target.value)}
                   style={{ background: 'transparent', outline: 'auto' }}
                 />
-                <Link href="#" className="btn-searchset"><i className="isax isax-search-normal fs-12"></i></Link>
+                <button className="btn btn-primary d-inline-flex align-items-center justify-content-center shadow-none p-2 border-0 rounded-end" style={{borderTopLeftRadius: 0, borderBottomLeftRadius: 0}}>
+                  <i className="isax isax-search-normal fs-18"></i>
+                </button>
               </div>
             </div>
-            <Link className="btn btn-outline-white fw-normal d-inline-flex align-items-center" href="#" data-bs-toggle="offcanvas" data-bs-target="#customcanvas">
+            <button className="btn btn-outline-white fw-normal d-inline-flex align-items-center shadow-none">
               <i className="isax isax-filter me-1"></i>Filter
-            </Link>
+            </button>
           </div>
           <div className="d-flex align-items-center flex-wrap gap-2">
             <div className="dropdown">
-              <Link href="#" className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+              <button className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center shadow-none" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                 <i className="isax isax-grid-3 me-1"></i>Column
-              </Link>
+              </button>
               <ul className="dropdown-menu dropdown-menu">
                 {Object.keys(columns).map(col => (
                   <li key={col}>
@@ -187,12 +193,12 @@ const TaxReport = () => {
               </ul>
             </div>
             <div className="dropdown">
-              <Link href="#" className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+              <button className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center shadow-none" data-bs-toggle="dropdown">
                 <i className="isax isax-sort me-1"></i>Sort By : <span className="fw-normal ms-1">Latest</span>
-              </Link>
+              </button>
               <ul className="dropdown-menu dropdown-menu-end">
-                <li><Link href="#" className="dropdown-item">Latest</Link></li>
-                <li><Link href="#" className="dropdown-item">Oldest</Link></li>
+                <li><button className="dropdown-item bg-transparent border-0">Latest</button></li>
+                <li><button className="dropdown-item bg-transparent border-0">Oldest</button></li>
               </ul>
             </div>
           </div>
@@ -241,33 +247,51 @@ const TaxReport = () => {
                       <input className="form-check-input" type="checkbox" />
                     </div>
                   </td>
-                  {columns.ref && <td><Link href="#" className="link-default">{item.ref || item.reference_id}</Link></td>}
+                  {columns.ref && <td><span className="fw-medium text-primary">{item.ref || item.reference_id}</span></td>}
                   {columns.customer && (
                     <td>
                       <div className="d-flex align-items-center">
-                        <Link to="/customer-details" className="avatar avatar-sm rounded-circle me-2 flex-shrink-0">
+                        <Link to="/customer-details" className="avatar avatar-sm rounded-circle me-2 flex-shrink-0 text-decoration-none">
                           <img src={item.avatar || "/assets/img/profiles/avatar-01.jpg"} className="rounded-circle" alt="img" />
                         </Link>
                         <div>
                           <h6 className="fs-14 fw-medium mb-0">
-                            <Link to="/customer-details">{item.customer}</Link>
+                            <Link to="/customer-details" className="text-dark text-decoration-none">{item.customer}</Link>
                           </h6>
                         </div>
                       </div>
                     </td>
                   )}
                   {columns.date && <td>{item.date}</td>}
-                  {columns.category && <td>{item.category}</td>}
-                  {columns.amount && <td className="text-dark">${(item.amount || 0).toLocaleString()}</td>}
+                  {columns.category && <td>{typeof item.category === 'object' && item.category !== null ? item.category.name : (item.category || '-')}</td>}
+                  {columns.amount && <td className="text-dark">₹{(item.amount || 0).toLocaleString()}</td>}
                   {columns.mode && <td className="text-dark">{item.mode || item.payment_mode}</td>}
-                  {columns.discount && <td className="text-dark">${(item.discount || 0).toLocaleString()}</td>}
-                  {columns.tax && <td className="text-dark">${(item.tax || item.tax_amount || 0).toLocaleString()}</td>}
+                  {columns.discount && <td className="text-dark">₹{(item.discount || 0).toLocaleString()}</td>}
+                  {columns.tax && <td className="text-dark fw-bold">₹{(item.tax || item.tax_amount || 0).toLocaleString()}</td>}
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      {totalItems > limit && (
+        <div className="card-footer bg-white border-top-light py-3 d-flex justify-content-between align-items-center">
+          <div className="fs-13 text-muted">
+            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalItems)} of {totalItems}
+          </div>
+          <nav>
+            <ul className="pagination pagination-sm mb-0">
+              <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setPage(p => p - 1)} disabled={page === 1}>Previous</button>
+              </li>
+              <li className="page-item active"><span className="page-link">{page}</span></li>
+              <li className={`page-item ${data.length < limit ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setPage(p => p + 1)} disabled={data.length < limit}>Next</button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
     </>
   );
 };

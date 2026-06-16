@@ -38,7 +38,7 @@ const ExpenseReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Total Expense</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$750,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹7,50,000</h6>
                 </div>
                 <div>
                   <div className="chart-set" id="radial-chart10"></div>
@@ -61,7 +61,7 @@ const ExpenseReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Approved Expense</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$550,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹5,50,000</h6>
                 </div>
                 <div>
                   <div className="chart-set" id="radial-chart7"></div>
@@ -84,7 +84,7 @@ const ExpenseReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Pending Expense</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$150,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹1,50,000</h6>
                 </div>
                 <div>
                   <div className="chart-set" id="radial-chart8"></div>
@@ -107,7 +107,7 @@ const ExpenseReport = () => {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                   <p className="mb-1">Rejected Expense</p>
-                  <h6 className="fs-16 fw-semibold mb-0">$50,000</h6>
+                  <h6 className="fs-16 fw-semibold mb-0">₹50,000</h6>
                 </div>
                 <div>
                   <div className="chart-set" id="radial-chart9"></div>
@@ -260,7 +260,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$10,000</td>
+              <td className="text-dark">₹10,000</td>
               <td className="text-dark">Cash</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
@@ -287,7 +287,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$25,750</td>
+              <td className="text-dark">₹25,750</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
@@ -314,7 +314,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$50,125</td>
+              <td className="text-dark">₹50,125</td>
               <td className="text-dark">Cash</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
@@ -341,7 +341,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$75,900</td>
+              <td className="text-dark">₹75,900</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
@@ -368,7 +368,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$99,999</td>
+              <td className="text-dark">₹99,999</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
@@ -395,7 +395,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$1,20,500</td>
+              <td className="text-dark">₹1,20,500</td>
               <td className="text-dark">Cash</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
@@ -422,7 +422,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$2,50,000</td>
+              <td className="text-dark">₹2,50,000</td>
               <td className="text-dark">Cash</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
@@ -449,7 +449,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$5,00,750</td>
+              <td className="text-dark">₹5,00,750</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
@@ -476,7 +476,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$7,50,300</td>
+              <td className="text-dark">₹7,50,300</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
@@ -503,7 +503,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$9,99,999</td>
+              <td className="text-dark">₹9,99,999</td>
               <td className="text-dark">cash</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
@@ -530,7 +530,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$87,650</td>
+              <td className="text-dark">₹87,650</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
@@ -557,7 +557,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$69,420</td>
+              <td className="text-dark">₹69,420</td>
               <td className="text-dark">Cash</td>
               <td>
                 <span className="badge badge-soft-danger d-inline-flex align-items-center">
@@ -584,7 +584,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$33,210</td>
+              <td className="text-dark">₹33,210</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-success d-inline-flex align-items-center">
@@ -611,7 +611,7 @@ const ExpenseReport = () => {
                   <i className="isax isax-document-text5"></i>
                 </span>
               </td>
-              <td className="text-dark">$2,10,000</td>
+              <td className="text-dark">₹2,10,000</td>
               <td className="text-dark fw-medium">Cheque</td>
               <td>
                 <span className="badge badge-soft-warning d-inline-flex align-items-center">
@@ -665,7 +665,7 @@ const ExpenseReport = () => {
                   <div className="filter-range">
                     <input type="text" id="range_03" />
                     <p>
-                      Range : <span className="text-gray-9">$200 - $5695</span>
+                      Range : <span className="text-gray-9">₹200 - ₹5,695</span>
                     </p>
                   </div>
                 </div>

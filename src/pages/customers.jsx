@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getCustomers, deleteCustomer } from '../services/customerService';
+import customerService from '../services/customerService';
 import Swal from 'sweetalert2';
 
 const Customers = () => {
@@ -10,234 +10,246 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch customers from API
-  useEffect(() => {
-    fetchCustomersData();
-  }, [currentPage, searchTerm]);
-
-  const fetchCustomersData = async () => {
+  const fetchCustomersData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await getCustomers(currentPage, itemsPerPage, { search: searchTerm });
-      if (response.success && response.data) {
+      const response = await customerService.getCustomers(currentPage, itemsPerPage, { search: searchTerm });
+      if (response && response.data) {
         setCustomers(response.data);
+        setTotalItems(response.total || response.data.length);
       } else {
         setCustomers([]);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
-      toast.error('Failed to load customers');
-      setCustomers([]);
+      toast.error('Failed to load customers from server');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm]);
 
-  const currentCustomers = customers; // Backend might already handle filtering/pagination
-  const totalPages = 1; // Simplified for now since API might return count
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchCustomersData();
+    }, 500);
 
-  const handleDelete = async (id) => {
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchCustomersData]);
+
+  const handleDelete = async (id, name) => {
     Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Delete Customer?',
+      text: `Are you sure you want to delete ${name}? This will remove all associated records.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!',
+      confirmButtonColor: '#ff0000',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Delete',
       customClass: {
-        container: 'swal2-custom-container',
         popup: 'rounded-16 shadow-lg border-0',
-        confirmButton: 'btn btn-danger px-4 rounded-8',
-        cancelButton: 'btn btn-outline-secondary px-4 rounded-8'
+        confirmButton: 'btn btn-danger px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
       },
       buttonsStyling: false
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await deleteCustomer(id);
+          const response = await customerService.deleteCustomer(id);
           if (response.success) {
-            Swal.fire({
-              title: 'Deleted!',
-              text: 'Customer has been deleted.',
-              icon: 'success',
-              timer: 1500,
-              showConfirmButton: false,
-              customClass: {
-                popup: 'rounded-16 shadow-lg border-0'
-              }
-            });
+            toast.success('Customer removed successfully');
             fetchCustomersData();
           }
         } catch (error) {
           console.error('Error deleting customer:', error);
-          toast.error('Failed to delete customer');
+          toast.error(error.message || 'Failed to delete customer. They might be in use.');
         }
       }
     });
   };
 
-  const handleExport = (type) => {
-    toast.info(`Exporting customers as ${type}`);
+  const getBalanceBadge = (customer) => {
+    const balance = parseFloat(customer.ledger?.opening_balance || customer.opening_balance || 0);
+    const type = customer.ledger?.balance_type || customer.balance_type || 'DR';
+    const isDr = type === 'DR';
+
+    return (
+      <span className={`badge bg-soft-${isDr ? 'danger' : 'success'} text-${isDr ? 'danger' : 'success'} border-${isDr ? 'danger' : 'success'} px-2`}>
+        ₹{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })} {type}
+      </span>
+    );
+  };
+
+  const handleExport = () => {
+    if (customers.length === 0) {
+      toast.warning('No data to export');
+      return;
+    }
+
+    const headers = ['Company Name', 'PAN', 'GSTIN', 'Phone', 'Email', 'City', 'State Code', 'Current Balance', 'Balance Type'];
+    const csvRows = [headers.join(',')];
+
+    customers.forEach(customer => {
+      const balance = customer.ledger?.opening_balance || customer.opening_balance || 0;
+      const balanceType = customer.ledger?.balance_type || customer.balance_type || 'DR';
+
+      const row = [
+        `"${(customer.name || '').replace(/"/g, '""')}"`,
+        `"${customer.pan || ''}"`,
+        `"${customer.gstin || ''}"`,
+        `"=""${customer.phone || ''}"""`,
+        `"${customer.email || ''}"`,
+        `"${(customer.city || '').replace(/"/g, '""')}"`,
+        `"${customer.state_code || ''}"`,
+        balance,
+        balanceType
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `customers_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Export downloaded successfully');
   };
 
   return (
-    <>
-      {/* Breadcrumb */}
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+    <div className="container-fluid p-0">
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
         <div>
-          <h6 className="fw-bold mb-0">Customers</h6>
+          <h4 className="fw-bold mb-1">Customer</h4>
           <nav aria-label="breadcrumb">
-            <ol className="breadcrumb breadcrumb-divide mb-0 mt-1">
+            <ol className="breadcrumb breadcrumb-divide mb-0">
               <li className="breadcrumb-item">
-                <Link to="/">
-                  <i className="isax isax-home-2 me-1"></i>Home
-                </Link>
+                <Link to="/" className="text-muted"><i className="isax isax-home-2 me-1"></i>Home</Link>
               </li>
-              <li className="breadcrumb-item">Master Data</li>
-              <li className="breadcrumb-item active" aria-current="page">
-                Customers
-              </li>
+              <li className="breadcrumb-item text-muted">Master Data</li>
+              <li className="breadcrumb-item active text-primary">Customers</li>
             </ol>
           </nav>
         </div>
-        <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
+        <div className="d-flex gap-2">
           <Link
             to="/master/customers/add"
-            className="btn btn-primary d-flex align-items-center"
+            className="btn btn-primary d-flex align-items-center shadow-sm px-4 rounded-pill transition-all"
           >
-            <i className="isax isax-add me-1"></i>Add Customer
+            <i className="isax isax-add-circle me-2 fs-18"></i>Add New Customer
           </Link>
-          <div className="dropdown">
-            <button
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </button>
-            <ul className="dropdown-menu shadow border-0">
-              <li>
-                <button className="dropdown-item" onClick={() => handleExport('PDF')}>
-                  Download as PDF
-                </button>
-              </li>
-              <li>
-                <button className="dropdown-item" onClick={() => handleExport('Excel')}>
-                  Download as Excel
-                </button>
-              </li>
-            </ul>
-          </div>
+          <button onClick={handleExport} className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none">
+            <i className="isax isax-export-1 me-2 text-primary"></i>Export
+          </button>
         </div>
       </div>
 
-      {/* Customers Table */}
-      <div className="card shadow-sm border-0">
-        <div className="card-body">
-          <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
-            <h6 className="mb-0">Customer Records</h6>
-            <div className="input-icon-end position-relative" style={{ width: '250px' }}>
+      <div className="card border-0 shadow-sm rounded-4">
+        <div className="card-header bg-white py-3 border-0">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <h6 className="mb-0 fw-bold">{totalItems} Registered Customers</h6>
+            <div className="input-group" style={{ maxWidth: '300px' }}>
+              <span className="input-group-text bg-light border-0"><i className="isax isax-search-normal text-muted fs-14"></i></span>
               <input
                 type="text"
-                className="form-control"
-                placeholder="Search by name, GSTIN..."
+                className="form-control bg-light border-0 shadow-none ps-0"
+                placeholder="Search name, GSTIN, phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <span className="input-icon-addon">
-                <i className="isax isax-search-normal"></i>
-              </span>
             </div>
           </div>
-
+        </div>
+        <div className="card-body p-0">
           <div className="table-responsive">
-            <table className="table table-hover table-nowrap align-middle mb-0">
-              <thead className="thead-light">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="bg-light text-muted fs-11 text-uppercase tracking-wider">
                 <tr>
-                  <th className="px-4">Customer Name</th>
-                  <th>GSTIN</th>
-                  <th>Contact</th>
-                  <th>City / State</th>
-                  <th className="text-end">Balance</th>
-                  <th className="text-center">Actions</th>
+                  <th className="ps-4">Customer Details</th>
+                  <th>GSTIN / Tax ID</th>
+                  <th>Contact Info</th>
+                  <th>Location</th>
+                  <th className="text-end">Current Balance</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="border-top-0">
                 {isLoading ? (
+                  Array(5).fill(0).map((_, i) => (
+                    <tr key={i}>
+                      <td colSpan="6" className="py-4">
+                        <div className="skeleton-line rounded-pill"></div>
+                      </td>
+                    </tr>
+                  ))
+                ) : customers.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
+                      <div className="avatar avatar-xl bg-soft-secondary mb-3 mx-auto rounded-circle">
+                        <i className="isax isax-user-octagon fs-48 text-muted opacity-50"></i>
                       </div>
-                    </td>
-                  </tr>
-                ) : currentCustomers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-5">
-                      <i className="isax isax-folder-open text-muted fs-2"></i>
-                      <p className="mt-2 text-muted">No customers found</p>
+                      <h6 className="text-muted">No customers match your search criteria</h6>
+                      <Link to="/master/customers/add" className="btn btn-link text-primary mt-2">Create your first customer</Link>
                     </td>
                   </tr>
                 ) : (
-                  currentCustomers.map((customer) => (
+                  customers.map((customer) => (
                     <tr key={customer.id}>
-                      <td className="px-4">
+                      <td className="ps-4">
                         <div className="d-flex align-items-center">
-                          <div className="avatar avatar-sm rounded-3 bg-primary-transparent text-primary me-2 flex-shrink-0">
-                            {customer.name?.charAt(0)}
+                          <div className={`avatar avatar-md rounded-circle me-3 text-white fw-bold bg-soft-primary text-primary`}>
+                            {customer.name?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <h6 className="fs-14 fw-bold mb-0">
-                              <Link to={`/customer-details/${customer.id}`} className="text-dark">
-                                {customer.name}
-                              </Link>
-                            </h6>
+                            <Link to={`/customer-details/${customer.id}`} className="fw-bold text-dark d-block">
+                              {customer.name}
+                            </Link>
+                            <small className="text-muted fw-medium">PAN: {customer.pan || 'N/A'}</small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span className="fs-13 fw-medium">{customer.gstin || '---'}</span>
+                        <span className="badge bg-soft-info text-info border-info px-2 font-monospace">{customer.gstin || 'UNREGISTERED'}</span>
                       </td>
                       <td>
-                        <div className="fs-13">
-                          <div className="text-dark">{customer.phone}</div>
-                          <div className="text-muted fs-11">{customer.email}</div>
+                        <div className="d-flex flex-column">
+                          <span className="text-dark fw-medium fs-13">{customer.phone}</span>
+                          <small className="text-muted">{customer.email || 'No email'}</small>
                         </div>
                       </td>
                       <td>
-                        <span className="fs-13">
-                          {customer.city} {customer.city && customer.state_code ? ',' : ''} {customer.state_code}
-                        </span>
+                        <div className="d-flex align-items-center">
+                          <i className="isax isax-location-tick text-muted me-1 fs-14"></i>
+                          <span className="text-dark fs-13">
+                            {customer.city}{customer.state_code ? `, ${customer.state_code}` : ''}
+                          </span>
+                        </div>
                       </td>
                       <td className="text-end">
-                        {(() => {
-                          const balance = customer.ledger?.opening_balance || customer.opening_balance || 0;
-                          const type = customer.ledger?.balance_type || customer.balance_type || 'DR';
-                          const isDr = type === 'DR';
-                          return (
-                            <span className={`fw-bold ${isDr ? 'text-danger' : 'text-success'}`}>
-                              ₹{parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {type}
-                            </span>
-                          );
-                        })()}
+                        {getBalanceBadge(customer)}
                       </td>
-                      <td className="text-center">
-                        <div className="d-flex align-items-center justify-content-center gap-2">
+                      <td className="text-end pe-4">
+                        <div className="d-flex justify-content-end align-items-center gap-2">
                           <Link
+                            className="btn btn-sm btn-soft-warning border-0"
                             to={`/master/customers/edit/${customer.id}`}
-                            className="btn btn-sm btn-icon btn-soft-warning"
                             title="Edit"
                           >
-                            <i className="isax isax-edit"></i>
+                            <i className="isax isax-edit-2 fs-16"></i>
                           </Link>
                           <button
-                            className="btn btn-sm btn-icon btn-soft-danger"
-                            onClick={() => handleDelete(customer.id)}
+                            className="btn btn-sm btn-soft-danger border-0"
+                            onClick={() => handleDelete(customer.id, customer.name)}
                             title="Delete"
                           >
-                            <i className="isax isax-trash"></i>
+                            <i className="isax isax-trash fs-16"></i>
                           </button>
                         </div>
                       </td>
@@ -249,7 +261,7 @@ const Customers = () => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

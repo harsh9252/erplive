@@ -50,6 +50,13 @@ export const transferStock = async (payload) =>
     data: payload,
   });
 
+export const createStockEntry = async (payload) =>
+  apiRequest({
+    url: '/api/inventory/stock-entry',
+    method: 'POST',
+    data: payload,
+  });
+
 const inventoryService = {
   getInventory,
   getInventoryItem,
@@ -57,6 +64,7 @@ const inventoryService = {
   getStockLedger,
   getCurrentStock,
   transferStock,
+  createStockEntry,
 };
 
 export default inventoryService;

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
+import serialService from '../services/serialService';
+import itemService from '../services/itemService';
+import settingsService from '../services/settingsService';
+import batchService from '../services/batchService';
 
 const SerialNumbers = () => {
   const [serials, setSerials] = useState([]);
@@ -11,6 +15,10 @@ const SerialNumbers = () => {
   const [selectedSerials, setSelectedSerials] = useState(new Set());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+
   const [warehouses, setWarehouses] = useState([]);
   const [items, setItems] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -28,6 +36,7 @@ const SerialNumbers = () => {
     warranty_start_date: '',
     warranty_end_date: '',
     status: 'IN_STOCK',
+    remarks: '',
   });
 
   const STATUS_OPTIONS = [
@@ -39,62 +48,63 @@ const SerialNumbers = () => {
     'WARRANTY_CLAIM',
   ];
 
-  useEffect(() => {
-    loadWarehouses();
-    loadItems();
-    loadBatches();
-    loadPurchases();
-    loadSerials();
+  const loadInitialData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [serialsRes, itemsRes, warehousesRes, batchesRes] = await Promise.all([
+        serialService.getSerials(1, 100),
+        itemService.getItems(1, 100, { track_serial: true }),
+        settingsService.getWarehouses(),
+        batchService.getBatches(1, 100)
+      ]);
+
+      setSerials(serialsRes.data || []);
+      setItems(itemsRes.data || []);
+      setWarehouses(warehousesRes.data || []);
+      setBatches(batchesRes.data || []);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      toast.error('Failed to load data from server');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   useEffect(() => {
     filterAndSortSerials();
   }, [serials, searchTerm, sortBy]);
 
-  const loadWarehouses = () => {
-    const storedWarehouses = JSON.parse(localStorage.getItem('warehouses') || '[]');
-    setWarehouses(storedWarehouses);
-  };
-
-  const loadItems = () => {
-    const storedItems = JSON.parse(localStorage.getItem('items') || '[]');
-    setItems(storedItems);
-  };
-
-  const loadBatches = () => {
-    const storedBatches = JSON.parse(localStorage.getItem('batches') || '[]');
-    setBatches(storedBatches);
-  };
-
-  const loadPurchases = () => {
-    const storedPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
-    setPurchases(storedPurchases);
-  };
-
-  const loadSerials = () => {
-    const storedSerials = JSON.parse(localStorage.getItem('serial_numbers') || '[]');
-    setSerials(storedSerials);
-  };
-
   const filterAndSortSerials = () => {
-    let filtered = serials.filter(serial => {
-      const item = items.find(i => i.id === parseInt(serial.item_id));
-      const warehouse = warehouses.find(w => w.id === parseInt(serial.warehouse_id));
+    let filtered = [...serials].filter(serial => {
+      const item = items.find(i => String(i.id) === String(serial.item_id));
+      const warehouse = warehouses.find(w => String(w.id) === String(serial.warehouse_id));
       const searchLower = searchTerm.toLowerCase();
+
+      const itemName = item?.name || serial.item?.name || '';
+      const itemSku = item?.sku || serial.item?.sku || '';
+      const warehouseName = warehouse?.name || serial.warehouse?.name || '';
+      const serialNum = serial.serial_number || '';
+      const imeiNum = serial.imei_number || '';
+      const status = serial.status || '';
+
       return (
-        (item?.name || '').toLowerCase().includes(searchLower) ||
-        (item?.sku || '').toLowerCase().includes(searchLower) ||
-        serial.serial_number.toLowerCase().includes(searchLower) ||
-        (serial.imei_number || '').toLowerCase().includes(searchLower) ||
-        (warehouse?.name || '').toLowerCase().includes(searchLower) ||
-        serial.status.toLowerCase().includes(searchLower)
+        itemName.toLowerCase().includes(searchLower) ||
+        itemSku.toLowerCase().includes(searchLower) ||
+        serialNum.toLowerCase().includes(searchLower) ||
+        imeiNum.toLowerCase().includes(searchLower) ||
+        warehouseName.toLowerCase().includes(searchLower) ||
+        status.toLowerCase().includes(searchLower)
       );
     });
 
     if (sortBy === 'latest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      filtered.sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
     } else if (sortBy === 'oldest') {
-      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      filtered.sort((a, b) => new Date(a.created_at || a.createdAt) - new Date(b.created_at || b.createdAt));
     } else if (sortBy === 'warranty') {
       filtered.sort((a, b) => {
         const dateA = a.warranty_end_date ? new Date(a.warranty_end_date) : new Date('9999-12-31');
@@ -125,48 +135,41 @@ const SerialNumbers = () => {
     }
 
     setFormData(updatedData);
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.item_id || !formData.warehouse_id || !formData.serial_number) {
-      toast.error('Please fill all required fields');
+    const newErrors = {};
+    if (!formData.item_id) newErrors.item_id = 'Please select an item';
+    if (!formData.warehouse_id) newErrors.warehouse_id = 'Please select a warehouse';
+    if (!formData.serial_number?.trim()) newErrors.serial_number = 'Serial number is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    // Check for duplicate serial number
-    const isDuplicate = serials.some(
-      s => s.serial_number === formData.serial_number && s.id !== editingId
-    );
-
-    if (isDuplicate) {
-      toast.error('Serial number already exists');
-      return;
+    setIsSubmitting(true);
+    try {
+      if (editingId) {
+        await serialService.updateSerial(editingId, formData);
+        toast.success('Serial number updated successfully!');
+      } else {
+        await serialService.createSerial(formData);
+        toast.success('Serial number registered successfully!');
+      }
+      loadInitialData();
+      resetForm();
+    } catch (error) {
+      console.error('Error saving serial number:', error);
+      toast.error(error.message || 'Failed to save serial number');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (editingId) {
-      const updatedSerials = serials.map(s =>
-        s.id === editingId
-          ? { ...formData, id: editingId, updatedAt: new Date().toISOString() }
-          : s
-      );
-      localStorage.setItem('serial_numbers', JSON.stringify(updatedSerials));
-      setSerials(updatedSerials);
-      toast.success('Serial number updated successfully!');
-    } else {
-      const newSerial = {
-        id: Date.now(),
-        ...formData,
-        createdAt: new Date().toISOString(),
-      };
-      const updatedSerials = [...serials, newSerial];
-      localStorage.setItem('serial_numbers', JSON.stringify(updatedSerials));
-      setSerials(updatedSerials);
-      toast.success('Serial number created successfully!');
-    }
-
-    resetForm();
   };
 
   const resetForm = () => {
@@ -181,13 +184,29 @@ const SerialNumbers = () => {
       warranty_start_date: '',
       warranty_end_date: '',
       status: 'IN_STOCK',
+      remarks: '',
     });
     setEditingId(null);
+    setErrors({});
     setShowForm(false);
   };
 
   const handleEdit = (serial) => {
-    setFormData(serial);
+    // Format dates for HTML input
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      return new Date(dateStr).toISOString().split('T')[0];
+    };
+
+    setFormData({
+      ...serial,
+      item_id: serial.item_id ? serial.item_id.toString() : '',
+      warehouse_id: serial.warehouse_id ? serial.warehouse_id.toString() : '',
+      batch_id: serial.batch_id ? serial.batch_id.toString() : '',
+      warranty_start_date: formatDate(serial.warranty_start_date),
+      warranty_end_date: formatDate(serial.warranty_end_date),
+      remarks: serial.remarks || '',
+    });
     setEditingId(serial.id);
     setShowForm(true);
   };
@@ -196,20 +215,28 @@ const SerialNumbers = () => {
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Serial Number',
-      message: 'Are you sure you want to delete this serial number? This action cannot be undone.',
-      onConfirm: () => {
-        const updatedSerials = serials.filter(s => s.id !== id);
-        localStorage.setItem('serial_numbers', JSON.stringify(updatedSerials));
-        setSerials(updatedSerials);
-        toast.success('Serial number deleted successfully!');
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+      message: 'Are you sure you want to delete this serial number record? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          const response = await serialService.deleteSerial(id);
+          if (response && response.success !== false) {
+            toast.success('Serial number deleted successfully!');
+            loadInitialData();
+          } else {
+            toast.error(response?.message || 'Failed to delete record');
+          }
+        } catch (error) {
+          toast.error(error.message || 'Failed to delete record');
+        } finally {
+          setConfirmDialog({ ...confirmDialog, isOpen: false });
+        }
       }
     });
   };
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedSerials(new Set(serials.map(s => s.id)));
+      setSelectedSerials(new Set(filteredSerials.map(s => s.id)));
     } else {
       setSelectedSerials(new Set());
     }
@@ -232,39 +259,37 @@ const SerialNumbers = () => {
     }
     setConfirmDialog({
       isOpen: true,
-      title: 'Delete Selected Serial Numbers',
-      message: `Are you sure you want to delete ${selectedSerials.size} serial number(s)?`,
-      onConfirm: () => {
-        const updatedSerials = serials.filter(s => !selectedSerials.has(s.id));
-        localStorage.setItem('serial_numbers', JSON.stringify(updatedSerials));
-        setSerials(updatedSerials);
-        setSelectedSerials(new Set());
-        toast.success('Selected serial numbers deleted successfully!');
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+      title: 'Delete Selected Records',
+      message: `Are you sure you want to delete ${selectedSerials.size} record(s)?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all(Array.from(selectedSerials).map(id => serialService.deleteSerial(id)));
+          toast.success('Selected records deleted successfully!');
+          setSelectedSerials(new Set());
+          loadInitialData();
+        } catch (error) {
+          toast.error('Failed to delete some records');
+        } finally {
+          setConfirmDialog({ ...confirmDialog, isOpen: false });
+        }
       }
     });
   };
 
-  const getItemName = (itemId) => {
-    const item = items.find(i => i.id === parseInt(itemId));
-    return item ? `${item.name} (${item.sku})` : '-';
+  const getItemName = (serial) => {
+    const item = items.find(i => String(i.id) === String(serial.item_id));
+    return item ? `${item.name} (${item.sku})` : (serial.item?.name || '-');
   };
 
-  const getWarehouseName = (warehouseId) => {
-    const warehouse = warehouses.find(w => w.id === parseInt(warehouseId));
-    return warehouse ? warehouse.name : '-';
+  const getWarehouseName = (serial) => {
+    const warehouse = warehouses.find(w => String(w.id) === String(serial.warehouse_id));
+    return warehouse ? warehouse.name : (serial.warehouse?.name || '-');
   };
 
-  const getBatchNumber = (batchId) => {
-    if (!batchId) return '-';
-    const batch = batches.find(b => b.id === parseInt(batchId));
-    return batch ? batch.batch_number : '-';
-  };
-
-  const getPurchaseInvoiceNo = (purchaseId) => {
-    if (!purchaseId) return '-';
-    const purchase = purchases.find(p => p.id === parseInt(purchaseId));
-    return purchase ? purchase.invoice_no : '-';
+  const getBatchNumber = (serial) => {
+    if (!serial.batch_id && !serial.batch) return '-';
+    const batch = batches.find(b => String(b.id) === String(serial.batch_id));
+    return batch ? batch.batch_number : (serial.batch?.batch_number || '-');
   };
 
   const getWarrantyStatus = (serial) => {
@@ -296,15 +321,16 @@ const SerialNumbers = () => {
       SCRAPPED: 'danger',
       WARRANTY_CLAIM: 'secondary',
     };
+    const color = colors[status] || 'secondary';
     return (
-      <span className={`badge bg-light-${colors[status] || 'secondary'}`}>
+      <span className={`badge bg-soft-${color} text-${color} border-${color} px-2`}>
         {status.replace(/_/g, ' ')}
       </span>
     );
   };
 
   return (
-    <>
+    <div className="container-fluid p-0">
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
@@ -312,73 +338,74 @@ const SerialNumbers = () => {
         message={confirmDialog.message}
         title={confirmDialog.title}
       />
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
         <div>
-          <h6>Serial Numbers</h6>
+          <h4 className="fw-bold mb-1">Serial Number Tracking</h4>
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb breadcrumb-divide mb-0">
               <li className="breadcrumb-item">
-                <Link to="/">
+                <Link to="/" className="text-muted">
                   <i className="isax isax-home-2 me-1"></i>Home
                 </Link>
               </li>
               <li className="breadcrumb-item">
-                <Link to="/inventory">Inventory</Link>
+                <Link to="/inventory/items" className="text-muted">Inventory</Link>
               </li>
-              <li className="breadcrumb-item active">Serial Numbers</li>
+              <li className="breadcrumb-item active text-primary">Serial Numbers</li>
             </ol>
           </nav>
         </div>
         <button
-          className="btn btn-primary d-flex align-items-center"
+          className={`btn ${showForm ? 'btn-outline-danger' : 'btn-primary'} d-flex align-items-center shadow-sm px-4 rounded-pill transition-all`}
           onClick={() => setShowForm(!showForm)}
         >
-          <i className="isax isax-add-circle5 me-1"></i>
-          {showForm ? 'Cancel' : 'Add Serial Number'}
+          <i className={`isax ${showForm ? 'isax-close-circle' : 'isax-add-circle'} me-2 fs-18`}></i>
+          {showForm ? 'Cancel' : 'Register Serial Number'}
         </button>
       </div>
 
-      {items.length === 0 && (
-        <div className="alert alert-info mb-3">
-          <i className="isax isax-info-circle me-2"></i>
-          No items available. Please create items first.
-        </div>
-      )}
-
       {showForm && (
-        <div className="card mb-3">
-          <div className="card-body">
-            <h6 className="mb-3">{editingId ? 'Edit Serial Number' : 'Add New Serial Number'}</h6>
-            <form onSubmit={handleSubmit}>
-              <div className="row">
+        <div className="card border-0 shadow-sm mb-4 animate__animated animate__fadeInDown">
+          <div className="card-body p-4">
+            <div className="d-flex align-items-center mb-4">
+              <div className={`icon-box bg-soft-${editingId ? 'warning' : 'primary'} text-${editingId ? 'warning' : 'primary'} rounded-circle me-3`}>
+                <i className={`isax isax-${editingId ? 'edit-2' : 'add-circle'} fs-22`}></i>
+              </div>
+              <h5 className="card-title mb-0">{editingId ? 'Edit Serial Number Details' : 'Register New Serial Number'}</h5>
+            </div>
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="row g-3">
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">Item *</label>
+                    <label className="form-label fw-medium">Item *</label>
                     <select
-                      className="form-control"
+                      className={`form-control bg-light border-0 ${errors.item_id ? 'is-invalid' : ''}`}
                       name="item_id"
                       value={formData.item_id}
                       onChange={handleInputChange}
-                      required
+                      disabled={!!editingId}
                     >
-                      <option value="">Select Item</option>
+                      <option value="">Select Item (Serial Tracked)</option>
                       {items.map(item => (
                         <option key={item.id} value={item.id}>
                           {item.name} ({item.sku})
                         </option>
                       ))}
                     </select>
+                    {errors.item_id && <div className="invalid-feedback">{errors.item_id}</div>}
+                    {editingId && !errors.item_id && <small className="text-muted fs-11 ms-1">Item cannot be changed for existing records</small>}
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">Warehouse *</label>
+                    <label className="form-label fw-medium">Warehouse *</label>
                     <select
-                      className="form-control"
+                      className={`form-control bg-light border-0 ${errors.warehouse_id ? 'is-invalid' : ''}`}
                       name="warehouse_id"
                       value={formData.warehouse_id}
                       onChange={handleInputChange}
-                      required
+                      disabled={!!editingId}
                     >
                       <option value="">Select Warehouse</option>
                       {warehouses.map(warehouse => (
@@ -387,31 +414,34 @@ const SerialNumbers = () => {
                         </option>
                       ))}
                     </select>
+                    {errors.warehouse_id && <div className="invalid-feedback">{errors.warehouse_id}</div>}
                   </div>
                 </div>
-              </div>
 
-              <div className="row">
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">Serial No. *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="serial_number"
-                      value={formData.serial_number}
-                      onChange={handleInputChange}
-                      placeholder="e.g., SN-001-2024"
-                      required
-                    />
+                    <label className="form-label fw-medium">Serial No. *</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-0"><i className="isax isax-barcode text-muted"></i></span>
+                        <input
+                          type="text"
+                          className={`form-control bg-light border-0 ${errors.serial_number ? 'is-invalid' : ''}`}
+                          name="serial_number"
+                          value={formData.serial_number}
+                          onChange={handleInputChange}
+                          placeholder="e.g., SN-001-2024"
+                          disabled={!!editingId}
+                        />
+                        {errors.serial_number && <div className="invalid-feedback">{errors.serial_number}</div>}
+                    </div>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">IMEI (Electronics)</label>
+                    <label className="form-label fw-medium">IMEI / ID Number</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control bg-light border-0"
                       name="imei_number"
                       value={formData.imei_number}
                       onChange={handleInputChange}
@@ -419,22 +449,20 @@ const SerialNumbers = () => {
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="row">
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">Batch</label>
+                    <label className="form-label fw-medium">Batch Association</label>
                     <select
-                      className="form-control"
+                      className="form-control bg-light border-0"
                       name="batch_id"
                       value={formData.batch_id}
                       onChange={handleInputChange}
                     >
-                      <option value="">Select Batch (Optional)</option>
-                      {batches.map(batch => (
+                      <option value="">No Batch Association</option>
+                      {batches.filter(b => String(b.item_id) === String(formData.item_id)).map(batch => (
                         <option key={batch.id} value={batch.id}>
-                          {batch.batch_number}
+                          {batch.batch_number} (Qty: {batch.qty})
                         </option>
                       ))}
                     </select>
@@ -442,73 +470,9 @@ const SerialNumbers = () => {
                 </div>
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label className="form-label">Purchase Invoice</label>
+                    <label className="form-label fw-medium">Status</label>
                     <select
-                      className="form-control"
-                      name="purchase_invoice_id"
-                      value={formData.purchase_invoice_id}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Purchase Invoice (Optional)</option>
-                      {purchases.map(purchase => (
-                        <option key={purchase.id} value={purchase.id}>
-                          {purchase.invoice_no}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="mb-3">
-                    <label className="form-label">Warranty Period (months)</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="warranty_period_months"
-                      value={formData.warranty_period_months}
-                      onChange={handleInputChange}
-                      placeholder="e.g., 12"
-                      min="0"
-                    />
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="mb-3">
-                    <label className="form-label">Warranty Start Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="warranty_start_date"
-                      value={formData.warranty_start_date}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="mb-3">
-                    <label className="form-label">Warranty End Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="warranty_end_date"
-                      value={formData.warranty_end_date}
-                      onChange={handleInputChange}
-                      disabled
-                      title="Auto-calculated from start date and period"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-12">
-                  <div className="mb-3">
-                    <label className="form-label">Status</label>
-                    <select
-                      className="form-control"
+                      className="form-control bg-light border-0"
                       name="status"
                       value={formData.status}
                       onChange={handleInputChange}
@@ -521,18 +485,81 @@ const SerialNumbers = () => {
                     </select>
                   </div>
                 </div>
+
+                <div className="col-md-4">
+                  <div className="mb-3">
+                    <label className="form-label fw-medium">Warranty (months)</label>
+                    <input
+                      type="number"
+                      className="form-control bg-light border-0"
+                      name="warranty_period_months"
+                      value={formData.warranty_period_months}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 12"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="mb-3">
+                    <label className="form-label fw-medium">Warranty Start</label>
+                    <input
+                      type="date"
+                      className="form-control bg-light border-0"
+                      name="warranty_start_date"
+                      value={formData.warranty_start_date}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="mb-3">
+                    <label className="form-label fw-medium">Warranty End</label>
+                    <input
+                      type="date"
+                      className="form-control bg-light border-0"
+                      name="warranty_end_date"
+                      value={formData.warranty_end_date}
+                      onChange={handleInputChange}
+                      disabled
+                      title="Auto-calculated"
+                    />
+                  </div>
+                </div>
+
+                <div className="col-md-12">
+                  <div className="mb-3">
+                    <label className="form-label fw-medium">Remarks</label>
+                    <textarea
+                      className="form-control bg-light border-0"
+                      name="remarks"
+                      value={formData.remarks}
+                      onChange={handleInputChange}
+                      placeholder="Add any internal notes..."
+                      rows="2"
+                    ></textarea>
+                  </div>
+                </div>
               </div>
 
-              <div className="d-flex justify-content-end gap-2">
+              <div className="d-flex justify-content-end gap-3 mt-4">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn btn-light px-4 rounded-pill"
                   onClick={resetForm}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? 'Update Serial Number' : 'Add Serial Number'}
+                <button type="submit" className="btn btn-primary px-4 rounded-pill shadow-sm" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    editingId ? 'Update Record' : 'Register Serial'
+                  )}
                 </button>
               </div>
             </form>
@@ -540,169 +567,128 @@ const SerialNumbers = () => {
         </div>
       )}
 
-      <div className="mb-3">
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <div className="table-search d-flex align-items-center mb-0">
-              <div className="search-input">
-                <i className="isax isax-search-normal fs-12"></i>
+      <div className="card border-0 shadow-sm overflow-hidden">
+        <div className="card-header bg-white py-3 border-0">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <div className="input-group" style={{ maxWidth: '350px' }}>
+                <span className="input-group-text bg-light border-0"><i className="isax isax-search-normal text-muted fs-14"></i></span>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Search by serial, IMEI, item, or status..."
+                  className="form-control bg-light border-0 shadow-none"
+                  placeholder="Search serial, IMEI, item, warehouse..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            {selectedSerials.size > 0 && (
-              <button
-                className="btn btn-outline-danger d-inline-flex align-items-center"
-                onClick={handleDeleteSelected}
-              >
-                <i className="isax isax-trash me-1"></i>Delete ({selectedSerials.size})
-              </button>
-            )}
-          </div>
-          <div className="dropdown">
-            <Link
-              href="#"
-              className="dropdown-toggle btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-sort me-1"></i>Sort By :{' '}
-              <span className="fw-normal ms-1">
-                {sortBy === 'latest' ? 'Latest' : sortBy === 'oldest' ? 'Oldest' : 'Warranty'}
-              </span>
-            </Link>
-            <ul className="dropdown-menu dropdown-menu-end">
-              <li>
-                <Link href="#" className="dropdown-item" onClick={() => setSortBy('latest')}>
-                  Latest
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="dropdown-item" onClick={() => setSortBy('oldest')}>
-                  Oldest
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="dropdown-item" onClick={() => setSortBy('warranty')}>
-                  Warranty End Date
-                </Link>
-              </li>
-            </ul>
           </div>
         </div>
-      </div>
-
-      {filteredSerials.length === 0 ? (
-        <div className="card">
-          <div className="card-body text-center py-5">
-            <i className="isax isax-box-tick fs-1 text-muted mb-3 d-block"></i>
-            <h6 className="mb-2">No Serial Numbers Found</h6>
-            <p className="text-muted mb-3">
-              {serials.length === 0
-                ? 'Start by adding your first serial number'
-                : 'No serial numbers match your search'}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="table-responsive">
-          <table className="table table-nowrap">
-            <thead className="thead-light">
-              <tr>
-                <th className="no-sort">
-                  <div className="form-check form-check-md">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      onChange={handleSelectAll}
-                      checked={selectedSerials.size === filteredSerials.length && filteredSerials.length > 0}
-                    />
-                  </div>
-                </th>
-                <th>Item</th>
-                <th>Serial No.</th>
-                <th>IMEI</th>
-                <th>Warehouse</th>
-                <th>Batch</th>
-                <th>Status</th>
-                <th>Warranty</th>
-                <th className="no-sort">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSerials.map((serial) => {
-                const warrantyStatus = getWarrantyStatus(serial);
-                return (
-                  <tr key={serial.id}>
-                    <td>
-                      <div className="form-check form-check-md">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={selectedSerials.has(serial.id)}
-                          onChange={() => handleSelectSerial(serial.id)}
-                        />
-                      </div>
-                    </td>
-                    <td>
-                      <h6 className="fs-14 fw-medium mb-0">{getItemName(serial.item_id)}</h6>
-                    </td>
-                    <td>
-                      <span className="badge bg-light-primary">{serial.serial_number}</span>
-                    </td>
-                    <td>
-                      <p className="text-muted fs-12 mb-0">{serial.imei_number || '-'}</p>
-                    </td>
-                    <td>{getWarehouseName(serial.warehouse_id)}</td>
-                    <td>
-                      <span className="badge bg-light-secondary">{getBatchNumber(serial.batch_id)}</span>
-                    </td>
-                    <td>
-                      {getStatusBadge(serial.status)}
-                    </td>
-                    <td>
-                      {warrantyStatus ? (
-                        <span className={`badge bg-light-${warrantyStatus.color}`}>
-                          {warrantyStatus.status}
-                        </span>
-                      ) : (
-                        <span className="text-muted fs-12">-</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <button
-                          className="btn btn-sm btn-outline-warning"
-                          onClick={() => handleEdit(serial)}
-                          title="Edit"
-                        >
-                          <i className="isax isax-edit"></i>
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(serial.id)}
-                          title="Delete"
-                        >
-                          <i className="isax isax-trash"></i>
-                        </button>
-                      </div>
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="bg-light text-muted fs-11 text-uppercase tracking-wider">
+                <tr>
+                  <th className="ps-4">Item Details</th>
+                  <th>Serial / IMEI</th>
+                  <th>Warehouse</th>
+                  <th>Batch</th>
+                  <th>Status</th>
+                  <th>Warranty</th>
+                  <th className="text-end pe-4">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status"></div>
+                      <p className="text-muted mt-2 mb-0">Loading tracked units...</p>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : filteredSerials.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-5">
+                      <i className="isax isax-barcode fs-1 text-muted mb-3 d-block"></i>
+                      <h6 className="mb-2">No Tracked Units Found</h6>
+                      <p className="text-muted mb-0">
+                        {serials.length === 0
+                          ? 'Start by registering your first serial number'
+                          : 'No tracked units match your search'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSerials.map((serial) => {
+                    const warrantyStatus = getWarrantyStatus(serial);
+                    return (
+                      <tr key={serial.id}>
+                        <td className="ps-4">
+                          <div className="fw-semibold text-dark">{getItemName(serial)}</div>
+
+                        </td>
+                        <td>
+                          <div className="d-flex flex-column">
+                            <span className="badge bg-soft-primary text-primary border-primary px-2 mb-1 w-fit">{serial.serial_number}</span>
+                            <small className="text-muted">{serial.imei_number || 'No IMEI'}</small>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="text-dark fw-medium">{getWarehouseName(serial)}</span>
+                        </td>
+                        <td>
+                          <span className="badge bg-soft-secondary text-secondary border-secondary px-2">{getBatchNumber(serial)}</span>
+                        </td>
+                        <td>
+                          {getStatusBadge(serial.status)}
+                        </td>
+                        <td>
+                          {warrantyStatus ? (
+                            <div className="d-flex flex-column">
+                              <span className={`badge bg-soft-${warrantyStatus.color} text-${warrantyStatus.color} border-${warrantyStatus.color} px-2 mb-1`}>
+                                {warrantyStatus.status}
+                              </span>
+                              <small className="text-muted fs-11">Ends: {new Date(serial.warranty_end_date).toLocaleDateString()}</small>
+                            </div>
+                          ) : (
+                            <span className="text-muted fs-12">-</span>
+                          )}
+                        </td>
+                        <td className="text-end pe-4">
+                          <div className="d-flex align-items-center justify-content-end gap-2">
+                            <button
+                              className="btn btn-icon-sm btn-outline-warning border-0 shadow-none"
+                              onClick={() => handleEdit(serial)}
+                              title="Edit"
+                            >
+                              <i className="isax isax-edit-2 fs-18"></i>
+                            </button>
+                            <button
+                              className="btn btn-icon-sm btn-outline-danger border-0 shadow-none"
+                              onClick={() => handleDelete(serial.id)}
+                              title="Delete"
+                            >
+                              <i className="isax isax-trash fs-18"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {!loading && filteredSerials.length > 0 && (
+        <div className="mt-3 text-muted fs-13 d-flex align-items-center">
+          <i className="isax isax-info-circle me-1"></i>
+          Showing {filteredSerials.length} of {serials.length} tracked units
         </div>
       )}
-
-      <div className="mt-3 text-muted fs-12">
-        Showing {filteredSerials.length} of {serials.length} serial numbers
-      </div>
-    </>
+    </div>
   );
 };
 

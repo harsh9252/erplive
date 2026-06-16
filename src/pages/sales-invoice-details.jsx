@@ -1,22 +1,26 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import {
-  getSalesInvoiceById,
-  postSalesInvoice,
-  cancelSalesInvoice,
-  collectPayment,
-} from "../services/salesInvoiceService";
+import { getSalesInvoiceById, postSalesInvoice, cancelSalesInvoice, collectPayment } from "../services/salesInvoiceService";
 import { getCompanySettings } from "../services/settingsService";
+import { getCurrentCompany } from "../services/companyService";
+import { getUoms } from "../services/uomService";
 import approvalService from "../services/approvalService";
+import { useAuth } from "../components/AuthContext";
 import { toast } from "react-toastify";
+import Swal from 'sweetalert2';
 import CollectPaymentModal from "../components/CollectPaymentModal";
+import ProductLayout from "../components/invoice-templates/ProductLayout";
+import ServiceLayout from "../components/invoice-templates/ServiceLayout";
+import EcommerceLayout from "../components/invoice-templates/EcommerceLayout";
 /* Using global bootstrap from window */
 
 const SalesInvoiceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { activeCompany } = useAuth();
   const [invoice, setInvoice] = useState(null);
   const [company, setCompany] = useState(null);
+  const [uoms, setUoms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -25,16 +29,50 @@ const SalesInvoiceDetails = () => {
 
   const fetchInvoice = async () => {
     try {
-      const [invoiceRes, companyRes] = await Promise.all([
+      const [invoiceRes, companyRes, uomRes] = await Promise.all([
         getSalesInvoiceById(id),
-        getCompanySettings(),
+        getCurrentCompany(),
+        getUoms(1, 1000)
       ]);
-      setInvoice(invoiceRes.data);
+      
+      let inv = invoiceRes.data;
+      
+      try {
+        const charges = typeof inv.additional_charges === 'string' ? JSON.parse(inv.additional_charges || '[]') : (inv.additional_charges || []);
+        let chargesTotal = 0;
+        let chargesTax = 0;
+        charges.forEach(c => {
+           chargesTotal += parseFloat(c.amount) || 0;
+           chargesTax += ((parseFloat(c.amount) || 0) * (parseFloat(c.gstRate || c.gst_rate) || 0)) / 100;
+        });
+        
+        let baseSubtotal = parseFloat(inv.taxable_amount) || 0;
+        let baseTax = (parseFloat(inv.igst) || 0) + (parseFloat(inv.cgst) || 0) + (parseFloat(inv.sgst) || 0) + (parseFloat(inv.cess) || 0);
+        
+        const currentNetTotal = parseFloat(inv.net_total || inv.net_amount) || 0;
+        const netWithoutCharges = Math.round(baseSubtotal + baseTax);
+        
+        if (Math.abs(currentNetTotal - netWithoutCharges) <= 1 && chargesTotal > 0) {
+           const beforeRoundOff = baseSubtotal + baseTax + chargesTotal + chargesTax;
+           inv.net_total = Math.round(beforeRoundOff);
+           inv.net_amount = inv.net_total;
+           inv.round_off = inv.net_total - beforeRoundOff;
+           inv.additional_charges_total = chargesTotal;
+           inv.additional_charges_tax = chargesTax;
+           inv.parsed_charges = charges;
+        } else {
+           inv.parsed_charges = charges;
+           inv.additional_charges_total = chargesTotal;
+        }
+      } catch(e) {}
+
+      setInvoice(inv);
       setCompany(companyRes.data);
+      setUoms(uomRes.data?.rows || uomRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load details");
-      navigate("/sales-invoices");
+      navigate("/invoicing/sales");
     } finally {
       setLoading(false);
     }
@@ -45,12 +83,23 @@ const SalesInvoiceDetails = () => {
   }, [id]);
 
   const handlePost = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to post this invoice? Once posted, it cannot be edited.",
-      )
-    )
-      return;
+    const { isConfirmed } = await Swal.fire({
+      title: 'Post Invoice?',
+      text: "Are you sure you want to post this invoice? Once posted, it cannot be edited or deleted.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Post It',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#0066cc',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0',
+        confirmButton: 'btn btn-primary px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false
+    });
+
+    if (!isConfirmed) return;
 
     setProcessing(true);
     try {
@@ -65,8 +114,23 @@ const SalesInvoiceDetails = () => {
   };
 
   const handleCancel = async () => {
-    const reason = window.prompt("Please enter a reason for cancellation:");
-    if (reason === null) return;
+    const { value: reason } = await Swal.fire({
+      title: 'Cancel Invoice',
+      input: 'textarea',
+      inputLabel: 'Reason for cancellation',
+      inputPlaceholder: 'Enter reason here...',
+      showCancelButton: true,
+      confirmButtonText: 'Confirm Cancel',
+      confirmButtonColor: '#dc3545',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0',
+        confirmButton: 'btn btn-danger px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false
+    });
+
+    if (!reason) return;
 
     setProcessing(true);
     try {
@@ -81,15 +145,35 @@ const SalesInvoiceDetails = () => {
   };
 
   const handleSubmitForApproval = async () => {
-    const remarks = window.prompt("Enter any remarks for approval (optional):");
-    if (remarks === null) return;
+    const { value: remarks } = await Swal.fire({
+      title: 'Submit for Approval',
+      input: 'textarea',
+      inputLabel: 'Remarks (Mandatory)',
+      inputPlaceholder: 'Enter any remarks for the approver...',
+      showCancelButton: true,
+      confirmButtonText: 'Submit Now',
+      confirmButtonColor: '#0066cc',
+      customClass: {
+        popup: 'rounded-16 shadow-lg border-0 b-0',
+        confirmButton: 'btn btn-primary px-4 rounded-pill',
+        cancelButton: 'btn btn-light px-4 rounded-pill ms-2'
+      },
+      buttonsStyling: false,
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return 'You must enter remarks to submit for approval!';
+        }
+      }
+    });
+
+    if (remarks === undefined) return;
 
     setProcessing(true);
     try {
       await approvalService.submitForApproval({
         entity_type: "SALES_INVOICE",
         entity_id: id,
-        remarks: remarks,
+        remarks: remarks || "",
       });
       toast.success("Submitted for approval successfully!");
       fetchInvoice();
@@ -217,7 +301,7 @@ const SalesInvoiceDetails = () => {
             <i className="isax isax-printer me-1"></i>Print
           </button>
           <Link
-            to="/sales-invoices"
+            to="/invoicing/sales"
             className="btn btn-soft-secondary btn-sm px-3"
           >
             Back
@@ -228,226 +312,39 @@ const SalesInvoiceDetails = () => {
       <div className="card border-0 shadow-sm rounded-16 overflow-hidden mb-4 print-content">
         <div className="card-body p-4 p-md-5">
           {/* Status Banner */}
-          <div className="d-flex justify-content-between align-items-center mb-5 pb-4 border-bottom">
+          <div className="d-flex justify-content-between align-items-center mb-5 pb-4 border-bottom status-banner">
             <div className="d-flex gap-3">
-              <span
-                className={`badge ${getStatusBadge(invoice.status)} px-3 py-2 rounded-pill fs-12 uppercase`}
-              >
+              <span className={`badge ${getStatusBadge(invoice.status)} px-3 py-2 rounded-pill fs-12 uppercase`}>
                 {invoice.status}
               </span>
-              <span
-                className={`badge ${getPaymentStatusBadge(invoice.payment_status)} px-3 py-2 rounded-pill fs-12 uppercase`}
-              >
+              <span className={`badge ${getPaymentStatusBadge(invoice.payment_status)} px-3 py-2 rounded-pill fs-12 uppercase`}>
                 {invoice.payment_status || "UNPAID"}
               </span>
             </div>
             <div className="text-end">
-              <h4 className="fw-bold text-primary mb-0 uppercase">
-                Tax Invoice
-              </h4>
-              <p className="text-muted fs-12 mb-0 mt-1">
-                # {invoice.invoice_number}
-              </p>
+              <h4 className="fw-bold text-primary mb-0 uppercase">Tax Invoice</h4>
+              <p className="text-muted fs-12 mb-0 mt-1"># {invoice.invoice_number}</p>
             </div>
           </div>
 
-          {/* Parties Header */}
-          <div className="row g-4 mb-5">
-            <div className="col-md-6">
-              <p className="text-muted fs-11 fw-bold uppercase mb-2">From</p>
-              <h6 className="fw-bold mb-1">
-                {company?.company_name || "My ERP Company"}
-              </h6>
-              <p
-                className="text-dark fs-13 lh-base mb-1"
-                style={{ maxWidth: "280px" }}
-              >
-                {company?.address || "Street Address, City, State, ZIP"}
-              </p>
-              <p className="text-muted fs-13 mb-0">
-                GSTIN:{" "}
-                <span className="text-dark fw-semibold">
-                  {company?.gst_number || "N/A"}
-                </span>
-              </p>
-              <p className="text-muted fs-13">
-                PAN:{" "}
-                <span className="text-dark fw-semibold">
-                  {company?.pan_number || "N/A"}
-                </span>
-              </p>
-            </div>
-            <div className="col-md-6 text-md-end">
-              <p className="text-muted fs-11 fw-bold uppercase mb-2">Bill To</p>
-              <h6 className="fw-bold mb-1">{invoice.customer_name}</h6>
-              <p className="text-dark fs-13 mb-1">
-                {invoice.customer_email || "No email provided"}
-              </p>
-              <p className="text-muted fs-13">
-                Place of Supply:{" "}
-                <span className="text-dark fw-semibold">
-                  {invoice.place_of_supply}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {/* Summary Info */}
-          <div className="row g-3 mb-5 p-4 bg-light rounded-16 border border-white">
-            <div className="col-6 col-md-3">
-              <p className="text-muted fs-11 uppercase mb-1">Invoice Date</p>
-              <p className="fw-bold mb-0 text-dark">{invoice.invoice_date}</p>
-            </div>
-            <div className="col-6 col-md-3">
-              <p className="text-muted fs-11 uppercase mb-1">Due Date</p>
-              <p className="fw-bold mb-0 text-dark">
-                {invoice.due_date || "Due on Receipt"}
-              </p>
-            </div>
-            <div className="col-6 col-md-3">
-              <p className="text-muted fs-11 uppercase mb-1">Total Amount</p>
-              <p className="fw-bold mb-0 text-primary h6">
-                ₹{Number(invoice.net_amount || 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="col-6 col-md-3 text-md-end">
-              <p className="text-muted fs-11 uppercase mb-1">
-                Outstanding Balance
-              </p>
-              <p className="fw-bold mb-0 text-danger h6">
-                ₹
-                {Number(
-                  invoice.balance_amount || invoice.net_amount || 0,
-                ).toLocaleString()}
-              </p>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <div className="table-responsive mb-5">
-            <table className="table align-middle">
-              <thead>
-                <tr className="fs-12 fw-bold text-muted uppercase">
-                  <th>#</th>
-                  <th>Item / Service Description</th>
-                  <th>HSN/SAC</th>
-                  <th className="text-center">Qty / UOM</th>
-                  <th className="text-end">Rate</th>
-                  <th className="text-end">Discount</th>
-                  <th className="text-end">Total</th>
-                </tr>
-              </thead>
-              <tbody className="border-top-0">
-                {(invoice.items || []).map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="text-muted fs-12">{idx + 1}</td>
-                    <td>
-                      <p className="fw-semibold mb-0 text-dark">
-                        {item.name || item.product_name || "Product/Service"}
-                      </p>
-                      <small className="text-muted">{item.description}</small>
-                    </td>
-                    <td className="text-muted fs-13">{item.hsn_code}</td>
-                    <td className="text-center text-dark fs-13">
-                      {item.qty} {item.uom_id}
-                    </td>
-                    <td className="text-end text-dark fs-13">
-                      ₹{Number(item.rate || 0).toFixed(2)}
-                    </td>
-                    <td className="text-end text-muted fs-13">
-                      - ₹{Number(item.discount_amount || 0).toFixed(2)} (
-                      {item.discount_pct}%)
-                    </td>
-                    <td className="text-end fw-bold text-dark fs-13">
-                      ₹{Number(item.total_amount || 0).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Totals Breakdown */}
-          <div className="row g-4 pt-4 border-top">
-            <div className="col-md-7">
-              {invoice.remarks && (
-                <div className="mb-4">
-                  <p className="text-muted fs-11 uppercase fw-bold mb-2">
-                    Remarks / Notes
-                  </p>
-                  <div className="p-3 bg-light rounded-12 fs-13 text-dark lh-base border border-dashed">
-                    {invoice.remarks}
-                  </div>
-                </div>
-              )}
-              {invoice.terms_and_conditions && (
-                <div>
-                  <p className="text-muted fs-11 uppercase fw-bold mb-2">
-                    Terms & Conditions
-                  </p>
-                  <p className="fs-12 text-muted lh-base">
-                    {invoice.terms_and_conditions}
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="col-md-5">
-              <div className="summary-list bg-light p-4 rounded-20">
-                <div className="d-flex justify-content-between mb-3">
-                  <span className="text-muted fs-13">Subtotal</span>
-                  <span className="fw-bold text-dark">
-                    ₹{Number(invoice.amount_before_tax || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between mb-3">
-                  <span className="text-muted fs-13">Taxable Total</span>
-                  <span className="fw-bold text-dark">
-                    ₹{Number(invoice.taxable_amount || 0).toLocaleString()}
-                  </span>
-                </div>
-
-                {Number(invoice.igst_total) > 0 && (
-                  <div className="d-flex justify-content-between mb-3">
-                    <span className="text-muted fs-13">IGST Total</span>
-                    <span className="fw-bold text-dark">
-                      ₹{Number(invoice.igst_total || 0).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-
-                {Number(invoice.cgst_total) > 0 && (
-                  <>
-                    <div className="d-flex justify-content-between mb-3">
-                      <span className="text-muted fs-13">CGST Total</span>
-                      <span className="fw-bold text-dark">
-                        ₹{Number(invoice.cgst_total || 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-3">
-                      <span className="text-muted fs-13">SGST Total</span>
-                      <span className="fw-bold text-dark">
-                        ₹{Number(invoice.sgst_total || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div className="d-flex justify-content-between mb-3">
-                  <span className="text-muted fs-13">Round Off</span>
-                  <span className="fw-bold text-dark">
-                    {Number(invoice.round_off) >= 0 ? "+" : ""}₹
-                    {Number(invoice.round_off || 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="d-flex justify-content-between align-items-center mt-4 bg-primary p-3 rounded-12 text-white">
-                  <span className="fw-bold fs-14 uppercase">Net Payable</span>
-                  <span className="h4 fw-bold mb-0">
-                    ₹{Number(invoice.net_amount || 0).toLocaleString()}
-                  </span>
-                </div>
+          {invoice.status === 'CANCELLED' && (invoice.cancellation_reason || invoice.cancel_reason || invoice.reason) && (
+            <div className="alert alert-soft-danger mb-4 d-flex align-items-center border-0 rounded-12">
+              <i className="isax isax-info-circle me-2 fs-20"></i>
+              <div>
+                <strong>Cancellation Reason:</strong> {invoice.cancellation_reason || invoice.cancel_reason || invoice.reason}
               </div>
             </div>
+          )}
+
+          {/* Invoice Template Rendering */}
+          <div className="template-container">
+            {invoice.invoice_layout === 'SERVICES' ? (
+              <ServiceLayout invoice={invoice} company={company} activeCompany={activeCompany} uoms={uoms} />
+            ) : (invoice.invoice_layout === 'ECOMMERCE' || invoice.ecommerce_operator_gstin) ? (
+              <EcommerceLayout invoice={invoice} company={company} activeCompany={activeCompany} uoms={uoms} />
+            ) : (
+              <ProductLayout invoice={invoice} company={company} activeCompany={activeCompany} uoms={uoms} />
+            )}
           </div>
         </div>
       </div>

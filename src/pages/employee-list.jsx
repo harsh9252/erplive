@@ -8,8 +8,9 @@ const EmployeeList = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState({
-    search: '',
     department: '',
     status: 'ACTIVE',
     page: 1,
@@ -23,11 +24,11 @@ const EmployeeList = () => {
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getEmployees(filters);
+      const response = await getEmployees({ ...filters, search: debouncedSearch });
       const resData = response.data || response;
       setEmployees(Array.isArray(resData) ? resData : (resData.items || resData.rows || []));
       setPagination({
-        total: resData.pagination?.total || 0,
+        total: resData.pagination?.total || resData.total || resData.data?.total || (Array.isArray(resData) ? resData.length : 0),
         pages: resData.pagination?.pages || 1
       });
     } catch (error) {
@@ -36,7 +37,15 @@ const EmployeeList = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, debouncedSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText);
+      setFilters(prev => ({ ...prev, page: 1 }));
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   useEffect(() => {
     fetchEmployees();
@@ -59,12 +68,19 @@ const EmployeeList = () => {
     });
 
     if (result.isConfirmed) {
+      if (!id) {
+        toast.error('Invalid employee ID');
+        console.error('❌ Cannot delete employee: ID is missing');
+        return;
+      }
+
       try {
         await deleteEmployee(id);
         toast.success('Employee deleted successfully');
         fetchEmployees();
       } catch (error) {
-        toast.error('Failed to delete employee');
+        console.error('Error deleting employee:', error);
+        toast.error(error.response?.data?.message || error.message || 'Failed to delete employee');
       }
     }
   };
@@ -110,8 +126,8 @@ const EmployeeList = () => {
                   className="form-control border-start-0 ps-0 shadow-none text-dark" 
                   placeholder="Search by name, code or email..." 
                   name="search"
-                  value={filters.search}
-                  onChange={handleFilterChange}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
                 />
               </div>
             </div>
@@ -178,7 +194,12 @@ const EmployeeList = () => {
                   employees.map((emp) => {
                     const empId = emp.id || emp._id;
                     return (
-                      <tr key={empId}>
+                      <tr 
+                        key={empId} 
+                        onClick={() => window.location.href = `/payroll/employees/edit/${empId}`}
+                        style={{ cursor: 'pointer' }}
+                        className="cursor-pointer"
+                      >
                         <td className="ps-4 fw-medium text-dark">{emp.employee_code}</td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -201,11 +222,19 @@ const EmployeeList = () => {
                           </span>
                         </td>
                         <td className="text-end pe-4">
-                          <div className="d-flex justify-content-end gap-2">
-                            <button className="btn btn-sm btn-soft-info p-2 shadow-none" onClick={() => navigate(`/payroll/employees/edit/${empId}`)}>
+                          <div className="d-flex justify-content-end align-items-center gap-2">
+                            <button 
+                              className="btn btn-sm btn-soft-info border-0" 
+                              onClick={() => navigate(`/payroll/employees/edit/${empId}`)}
+                              title="Edit Employee"
+                            >
                               <i className="isax isax-edit-2 fs-16"></i>
                             </button>
-                            <button className="btn btn-sm btn-soft-danger p-2 shadow-none" onClick={() => handleDelete(empId)}>
+                            <button 
+                              className="btn btn-sm btn-soft-danger border-0" 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(empId); }}
+                              title="Delete Employee"
+                            >
                               <i className="isax isax-trash fs-16"></i>
                             </button>
                           </div>
@@ -219,6 +248,24 @@ const EmployeeList = () => {
           </div>
         </div>
       </div>
+      {pagination.total > filters.limit && (
+        <div className="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+          <div className="fs-13 text-muted">
+            Showing {(filters.page - 1) * filters.limit + 1} to {Math.min(filters.page * filters.limit, pagination.total)} of {pagination.total}
+          </div>
+          <nav>
+            <ul className="pagination pagination-sm mb-0">
+              <li className={`page-item ${filters.page === 1 ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))} disabled={filters.page === 1}>Previous</button>
+              </li>
+              <li className="page-item active"><span className="page-link">{filters.page}</span></li>
+              <li className={`page-item ${employees.length < filters.limit ? 'disabled' : ''}`}>
+                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={employees.length < filters.limit}>Next</button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
     </div>
   );
 };

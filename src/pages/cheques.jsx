@@ -14,8 +14,11 @@ const Cheques = () => {
         type: 'RECEIVED', // RECEIVED / ISSUED
         party_id: '',
         start_date: '',
-        end_date: ''
+        end_date: '',
+        page: 1,
+        limit: 20
     });
+    const [pagination, setPagination] = useState({ total: 0, pages: 1 });
 
     const [parties, setParties] = useState([]);
     const [partyType, setPartyType] = useState('CUSTOMER'); // CUSTOMER / VENDOR
@@ -37,6 +40,7 @@ const Cheques = () => {
         amount: '',
         remarks: ''
     });
+    const [errors, setErrors] = useState({});
 
     const [clearData, setClearData] = useState({
         cleared_date: new Date().toISOString().split('T')[0],
@@ -79,6 +83,10 @@ const Cheques = () => {
             // Handle different response formats safely
             const chequeData = chequeRes.data?.items || chequeRes.data || chequeRes;
             setCheques(Array.isArray(chequeData) ? chequeData : []);
+            setPagination({
+                total: chequeRes.pagination?.total || chequeRes.total || chequeRes.data?.total || (Array.isArray(chequeData) ? chequeData.length : 0),
+                pages: chequeRes.pagination?.pages || 1
+            });
             
             setDueSoonCount(alertRes.data?.count || alertRes.count || alertRes.total || 0);
         } catch (error) {
@@ -93,13 +101,33 @@ const Cheques = () => {
         fetchCheques();
     }, [fetchCheques]);
 
+    const validateForm = () => {
+        const newErrors = {};
+        if (!newCheque.party_id) newErrors.party_id = "Please select a party.";
+        if (!newCheque.cheque_number || newCheque.cheque_number.trim() === '') newErrors.cheque_number = "Cheque number is required.";
+        if (!newCheque.cheque_date) newErrors.cheque_date = "Cheque date is required.";
+        if (!newCheque.amount || Number(newCheque.amount) <= 0) newErrors.amount = "Valid amount is required.";
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleInputChange = (field, value) => {
+        setNewCheque(prev => ({ ...prev, [field]: value }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: null }));
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
         setLoading(true);
         try {
             await chequeService.createCheque(newCheque);
             toast.success('Cheque recorded successfully');
             setShowAddModal(false);
+            setNewCheque({ type: 'RECEIVED', party_type: 'CUSTOMER', party_id: '', cheque_number: '', bank_name: '', cheque_date: '', amount: '', remarks: '' });
+            setErrors({});
             fetchCheques();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to record cheque');
@@ -212,7 +240,7 @@ const Cheques = () => {
                             </div>
                         </div>
                         <div className="col-md-5 text-end d-flex align-items-end justify-content-end gap-2">
-                            <button className="btn btn-light btn-sm px-3" onClick={() => setFilters({status: 'PENDING', type: 'RECEIVED', party_id: '', start_date: '', end_date: ''})}>Reset Filters</button>
+                            <button className="btn btn-light btn-sm px-3" onClick={() => setFilters({status: 'PENDING', type: 'RECEIVED', party_id: '', start_date: '', end_date: '', page: 1, limit: 20})}>Reset Filters</button>
                         </div>
                     </div>
                 </div>
@@ -260,23 +288,32 @@ const Cheques = () => {
                                         </td>
                                         <td className="text-center pe-4">
                                             {chq.status === 'PENDING' && (
-                                                <div className="dropdown">
-                                                    <button className="btn btn-soft-primary btn-xs dropdown-toggle shadow-none" data-bs-toggle="dropdown">Actions</button>
-                                                    <ul className="dropdown-menu dropdown-menu-end shadow border-0 fs-13">
-                                                        <li><button className="dropdown-item py-2" onClick={() => { setActionCheque(chq); setShowClearModal(true); }}>
-                                                            <i className="isax isax-tick-circle me-2 text-success"></i>Mark Cleared
-                                                        </button></li>
-                                                        <li><button className="dropdown-item py-2" onClick={() => { setActionCheque(chq); setShowBounceModal(true); }}>
-                                                            <i className="isax isax-close-circle me-2 text-danger"></i>Mark Bounced
-                                                        </button></li>
-                                                        <li><hr className="dropdown-divider" /></li>
-                                                        <li><button className="dropdown-item py-2 text-danger" onClick={() => handleCancel(chq.id)}>
-                                                            <i className="isax isax-trash me-2"></i>Cancel Cheque
-                                                        </button></li>
-                                                    </ul>
+                                                <div className="d-flex justify-content-center align-items-center gap-2">
+                                                    <button 
+                                                      className="btn btn-sm btn-soft-success border-0" 
+                                                      onClick={() => { setActionCheque(chq); setShowClearModal(true); }}
+                                                      title="Mark Cleared"
+                                                    >
+                                                        <i className="isax isax-tick-circle fs-16"></i>
+                                                    </button>
+                                                    <button 
+                                                      className="btn btn-sm btn-soft-danger border-0" 
+                                                      onClick={() => { setActionCheque(chq); setShowBounceModal(true); }}
+                                                      title="Mark Bounced"
+                                                    >
+                                                        <i className="isax isax-close-circle fs-16"></i>
+                                                    </button>
+                                                    <button 
+                                                      className="btn btn-sm btn-soft-secondary border-0" 
+                                                      onClick={() => handleCancel(chq.id)}
+                                                      title="Cancel Cheque"
+                                                    >
+                                                        <i className="isax isax-trash fs-16"></i>
+                                                    </button>
                                                 </div>
                                             )}
                                         </td>
+
                                     </tr>
                                 ))
                             )}
@@ -284,6 +321,24 @@ const Cheques = () => {
                     </table>
                 </div>
             </div>
+            {pagination.total > filters.limit && (
+                <div className="card shadow-sm border-0 mt-3 p-3 d-flex flex-row justify-content-between align-items-center">
+                    <div className="fs-13 text-muted">
+                        Showing {(filters.page - 1) * filters.limit + 1} to {Math.min(filters.page * filters.limit, pagination.total)} of {pagination.total}
+                    </div>
+                    <nav>
+                        <ul className="pagination pagination-sm mb-0">
+                            <li className={`page-item ${filters.page === 1 ? 'disabled' : ''}`}>
+                                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))} disabled={filters.page === 1}>Previous</button>
+                            </li>
+                            <li className="page-item active"><span className="page-link">{filters.page}</span></li>
+                            <li className={`page-item ${cheques.length < filters.limit ? 'disabled' : ''}`}>
+                                <button className="page-link shadow-none" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={cheques.length < filters.limit}>Next</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            )}
 
             {/* Add Cheque Modal */}
             {showAddModal && (
@@ -294,7 +349,7 @@ const Cheques = () => {
                                 <h5 className="modal-title fw-bold">Record New PDC</h5>
                                 <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
                             </div>
-                            <form onSubmit={handleCreate}>
+                            <form onSubmit={handleCreate} noValidate>
                                 <div className="modal-body p-4">
                                     <div className="row g-4">
                                         <div className="col-md-6">
@@ -302,12 +357,22 @@ const Cheques = () => {
                                             <div className="d-flex gap-4">
                                                 <div className="form-check">
                                                     <input className="form-check-input" type="radio" name="chq_type" id="type_received" 
-                                                        checked={newCheque.type === 'RECEIVED'} onChange={() => setNewCheque({...newCheque, type: 'RECEIVED'})} />
+                                                        checked={newCheque.type === 'RECEIVED'} onChange={() => {
+                                                            handleInputChange('type', 'RECEIVED');
+                                                            setPartyType('CUSTOMER');
+                                                            handleInputChange('party_type', 'CUSTOMER');
+                                                            handleInputChange('party_id', '');
+                                                        }} />
                                                     <label className="form-check-label" htmlFor="type_received">RECEIVED (Customer)</label>
                                                 </div>
                                                 <div className="form-check">
                                                     <input className="form-check-input" type="radio" name="chq_type" id="type_issued" 
-                                                        checked={newCheque.type === 'ISSUED'} onChange={() => setNewCheque({...newCheque, type: 'ISSUED'})} />
+                                                        checked={newCheque.type === 'ISSUED'} onChange={() => {
+                                                            handleInputChange('type', 'ISSUED');
+                                                            setPartyType('VENDOR');
+                                                            handleInputChange('party_type', 'VENDOR');
+                                                            handleInputChange('party_id', '');
+                                                        }} />
                                                     <label className="form-check-label" htmlFor="type_issued">ISSUED (Vendor)</label>
                                                 </div>
                                             </div>
@@ -318,46 +383,51 @@ const Cheques = () => {
 
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Party Type *</label>
-                                            <select className="form-select shadow-none" value={partyType} onChange={e => { setPartyType(e.target.value); setNewCheque({...newCheque, party_type: e.target.value, party_id: ''}); }}>
+                                            <select className="form-select shadow-none" value={partyType} onChange={e => { setPartyType(e.target.value); handleInputChange('party_type', e.target.value); handleInputChange('party_id', ''); }}>
                                                 <option value="CUSTOMER">Customer</option>
                                                 <option value="VENDOR">Vendor</option>
                                             </select>
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Select Party *</label>
-                                            <SearchableSelect 
-                                                options={parties}
-                                                value={newCheque.party_id}
-                                                onChange={val => setNewCheque({...newCheque, party_id: val})}
-                                                placeholder={`Select ${partyType.toLowerCase()}...`}
-                                                required
-                                            />
+                                            <div className={errors.party_id ? 'is-invalid' : ''}>
+                                                <SearchableSelect 
+                                                    options={parties}
+                                                    value={newCheque.party_id}
+                                                    onChange={val => handleInputChange('party_id', val)}
+                                                    placeholder={`Select ${partyType.toLowerCase()}...`}
+                                                />
+                                            </div>
+                                            {errors.party_id && <div className="invalid-feedback d-block">{errors.party_id}</div>}
                                         </div>
 
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Cheque Number *</label>
-                                            <input type="text" className="form-control shadow-none" value={newCheque.cheque_number} onChange={e => setNewCheque({...newCheque, cheque_number: e.target.value})} required />
+                                            <input type="text" className={`form-control shadow-none ${errors.cheque_number ? 'is-invalid' : ''}`} value={newCheque.cheque_number} onChange={e => handleInputChange('cheque_number', e.target.value)} />
+                                            {errors.cheque_number && <div className="invalid-feedback">{errors.cheque_number}</div>}
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Bank Name</label>
-                                            <input type="text" className="form-control shadow-none" value={newCheque.bank_name} onChange={e => setNewCheque({...newCheque, bank_name: e.target.value})} />
+                                            <input type="text" className="form-control shadow-none" value={newCheque.bank_name} onChange={e => handleInputChange('bank_name', e.target.value)} />
                                         </div>
 
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Cheque Date *</label>
-                                            <input type="date" className="form-control shadow-none" value={newCheque.cheque_date} onChange={e => setNewCheque({...newCheque, cheque_date: e.target.value})} required />
+                                            <input type="date" className={`form-control shadow-none ${errors.cheque_date ? 'is-invalid' : ''}`} value={newCheque.cheque_date} onChange={e => handleInputChange('cheque_date', e.target.value)} />
+                                            {errors.cheque_date && <div className="invalid-feedback">{errors.cheque_date}</div>}
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold text-muted">Amount *</label>
                                             <div className="input-group">
                                                 <span className="input-group-text bg-light border-end-0">₹</span>
-                                                <input type="number" className="form-control shadow-none border-start-0" value={newCheque.amount} onChange={e => setNewCheque({...newCheque, amount: e.target.value})} required />
+                                                <input type="number" className={`form-control shadow-none border-start-0 ${errors.amount ? 'is-invalid' : ''}`} value={newCheque.amount} onChange={e => handleInputChange('amount', e.target.value)} />
+                                                {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
                                             </div>
                                         </div>
 
                                         <div className="col-12">
                                             <label className="form-label small fw-bold text-muted">Remarks</label>
-                                            <textarea className="form-control shadow-none" rows="2" value={newCheque.remarks} onChange={e => setNewCheque({...newCheque, remarks: e.target.value})}></textarea>
+                                            <textarea className="form-control shadow-none" rows="2" value={newCheque.remarks} onChange={e => handleInputChange('remarks', e.target.value)}></textarea>
                                         </div>
                                     </div>
                                 </div>

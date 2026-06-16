@@ -26,6 +26,7 @@ const LedgerGroups = () => {
         nature: '',
         parent_group_id: ''
     });
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         fetchGroups(currentPage, pageSize);
@@ -35,12 +36,13 @@ const LedgerGroups = () => {
         try {
             setLoading(true);
             const params = {
-                // We still send params in case the backend eventually supports it
-                page: page,
-                limit: limit
+                // Fetch all items from backend so we can construct the full tree.
+                // We handle pagination of the root nodes on the client side.
+                page: 1,
+                limit: 10000
             };
             const response = await ledgerGroupService.getGroupsTree(params);
-            console.log('Ledger Groups Tree Response:', response);
+            // console.log removed — debug log not needed in production
             
             const fullTree = response.data || [];
             
@@ -68,13 +70,17 @@ const LedgerGroups = () => {
                 page
             });
             
-            // Auto-expand top level groups
+            // Auto-expand ALL groups so nested data is visible by default
             const initialExpanded = {};
-            paginatedTree.forEach(g => {
-                if (g.children && g.children.length > 0) {
-                    initialExpanded[g.id] = true;
-                }
-            });
+            const expandAll = (items) => {
+                items.forEach(g => {
+                    if (g.children && g.children.length > 0) {
+                        initialExpanded[g.id] = true;
+                        expandAll(g.children);
+                    }
+                });
+            };
+            expandAll(paginatedTree);
             setExpandedGroups(initialExpanded);
         } catch (error) {
             console.error('Error fetching ledger groups:', error);
@@ -107,15 +113,71 @@ const LedgerGroups = () => {
                 parent_group_id: ''
             });
         }
+        setErrors({});
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const newErrors = {};
+        const trimmedName = formData.name.trim();
+
+        if (!trimmedName) {
+            newErrors.name = 'Group Name is required';
+        }
+        
+        if (!formData.nature) {
+            newErrors.nature = 'Nature is required';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+        
+        // LG-1: Duplicate check against currently loaded page (best-effort client-side)
+        const allGroupsFlat = getFlatGroups(groups);
+        const isDuplicate = allGroupsFlat.some(g => 
+            g.name.toLowerCase().trim() === trimmedName.toLowerCase() && 
+            (!editingGroup || g.id !== editingGroup.id)
+        );
+        if (isDuplicate) {
+            toast.error(`A ledger group named "${trimmedName}" already exists. Please use a unique name.`);
+            return;
+        }
+
+        // LG-3: Prevent circular parent reference — a group cannot have its own descendant as parent
+        if (editingGroup && formData.parent_group_id) {
+            const getDescendantIds = (items, targetId) => {
+                let ids = [];
+                items.forEach(item => {
+                    if (String(item.id) === String(targetId)) {
+                        const collectChildren = (children) => {
+                            (children || []).forEach(child => {
+                                ids.push(String(child.id));
+                                collectChildren(child.children);
+                            });
+                        };
+                        collectChildren(item.children);
+                    } else if (item.children) {
+                        ids = ids.concat(getDescendantIds(item.children, targetId));
+                    }
+                });
+                return ids;
+            };
+            const descendants = getDescendantIds(groups, editingGroup.id);
+            if (descendants.includes(String(formData.parent_group_id)) || String(formData.parent_group_id) === String(editingGroup.id)) {
+                toast.error('A group cannot be set under its own child or itself. This would create a circular reference.');
+                return;
+            }
+        }
+
         try {
             setIsSaving(true);
             const payload = {
                 ...formData,
+                name: trimmedName,
                 parent_group_id: formData.parent_group_id || null
             };
 
@@ -129,7 +191,20 @@ const LedgerGroups = () => {
             setShowModal(false);
             fetchGroups(currentPage, pageSize);
         } catch (error) {
-            toast.error(error.message || 'Failed to save ledger group');
+            let errorMsg = error.message || 'Failed to save ledger group';
+            let handled = false;
+            let newErrors = {};
+
+            if (errorMsg.toLowerCase().includes("'name'") || errorMsg.toLowerCase().includes('"name"')) {
+                newErrors.name = errorMsg;
+                handled = true;
+            }
+
+            if (handled) {
+                setErrors(prev => ({ ...prev, ...newErrors }));
+            } else {
+                toast.error(errorMsg);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -148,7 +223,15 @@ const LedgerGroups = () => {
             if (result.isConfirmed) {
                 try {
                     await ledgerGroupService.deleteGroup(id);
-                    Swal.fire('Deleted!', 'Group has been deleted.', 'success');
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Group has been deleted.',
+                        icon: 'success',
+                        iconHtml: '<i class="isax isax-tick-circle text-success fs-50"></i>',
+                        customClass: {
+                            icon: 'border-0'
+                        }
+                    });
                     fetchGroups(currentPage, pageSize);
                 } catch (error) {
                     toast.error(error.message || 'Failed to delete group');
@@ -194,20 +277,35 @@ const LedgerGroups = () => {
                             ) : (
                                 <span className="me-2" style={{ width: '24px' }}></span>
                             )}
-                            <span className="fw-semibold text-dark">{group.name}</span>
+                             <span className="fw-semibold text-dark">{group.name}</span>
+                            {group.name?.toLowerCase() === 'investments' && group.nature !== 'ASSET' && (
+                                <span className="badge bg-soft-danger text-danger fs-10 ms-2" title="Investments should be classified as ASSET for correct reporting">
+                                    <i className="isax isax-info-circle me-1"></i>Classification Issue
+                                </span>
+                            )}
                         </div>
+                    </td>
+                    <td className="text-muted fs-13">
+                        {group.parentGroup?.name || <span className="text-light opacity-50">- Primary -</span>}
                     </td>
                     <td className="text-center">
                         <span className={getNatureBadge(group.nature)}>{group.nature}</span>
                     </td>
-                    <td className="text-end action-table-data">
-                        <div className="edit-delete-action">
-                            <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(group)}>
-                                <i className="isax isax-edit"></i>
+                    <td className="text-end pe-4">
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                            <button 
+                                className="btn btn-sm btn-soft-warning border-0" 
+                                onClick={() => handleOpenModal(group)}
+                                title="Edit Group"
+                            >
+                                <i className="isax isax-edit-2 fs-16"></i>
                             </button>
-                            {/* Logic for non-deletable seeded groups can be added here if needed */}
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(group.id)}>
-                                <i className="isax isax-trash"></i>
+                            <button 
+                                className="btn btn-sm btn-soft-danger border-0" 
+                                onClick={() => handleDelete(group.id)}
+                                title="Delete Group"
+                            >
+                                <i className="isax isax-trash fs-16"></i>
                             </button>
                         </div>
                     </td>
@@ -254,14 +352,15 @@ const LedgerGroups = () => {
                             <thead className="thead-light">
                                 <tr>
                                     <th>Group Name</th>
+                                    <th>Parent Group</th>
                                     <th className="text-center">Nature</th>
-                                    <th className="text-end">Actions</th>
+                                    <th className="text-end pe-4">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-5">
+                                        <td colSpan="4" className="text-center py-5">
                                             <div className="spinner-border text-primary" role="status"></div>
                                         </td>
                                     </tr>
@@ -269,7 +368,7 @@ const LedgerGroups = () => {
                                     renderTree(groups)
                                 ) : (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-5">No ledger groups found.</td>
+                                        <td colSpan="4" className="text-center py-5">No ledger groups found.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -348,26 +447,32 @@ const LedgerGroups = () => {
                                 <h5 className="modal-title">{editingGroup ? 'Edit Ledger Group' : 'Create Ledger Group'}</h5>
                                 <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
                             </div>
-                            <form onSubmit={handleSubmit}>
+                            <form onSubmit={handleSubmit} noValidate>
                                 <div className="modal-body p-4">
                                     <div className="form-group mb-3">
                                         <label className="form-label fw-medium text-dark">Group Name <span className="text-danger">*</span></label>
                                         <input 
                                             type="text" 
-                                            className="form-control" 
-                                            required 
+                                            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                                             value={formData.name} 
-                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            onChange={(e) => {
+                                                setFormData({...formData, name: e.target.value});
+                                                if (errors.name) setErrors({...errors, name: ''});
+                                            }}
                                             placeholder="e.g. Travel Expenses"
+                                            maxLength="100"
                                         />
+                                        {errors.name && <div className="invalid-feedback d-block">{errors.name}</div>}
                                     </div>
                                     <div className="form-group mb-3">
                                         <label className="form-label fw-medium text-dark">Nature <span className="text-danger">*</span></label>
                                         <select 
-                                            className="form-control" 
-                                            required 
+                                            className={`form-control ${errors.nature ? 'is-invalid' : ''}`}
                                             value={formData.nature} 
-                                            onChange={(e) => setFormData({...formData, nature: e.target.value})}
+                                            onChange={(e) => {
+                                                setFormData({...formData, nature: e.target.value});
+                                                if (errors.nature) setErrors({...errors, nature: ''});
+                                            }}
                                         >
                                             <option value="">Select Nature</option>
                                             <option value="ASSET">ASSET</option>
@@ -375,6 +480,7 @@ const LedgerGroups = () => {
                                             <option value="INCOME">INCOME</option>
                                             <option value="EXPENSE">EXPENSE</option>
                                         </select>
+                                        {errors.nature && <div className="invalid-feedback d-block">{errors.nature}</div>}
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label fw-medium text-dark">Under (Parent Group)</label>

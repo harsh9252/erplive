@@ -1,14 +1,31 @@
 import { apiRequest } from './apiClient';
 import { cleanParams, normalizeListResponse } from './apiUtils';
 
-export const getRoles = async (params = {}) =>
-  normalizeListResponse(
-    await apiRequest({
-      url: '/api/roles',
-      method: 'GET',
-      params: cleanParams(params),
-    }),
-  );
+let fetchInProgress = new Map();
+
+export const getRoles = async (params = {}) => {
+  const paramKey = JSON.stringify(params);
+  if (fetchInProgress.has(paramKey)) {
+    return fetchInProgress.get(paramKey);
+  }
+
+  const promise = (async () => {
+    try {
+      return normalizeListResponse(
+        await apiRequest({
+          url: '/api/roles',
+          method: 'GET',
+          params: cleanParams(params),
+        })
+      );
+    } finally {
+      fetchInProgress.delete(paramKey);
+    }
+  })();
+
+  fetchInProgress.set(paramKey, promise);
+  return promise;
+};
 
 export const getRoleById = async (id) =>
   apiRequest({

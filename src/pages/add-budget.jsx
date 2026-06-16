@@ -30,7 +30,14 @@ const AddBudget = () => {
     const loadLedgers = async () => {
       try {
         const response = await ledgerService.getLedgers({ limit: 1000 });
-        setLedgers(response.data || []);
+        const activeLedgers = (response.data || []).filter(l => 
+          l.status?.toLowerCase() !== 'deleted' && 
+          l.is_deleted !== 1 && 
+          l.is_deleted !== true && 
+          l.is_active !== 0 && 
+          l.is_active !== false
+        );
+        setLedgers(activeLedgers);
       } catch (error) {
         console.error("Error fetching ledgers:", error);
         toast.error("Failed to load ledgers");
@@ -54,7 +61,7 @@ const AddBudget = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = "Budget name is required";
+    if (!(formData.name || "").trim()) newErrors.name = "Budget name is required";
     if (!formData.period_type)
       newErrors.period_type = "Period type is required";
     if (!formData.from_date) newErrors.from_date = "From date is required";
@@ -71,7 +78,7 @@ const AddBudget = () => {
     // Validate budget lines
     budgetLines.forEach((line, index) => {
       if (!line.ledger_id) newErrors[`ledger_${index}`] = "Ledger is required";
-      if (!line.period_label.trim())
+      if (!(line.period_label || "").trim())
         newErrors[`period_${index}`] = "Period label is required";
       if (!line.amount || parseFloat(line.amount) <= 0)
         newErrors[`amount_${index}`] = "Valid amount is required";
@@ -126,7 +133,7 @@ const AddBudget = () => {
           </div>
         </div>
         <div className="page-btn">
-          <Link to="/accounting/budgets" className="btn btn-cancel me-2">
+          <Link to="/accounting/budgets" className="btn btn-cancel me-2" style={{ cursor: 'pointer' }}>
             Cancel
           </Link>
         </div>
@@ -164,9 +171,9 @@ const AddBudget = () => {
                   onChange={handleInputChange}
                 >
                   <option value="">Select Period Type</option>
-                  <option value="ANNUAL">Annual</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="MONTHLY">Monthly</option>
+                  <option value="yearly">Annual</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
                 {errors.period_type && (
                   <div className="invalid-feedback">{errors.period_type}</div>
@@ -225,16 +232,19 @@ const AddBudget = () => {
               periodType={formData.period_type}
               fromDate={formData.from_date}
               toDate={formData.to_date}
+              errors={errors}
+              setErrors={setErrors}
             />
 
-            <div className="d-flex justify-content-end gap-3 mt-4">
-              <Link to="/accounting/budgets" className="btn btn-cancel">
+            <div className="d-flex justify-content-end gap-3 mt-4" style={{ position: 'relative', zIndex: 10 }}>
+              <Link to="/accounting/budgets" className="btn btn-cancel" style={{ cursor: 'pointer' }}>
                 Cancel
               </Link>
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={loading || fetchingLedgers}
+                style={{ cursor: loading || fetchingLedgers ? 'not-allowed' : 'pointer' }}
               >
                 {loading ? "Creating..." : "Create Budget"}
               </button>

@@ -356,7 +356,7 @@ const Suppliers = () => {
               {columns.createdOn && <th onClick={() => handleSort('date')} style={{ cursor: 'pointer' }}>Created On</th>}
               {columns.balance && <th onClick={() => handleSort('balance')} style={{ cursor: 'pointer' }}>Balance</th>}
               {columns.currency && <th>Currency</th>}
-              <th className="no-sort">Actions</th>
+              <th className="no-sort text-end pe-4">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -402,29 +402,28 @@ const Suppliers = () => {
                   {columns.balance && <td className="text-dark">${supplier.balance.toLocaleString()}</td>}
                   {columns.currency && <td>{supplier.currency}</td>}
 
-                  <td>
-                    <div className="d-flex align-items-center gap-2">
-                      <button
-                        className="btn btn-sm btn-soft-info"
-                        data-bs-toggle="modal"
-                        data-bs-target="#ledger_modal"
-                      >
-                        <i className="isax isax-eye"></i>
+                  <td className="text-end pe-4">
+                    <div className="dropdown">
+                      <button className="btn btn-icon-sm btn-outline-white border-0 shadow-none border" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                        <i className="isax isax-more fs-18"></i>
                       </button>
-                      <button
-                        className="btn btn-sm btn-soft-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#edit_modal"
-                        onClick={() => handleEditClick(supplier)}
-                      >
-                        <i className="isax isax-edit-2"></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-soft-danger"
-                        onClick={() => handleDelete(supplier.id)}
-                      >
-                        <i className="isax isax-trash"></i>
-                      </button>
+                      <ul className="dropdown-menu dropdown-menu-end border-0 shadow rounded-12">
+                        <li>
+                          <button className="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#ledger_modal">
+                            <i className="isax isax-eye me-2 text-primary"></i>View Ledger
+                          </button>
+                        </li>
+                        <li>
+                          <button className="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#edit_modal" onClick={() => handleEditClick(supplier)}>
+                            <i className="isax isax-edit-2 me-2 text-warning"></i>Edit Supplier
+                          </button>
+                        </li>
+                        <li>
+                          <button className="dropdown-item py-2 text-danger" onClick={() => handleDelete(supplier.id)}>
+                            <i className="isax isax-trash me-2"></i>Delete Supplier
+                          </button>
+                        </li>
+                      </ul>
                     </div>
                   </td>
                 </tr>

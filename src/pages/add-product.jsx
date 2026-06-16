@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { createItem } from '../services/productService';
+import { getHsnSacItems } from '../services/itemService';
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -14,16 +15,80 @@ const AddProduct = () => {
     purchase_price: '',
     gst_rate: '',
     hsn_code: '',
+    category_id: '',
     opening_stock: '',
     reorder_level: '',
     status: 'Active',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hsnResults, setHsnResults] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+
+  // Load units from localStorage (central registry)
+  useEffect(() => {
+    const storedUnits = localStorage.getItem('units');
+    if (storedUnits) {
+      setUnits(JSON.parse(storedUnits));
+    }
+  }, []);
+
+  // Click outside listener for HSN dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showHsnDropdown && !event.target.closest('.hsn-dropdown-container')) {
+        setShowHsnDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showHsnDropdown]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'hsn_code') {
+      searchHsn(value);
+    }
+  };
+
+  const searchHsn = async (query) => {
+    try {
+      const response = await getHsnSacItems(query);
+      const items = response.data?.items || response.data || [];
+      setHsnResults(items);
+      setShowHsnDropdown(true);
+    } catch (error) {
+      console.error('HSN search error:', error);
+    }
+  };
+
+  const selectHsn = (hsn) => {
+    setFormData(prev => ({
+      ...prev,
+      hsn_code: hsn.code,
+      gst_rate: hsn.gst_rate ? String(hsn.gst_rate) : prev.gst_rate
+    }));
+    setShowHsnDropdown(false);
+  };
+
+  const searchCategories = async (query) => {
+    try {
+      const response = await getCategories({ search: query, limit: 10 });
+      const items = response.data || [];
+      setCategoryResults(items);
+      setShowCategoryDropdown(true);
+    } catch (error) {
+      console.error('Category search error:', error);
+    }
+  };
+
+  const selectCategory = (category) => {
+    setFormData(prev => ({ ...prev, category_id: category.id }));
+    setCategorySearch(category.name);
+    setShowCategoryDropdown(false);
   };
 
   const handleSubmit = async (e) => {
@@ -44,6 +109,7 @@ const AddProduct = () => {
         purchase_price: parseFloat(formData.purchase_price) || 0,
         gst_rate: parseFloat(formData.gst_rate) || 0,
         hsn_code: formData.hsn_code,
+        category_id: formData.category_id ? parseInt(formData.category_id) : null,
         opening_stock: parseFloat(formData.opening_stock) || 0,
         reorder_level: parseFloat(formData.reorder_level) || 0,
       };
@@ -91,17 +157,49 @@ const AddProduct = () => {
           <div className="card">
             <div className="card-body">
               <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Product Name *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Enter Product Name"
-                    required
-                  />
+                <div className="row">
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label">Product Name *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="Enter Product Name"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-6 hsn-dropdown-container category-dropdown-container position-relative">
+                    <div className="mb-3">
+                      <label className="form-label">Category</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="category_search"
+                        value={categorySearch}
+                        onChange={handleInputChange}
+                        onFocus={() => searchCategories(categorySearch)}
+                        placeholder="e.g. Electronics"
+                        autoComplete="off"
+                      />
+                      {showCategoryDropdown && categoryResults.length > 0 && (
+                        <div className="position-absolute w-100 shadow-sm bg-white border rounded-3 mt-1" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                          {categoryResults.map(cat => (
+                            <div
+                              key={cat.id}
+                              className="p-2 border-bottom hover-bg-light cursor-pointer fs-13"
+                              onClick={() => selectCategory(cat)}
+                            >
+                              <strong>{cat.name}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="row">
@@ -128,12 +226,21 @@ const AddProduct = () => {
                         value={formData.unit}
                         onChange={handleInputChange}
                       >
-                        <option value="PCS">PCS</option>
-                        <option value="KG">KG</option>
-                        <option value="MTR">MTR</option>
-                        <option value="LTR">LTR</option>
-                        <option value="BOX">BOX</option>
-                        <option value="PACK">PACK</option>
+                        <option value="">Select Unit</option>
+                        {units.length > 0 ? (
+                          units.filter(u => u.active).map(u => (
+                            <option key={u.id} value={u.shortName}>{u.name} ({u.shortName})</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="PCS">PCS</option>
+                            <option value="KG">KG</option>
+                            <option value="MTR">MTR</option>
+                            <option value="LTR">LTR</option>
+                            <option value="BOX">BOX</option>
+                            <option value="PACK">PACK</option>
+                          </>
+                        )}
                       </select>
                     </div>
                   </div>
@@ -195,7 +302,7 @@ const AddProduct = () => {
                       />
                     </div>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-6 hsn-dropdown-container position-relative">
                     <div className="mb-3">
                       <label className="form-label">HSN Code</label>
                       <input
@@ -204,8 +311,27 @@ const AddProduct = () => {
                         name="hsn_code"
                         value={formData.hsn_code}
                         onChange={handleInputChange}
+                        onFocus={() => searchHsn(formData.hsn_code)}
                         placeholder="e.g. 8471"
+                        autoComplete="off"
                       />
+                      {showHsnDropdown && hsnResults.length > 0 && (
+                        <div className="position-absolute w-100 shadow-sm bg-white border rounded-3 mt-1" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                          {hsnResults.map(h => (
+                            <div 
+                              key={h.id} 
+                              className="p-2 border-bottom hover-bg-light cursor-pointer fs-13 d-flex justify-content-between align-items-center" 
+                              onClick={() => selectHsn(h)}
+                            >
+                              <div>
+                                  <strong className="text-primary">{h.code}</strong>
+                                  <div className="text-muted text-truncate" style={{ maxWidth: '200px' }}>{h.description}</div>
+                              </div>
+                              <span className="badge bg-soft-info text-info border border-info border-opacity-25">{h.gst_rate}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

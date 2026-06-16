@@ -25,7 +25,7 @@ const Accounting = () => {
       title: 'Vouchers',
       description: 'Create and manage accounting vouchers',
       icon: 'isax-document',
-      link: '/vouchers',
+      link: '/accounting/vouchers',
       count: 12,
       color: 'primary',
     },
@@ -34,7 +34,7 @@ const Accounting = () => {
       title: 'Ledgers',
       description: 'Manage chart of accounts and ledgers',
       icon: 'isax-book',
-      link: '/ledgers',
+      link: '/accounting/ledgers',
       count: 45,
       color: 'success',
     },
@@ -43,7 +43,7 @@ const Accounting = () => {
       title: 'Groups',
       description: 'Manage groups under Chart of Accounts',
       icon: 'isax-folder-2',
-      link: '/ledger-groups',
+      link: '/accounting/ledger-groups',
       count: 8,
       color: 'info',
     },
@@ -299,12 +299,12 @@ const Accounting = () => {
           <div className="card-body">
             <div className="row g-2">
               <div className="col-lg-3 col-md-6 col-12">
-                <Link to="/add-voucher" className="btn btn-primary w-100">
+                <Link to="/accounting/vouchers/add" className="btn btn-primary w-100">
                   <i className="isax isax-plus me-2"></i>Create Voucher
                 </Link>
               </div>
               <div className="col-lg-3 col-md-6 col-12">
-                <Link to="/add-ledger" className="btn btn-success w-100">
+                <Link to="/accounting/ledgers/add" className="btn btn-success w-100">
                   <i className="isax isax-plus me-2"></i>Add Ledger
                 </Link>
               </div>

@@ -107,6 +107,32 @@
           "description": "Reconciliation of turnover declared in audited annual financial statement with turnover declared in annual return (for turnover > 5 Cr)"
         }
       ]
+    },
+    {
+      "id": "itc-register",
+      "path": "/itc-register",
+      "title": "ITC Register",
+      "subtitle": "Input Tax Credit Register",
+      "description": "Comprehensive register of Input Tax Credit availed on inward supplies",
+      "frequency": "Monthly",
+      "dueDate": "Ongoing",
+      "sections": [
+        {
+          "name": "Eligible ITC",
+          "code": "ELIGIBLE",
+          "description": "ITC available on B2B, Import of Goods, and Import of Services"
+        },
+        {
+          "name": "Ineligible ITC",
+          "code": "INELIGIBLE",
+          "description": "ITC specifically blocked under Section 17(5)"
+        },
+        {
+          "name": "Reversal of ITC",
+          "code": "REVERSAL",
+          "description": "ITC reversed due to non-payment or exempt supplies"
+        }
+      ]
     }
   ]
 }

@@ -105,7 +105,8 @@ const SettingsSidebar = ({ activeItem }) => {
                         <span className="isax isax-arrow-down-1 arrow-menu ms-auto"></span>
                       </a>
                       <ul style={{ display: openMenus.website ? 'block' : 'none', overflow: 'visible', maxHeight: 'none' }}>
-                        <li><Link to="/settings/company" className={isActive('/settings/company') || isActive('/company-settings') ? 'active' : ''}>Company Settings</Link></li>
+                        {/* <li><Link to="/settings/company" className={isActive('/settings/company') || isActive('/company-settings') ? 'active' : ''}>Company Settings</Link></li> */}
+                        <li><Link to="/business-nature" className={isActive('/business-nature') ? 'active' : ''}>Business Nature</Link></li>
                         <li><Link to="/localization-settings" className={isActive('/localization-settings') ? 'active' : ''}>Localization</Link></li>
                         <li><Link to="/prefixes-settings" className={isActive('/prefixes-settings') ? 'active' : ''}>Prefixes</Link></li>
                         <li><Link to="/preference-settings" className={isActive('/preference-settings') ? 'active' : ''}>Preference</Link></li>
@@ -154,10 +155,13 @@ const SettingsSidebar = ({ activeItem }) => {
                       </a>
                       <ul style={{ display: openMenus.finance ? 'block' : 'none', overflow: 'visible', maxHeight: 'none' }}>
                         <li><Link to="/financial-year-settings" className={isActive('/financial-year-settings') ? 'active' : ''}>Financial Year</Link></li>
+                         <li><Link to="/settings/payroll" className={isActive('/settings/payroll') ? 'active' : ''}>Payroll Settings</Link></li>
                         <li><Link to="/settings/voucher-types" className={isActive('/settings/voucher-types') ? 'active' : ''}>Voucher Types</Link></li>
                         <li><Link to="/payment-methods" className={isActive('/payment-methods') ? 'active' : ''}>Payment Methods</Link></li>
                         <li><Link to="/bank-accounts-settings" className={isActive('/bank-accounts-settings') ? 'active' : ''}>Bank Accounts</Link></li>
                         <li><Link to="/tax-master" className={isActive('/tax-master') ? 'active' : ''}>Tax Rates</Link></li>
+                        <li><Link to="/settings/tds-master" className={isActive('/settings/tds-master') ? 'active' : ''}>TDS Master</Link></li>
+                        <li><Link to="/settings/tcs-master" className={isActive('/settings/tcs-master') ? 'active' : ''}>TCS Master</Link></li>
                         <li><Link to="/settings/currencies" className={isActive('/settings/currencies') ? 'active' : ''}>Currencies</Link></li>
                       </ul>
                     </li>

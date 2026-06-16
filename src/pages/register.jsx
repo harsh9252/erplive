@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { registerOwner, login } from '../services/authService';
+import { registerOwner } from '../services/authService';
 
 const initialFormData = {
   name: '',
@@ -22,7 +22,19 @@ const Register = () => {
 
   const handleInputChange = (event) => {
     const { name, value, type, checked } = event.target;
-    const nextValue = type === 'checkbox' ? checked : value;
+    let nextValue = type === 'checkbox' ? checked : value;
+
+    if (name === 'phone' && typeof nextValue === 'string') {
+      if (/\D/.test(nextValue)) {
+        setErrors((prev) => ({ ...prev, phone: 'Only numbers are allowed in phone.' }));
+        return;
+      }
+    } else if (name === 'email' && typeof nextValue === 'string') {
+      if (/[^a-zA-Z0-9@._-]/.test(nextValue)) {
+        setErrors((prev) => ({ ...prev, email: 'Special symbols are not allowed in email.' }));
+        return;
+      }
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -87,14 +99,10 @@ const Register = () => {
         phone: formData.phone.trim() || undefined,
       });
 
-      toast.success('Account created! Setting up your session...');
+      toast.success('Account created successfully! Please sign in.');
 
-      // Step 2: Auto-login
-      await login(formData.email.trim(), formData.password);
-
-      // Step 3: Redirect to company onboarding
-      toast.info('Please set up your company details to continue.');
-      navigate('/add-company?onboarding=true', { replace: true });
+      // Step 2: Redirect to login
+      navigate('/login', { replace: true });
     } catch (error) {
       toast.error(error?.message || 'Registration failed.');
     } finally {
@@ -108,7 +116,7 @@ const Register = () => {
         <div className="container">
           <div className="row justify-content-center align-items-center m-0">
             <div className="col-lg-5 col-md-8 col-sm-10 mx-auto">
-              <form onSubmit={handleSubmit} className="d-flex justify-content-center align-items-center">
+              <form onSubmit={handleSubmit} noValidate className="d-flex justify-content-center align-items-center">
                 <div className="d-flex flex-column justify-content-center p-4 p-lg-0 pb-0 flex-fill w-100">
                   <div className="card border-0 p-lg-3 shadow-lg rounded-2 mt-4">
                     <div className="card-body">
@@ -186,8 +194,8 @@ const Register = () => {
                             onClick={() => setShowPassword((prev) => !prev)}
                             style={{ cursor: 'pointer' }}
                           ></span>
-                          {errors.password ? <div className="invalid-feedback">{errors.password}</div> : null}
                         </div>
+                        {errors.password ? <div className="invalid-feedback d-block">{errors.password}</div> : null}
                       </div>
 
                       <div className="mb-3">
@@ -209,10 +217,10 @@ const Register = () => {
                             onClick={() => setShowConfirmPassword((prev) => !prev)}
                             style={{ cursor: 'pointer' }}
                           ></span>
-                          {errors.confirm_password ? (
-                            <div className="invalid-feedback">{errors.confirm_password}</div>
-                          ) : null}
                         </div>
+                        {errors.confirm_password ? (
+                          <div className="invalid-feedback d-block">{errors.confirm_password}</div>
+                        ) : null}
                       </div>
 
                       <div className="mb-3">
