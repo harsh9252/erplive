@@ -41,6 +41,7 @@ const RolesPermissions = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isEditingRoleInfo, setIsEditingRoleInfo] = useState(false);
   const [roleFormData, setRoleFormData] = useState({ name: '', description: '' });
+  const [errors, setErrors] = useState({});
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -130,10 +131,19 @@ const RolesPermissions = () => {
   const handleRoleFormSubmit = async (e) => {
     e.preventDefault();
     
+    const newErrors = {};
     if (!roleFormData.name.trim()) {
-      toast.error('Role name is required');
+      newErrors.name = 'Role Identity is required';
+    }
+    if (!roleFormData.description.trim()) {
+      newErrors.description = 'Purpose / Description is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+    setErrors({});
 
     try {
       setIsSaving(true);
@@ -165,6 +175,7 @@ const RolesPermissions = () => {
   const openAddRole = () => {
     setIsEditingRoleInfo(false);
     setRoleFormData({ name: '', description: '' });
+    setErrors({});
     setShowRoleModal(true);
   };
 
@@ -177,6 +188,7 @@ const RolesPermissions = () => {
     }
     setIsEditingRoleInfo(true);
     setRoleFormData({ name: selectedRole.name, description: selectedRole.description || '' });
+    setErrors({});
     setShowRoleModal(true);
   };
 
@@ -434,28 +446,35 @@ const RolesPermissions = () => {
                 <h5 className="fw-bold text-dark">{isEditingRoleInfo ? 'Update Role' : 'Create Custom Role'}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowRoleModal(false)}></button>
               </div>
-              <form onSubmit={handleRoleFormSubmit}>
+              <form onSubmit={handleRoleFormSubmit} noValidate>
                 <div className="modal-body p-4">
                   <div className="form-group mb-3">
                     <label className="form-label text-dark fw-semibold">Role Identity <span className="text-danger">*</span></label>
                     <input
                       type="text"
-                      className="form-control bg-light border-0 py-2"
+                      className={`form-control bg-light py-2 ${errors.name ? 'is-invalid border border-danger' : 'border-0'}`}
                       placeholder="e.g. Senior Accountant"
-                      required
                       value={roleFormData.name}
-                      onChange={(e) => setRoleFormData({ ...roleFormData, name: e.target.value })}
+                      onChange={(e) => {
+                        setRoleFormData({ ...roleFormData, name: e.target.value });
+                        if (errors.name) setErrors({ ...errors, name: null });
+                      }}
                     />
+                    {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label text-dark fw-semibold">Purpose / Description</label>
+                    <label className="form-label text-dark fw-semibold">Purpose / Description <span className="text-danger">*</span></label>
                     <textarea
-                      className="form-control bg-light border-0 py-2"
+                      className={`form-control bg-light py-2 ${errors.description ? 'is-invalid border border-danger' : 'border-0'}`}
                       rows="3"
                       placeholder="What are the responsibilities of this role?"
                       value={roleFormData.description}
-                      onChange={(e) => setRoleFormData({ ...roleFormData, description: e.target.value })}
+                      onChange={(e) => {
+                        setRoleFormData({ ...roleFormData, description: e.target.value });
+                        if (errors.description) setErrors({ ...errors, description: null });
+                      }}
                     ></textarea>
+                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
                   </div>
                 </div>
                 <div className="modal-footer border-0 p-4 pt-0">
