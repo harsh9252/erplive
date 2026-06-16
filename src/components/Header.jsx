@@ -286,7 +286,7 @@ const Header = () => {
               </nav>
             </div>
 
-            <div className="d-flex align-items-center gap-2 flex-wrap">
+            <div className="d-flex align-items-center gap-1 gap-sm-2">
               {/* Search */}
               {/* <div className="input-icon-end position-relative">
                 <input type="text" className="form-control" placeholder="Search" style={{ width: '180px' }} />
@@ -401,14 +401,14 @@ const Header = () => {
                   onClick={() => fetchFinancialYears(true)}
                   style={{ background: 'rgba(255, 193, 7, 0.05)', borderStyle: 'dashed !important' }}
                 >
-                  <i className="isax isax-calendar me-1 text-warning fs-14"></i>
+                  <i className="isax isax-calendar text-warning fs-14"></i>
                   <span
-                    className="fs-12 fw-bold text-warning text-truncate"
+                    className="d-none d-md-inline-block ms-1 fs-12 fw-bold text-warning text-truncate"
                     style={{ whiteSpace: 'nowrap', letterSpacing: '0.5px' }}
                   >
                     {activeFY?.name || (activeFY ? `${activeFY.start_date?.split('-')[0]}-${activeFY.end_date?.split('-')[0]?.slice(2)}` : 'Select FY')}
                   </span>
-                  <i className="isax isax-arrow-down-1 ms-1 fs-10 text-warning opacity-50"></i>
+                  <i className="isax isax-arrow-down-1 ms-1 fs-10 text-warning opacity-50 d-none d-md-inline-block"></i>
                 </button>
                 <div className="dropdown-menu dropdown-menu-end p-2 shadow-lg border-0" style={{ minWidth: '200px', borderRadius: '12px' }}>
                   <div className="dropdown-header p-2 border-bottom mb-2 d-flex align-items-center">
@@ -465,14 +465,14 @@ const Header = () => {
                   aria-expanded="false"
                   style={{ background: 'rgba(13, 202, 240, 0.05)', borderStyle: 'dashed !important' }}
                 >
-                  <i className="isax isax-location me-1 text-info fs-14"></i>
+                  <i className="isax isax-location text-info fs-14"></i>
                   <span
-                    className="fs-12 fw-bold text-info text-truncate"
+                    className="d-none d-md-inline-block ms-1 fs-12 fw-bold text-info text-truncate"
                     style={{ whiteSpace: 'nowrap', letterSpacing: '0.5px', maxWidth: '120px' }}
                   >
                     {activeBranch?.name || 'Select Branch'}
                   </span>
-                  <i className="isax isax-arrow-down-1 ms-1 fs-10 text-info opacity-50"></i>
+                  <i className="isax isax-arrow-down-1 ms-1 fs-10 text-info opacity-50 d-none d-md-inline-block"></i>
                 </button>
                 <div className="dropdown-menu dropdown-menu-end p-2 shadow-lg border-0" style={{ minWidth: '200px', borderRadius: '12px' }}>
                   <div className="dropdown-header p-2 border-bottom mb-2 d-flex align-items-center">
@@ -514,19 +514,19 @@ const Header = () => {
               <div className="dropdown position-relative">
                 <button
                   type="button"
-                  className="btn bg-primary-transparent d-flex align-items-center"
+                  className="btn bg-primary-transparent d-flex align-items-center px-2 py-1"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                   onClick={() => fetchCompanies()}
                 >
-                  <i className="isax isax-building-3 me-2 text-primary"></i>
+                  <i className="isax isax-building-3 text-primary"></i>
                   <span
-                    className="fs-13 fw-semibold text-primary text-truncate"
+                    className="d-none d-md-inline-block ms-2 fs-13 fw-semibold text-primary text-truncate"
                     style={{ maxWidth: '140px', minWidth: '80px', whiteSpace: 'nowrap' }}
                   >
                     {activeCompany?.name || 'Select Company'}
                   </span>
-                  <i className="isax isax-arrow-down-1 ms-2 fs-12 text-primary"></i>
+                  <i className="isax isax-arrow-down-1 ms-2 fs-12 text-primary d-none d-md-inline-block"></i>
                 </button>
                 <div className="dropdown-menu dropdown-menu-end p-2" style={{ minWidth: '220px' }}>
                   <div className="dropdown-header p-2 border-bottom mb-2">
