@@ -5,7 +5,9 @@ const ProtectedRoute = ({ children, module, action = 'can_read' }) => {
   const { authenticated, loading, hasPermission } = useAuth();
   const navigate = useNavigate();
 
-  if (loading) {
+  // If we're loading initial state and not authenticated yet, wait.
+  // We check !authenticated so we don't unmount the UI during actions like switchCompany
+  if (loading && !authenticated) {
     return null; // Return null instead of redirecting while context is initializing
   }
 

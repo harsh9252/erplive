@@ -9,7 +9,7 @@ import { useAuth } from '../components/AuthContext';
 import { toast } from 'react-toastify';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, activeCompany } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
@@ -24,6 +24,18 @@ const Index = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    const handleUpdate = () => fetchDashboardData();
+    window.addEventListener('FINANCIAL_YEARS_UPDATED', handleUpdate);
+    window.addEventListener('BRANCH_UPDATED', handleUpdate);
+    
+    return () => {
+      window.removeEventListener('FINANCIAL_YEARS_UPDATED', handleUpdate);
+      window.removeEventListener('BRANCH_UPDATED', handleUpdate);
+    };
+  }, [activeCompany?.id]);
+
+  useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
