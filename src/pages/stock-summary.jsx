@@ -20,27 +20,95 @@ const StockSummary = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Dynamically import getItems to avoid circular/missing imports if it wasn't imported
       const { getItems } = await import('../services/itemService');
+      const { getStockLedger } = await import('../services/inventoryService');
+
       const [reportRes, warehouseRes, itemsRes] = await Promise.all([
         getStockSummaryReport(filters),
         getWarehouses(),
-        getItems(1, 5000)
+        getItems(1, 5000),
       ]);
+
+      const itemsList = Array.isArray(itemsRes?.data) ? itemsRes.data : (itemsRes?.data?.rows || []);
 
       let reportData = reportRes.data || reportRes;
       let dataArray = Array.isArray(reportData) ? reportData : (reportData?.rows || reportData?.items || []);
 
-      const itemsList = Array.isArray(itemsRes?.data) ? itemsRes.data : (itemsRes?.data?.rows || []);
+      // For each item in the report, fetch its stock ledger to get accurate in/out/avg
+      const ledgerResults = await Promise.allSettled(
+        dataArray.map(row => {
+          const rowId = row.item_id || row.id;
+          return rowId ? getStockLedger({ item_id: rowId, limit: 5000 }) : Promise.resolve({ data: [] });
+        })
+      );
 
-      // Augment report data with missing fields from item master fallback
-      const augmentedData = dataArray.map(row => {
-        const itemMaster = itemsList.find(i => String(i.id) === String(row.item_id || row.id));
+      const augmentedData = dataArray.map((row, idx) => {
+        const rowId = String(row.item_id || row.id || '');
+        const itemMaster = itemsList.find(i => String(i.id) === rowId);
+
+        // Opening stock
+        const opening = Number(
+          (row.opening_stock != null && Number(row.opening_stock) !== 0)
+            ? row.opening_stock
+            : (itemMaster?.opening_stock || 0)
+        );
+
+        // Get ledger entries for this item
+        const ledgerRes = ledgerResults[idx];
+        const ledgerEntries = ledgerRes.status === 'fulfilled'
+          ? (ledgerRes.value?.data || ledgerRes.value || [])
+          : [];
+        const ledgerArr = Array.isArray(ledgerEntries) ? ledgerEntries : (ledgerEntries?.rows || []);
+
+        // Compute in_qty, out_qty, and purchase value from ledger
+        let ledgerInQty = 0;
+        let ledgerOutQty = 0;
+        let ledgerPurchaseValue = 0;
+        ledgerArr.forEach(entry => {
+          const txnType = (entry.txn_type || entry.type || '').toUpperCase();
+          const qty = Number(entry.quantity || entry.qty || 0);
+          const rate = Number(entry.rate || entry.unit_price || entry.cost_price || 0);
+          if (txnType === 'IN') {
+            ledgerInQty += qty;
+            ledgerPurchaseValue += qty * rate;
+          } else if (txnType === 'OUT') {
+            ledgerOutQty += qty;
+          }
+        });
+
+        // Prefer API-provided in/out if non-zero, fall back to ledger
+        const apiInQty = Number(row.in_qty || row.qty_in || row.inward_quantity || row.inward_qty || row.inward || row.purchase_qty || 0);
+        const apiOutQty = Number(row.out_qty || row.qty_out || row.outward_quantity || row.outward_qty || row.outward || row.sale_qty || 0);
+
+        const in_qty = apiInQty > 0 ? apiInQty : ledgerInQty;
+        const out_qty = apiOutQty > 0 ? apiOutQty : ledgerOutQty;
+
+        // Weighted average cost
+        const openingPrice = Number(itemMaster?.purchase_price || itemMaster?.cost_price || itemMaster?.avg_cost || row.avg_rate || row.avg_cost || 0);
+        const openingValue = opening * openingPrice;
+        const purchaseValue = ledgerPurchaseValue > 0 ? ledgerPurchaseValue : (in_qty * openingPrice);
+        const totalQtyForAvg = opening + in_qty;
+        const avg_cost = totalQtyForAvg > 0
+          ? (openingValue + purchaseValue) / totalQtyForAvg
+          : Number(row.avg_rate || row.avg_cost || openingPrice);
+
+        // Closing stock
+        const apiClosing = Number(row.closing_stock || row.closing || row.closing_quantity || row.closing_qty || row.current_stock || row.balance || 0);
+        const closing = apiClosing > 0 ? apiClosing : Math.max(0, opening + in_qty - out_qty);
+
+        // Stock value
+        const apiValue = Number(row.stock_value || row.value || row.total_value || 0);
+        const stock_value = apiValue > 0 ? apiValue : closing * avg_cost;
+
         return {
           ...row,
-          opening_stock: (row.opening_stock != null && Number(row.opening_stock) !== 0) ? row.opening_stock : (itemMaster?.opening_stock || 0),
+          opening_stock: opening,
+          in_qty,
+          out_qty,
+          closing_stock: closing,
+          avg_cost,
+          stock_value,
           unit: row.uom || row.unit || itemMaster?.unit || itemMaster?.uom || 'PCS',
-          avg_cost: row.avg_rate || row.avg_cost || itemMaster?.avg_cost || itemMaster?.purchase_price || 0,
           stock_type: row.stock_type || itemMaster?.stock_type || 'Raw Material',
         };
       });
@@ -418,18 +486,25 @@ const StockSummary = () => {
                       </td>
                       <td className="text-end text-primary fw-semibold">
                         {(() => {
+                          // Use pre-computed avg_cost first (set by fetchData from invoice data)
+                          const avgCost = Number(item.avg_cost || item.average_cost || 0);
+                          if (avgCost > 0) {
+                            return `₹${avgCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                          }
+                          // Fallback: derive from stock_value / closing
                           const closing = getClosing(item);
                           const value = getValue(item);
                           if (closing > 0 && value > 0) {
-                            const avgP = value / closing;
-                            return `₹${avgP.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                            return `₹${(value / closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
                           }
-                          const directAvg = item.avg_cost || item.average_cost || item.purchase_price || item.cost_price;
+                          const directAvg = item.purchase_price || item.cost_price;
                           if (directAvg) return `₹${Number(directAvg).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
                           return <span className="text-muted fs-11">—</span>;
                         })()}
                       </td>
-                      <td className="text-end pe-4 fw-bold text-dark">₹{getValue(item).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="text-end pe-4 fw-bold text-dark">
+                        ₹{(Number(item.stock_value) || getValue(item)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   ))
                 )}
