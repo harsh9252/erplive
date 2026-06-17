@@ -4,6 +4,8 @@ import { getCompanies, createCompany, updateCompany, updateCompanyStatus, getCom
 import { switchCompany } from '../services/authService';
 import { useAuth } from '../components/AuthContext';
 import { toast } from 'react-toastify';
+import branchService from '../services/branchService';
+import settingsService from '../services/settingsService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -577,7 +579,75 @@ const Companies = () => {
         toast.success('Company updated successfully!');
       } else {
         // Create new company
-        await createCompany(payload);
+        const response = await createCompany(payload);
+        
+        let newCompanyId = response?.data?.id || response?.id || response?.data?.company?.id || response?.company?.id || response?.data?.newCompany?.id || response?.newCompany?.id;
+
+        if (!newCompanyId) {
+          try {
+            const companiesResp = await getCompanies();
+            const companiesList = companiesResp?.data?.data || companiesResp?.data || companiesResp || [];
+            if (Array.isArray(companiesList) && companiesList.length > 0) {
+              const sorted = [...companiesList].sort((a, b) => b.id - a.id);
+              newCompanyId = sorted[0].id;
+            }
+          } catch (fallbackError) {
+            console.error('Error fetching companies for fallback ID:', fallbackError);
+          }
+        }
+
+        // Create default Branch (Head Office) and Warehouse
+        try {
+          const headers = newCompanyId ? {
+            'x-company-id': String(newCompanyId),
+            'x-business-id': String(newCompanyId)
+          } : {};
+
+          const uniqueBranchCode = `HO-${Math.floor(1000 + Math.random() * 9000)}`;
+          const uniqueWarehouseCode = `WH-${Math.floor(1000 + Math.random() * 9000)}`;
+
+          await branchService.createBranch({
+            company_id: newCompanyId,
+            name: companyData.name,
+            code: uniqueBranchCode,
+            is_head_office: true,
+            address: companyData.address,
+            city: companyData.city,
+            state_code: companyData.state_code,
+            pincode: companyData.pincode,
+            phone: companyData.phone,
+            email: companyData.email,
+            gstin: companyData.gstin,
+          }, headers);
+
+          // Rename the backend-seeded warehouse to the company name instead of creating a duplicate
+          try {
+            const warehousesResp = await settingsService.getWarehouses(headers);
+            const existingWarehouses = warehousesResp?.data || warehousesResp || [];
+            if (Array.isArray(existingWarehouses) && existingWarehouses.length > 0) {
+              // Rename the first (auto-created) warehouse to the company name
+              const autoWarehouse = existingWarehouses[0];
+              await settingsService.updateWarehouse(autoWarehouse.id, {
+                name: companyData.name,
+                code: uniqueWarehouseCode,
+                location: `${companyData.address}, ${companyData.city}`,
+              }, headers);
+            } else {
+              // No auto-created warehouse found — create one with the company name
+              await settingsService.createWarehouse({
+                company_id: newCompanyId,
+                name: companyData.name,
+                code: uniqueWarehouseCode,
+                location: `${companyData.address}, ${companyData.city}`,
+              }, headers);
+            }
+          } catch (warehouseError) {
+            console.error('Error setting up warehouse:', warehouseError);
+          }
+        } catch (defaultEntityError) {
+          console.error('Error creating default branch or warehouse:', defaultEntityError);
+        }
+
         toast.success('Company created successfully!');
         window.dispatchEvent(new Event('COMPANY_CREATED'));
       }
