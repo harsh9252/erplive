@@ -396,6 +396,16 @@ const EditPurchaseInvoice = () => {
                   ))}
                 </select>
               </div>
+              <div className="col-md-4">
+                <label className="form-label fw-600">Invoice No. *</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none bg-light"
+                  value={formData.invoice_number}
+                  readOnly
+                  title="Invoice number cannot be changed after creation"
+                />
+              </div>
 
               <div className="col-md-2">
                 <label className="form-label fw-600">Invoice Date <span className="text-danger">*</span></label>
@@ -502,8 +512,11 @@ const EditPurchaseInvoice = () => {
                         <div className="d-flex flex-column gap-1">
                           <div className="position-relative">
                             <select key={`item-${index}-${items.length}`} className="form-select shadow-none border-0 bg-transparent" value={String(item.item_id)} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
-                              <option value="">Select Item</option>
-                              {items.map(i => (
+                              <option value="">{formData.invoice_layout === 'SERVICES' ? 'Select Service' : 'Select Item'}</option>
+                              {(formData.invoice_layout === 'SERVICES'
+                                ? items.filter(i => String(i.inventory_type).toLowerCase() === 'service')
+                                : items
+                              ).map(i => (
                                 <option key={i.id} value={String(i.id)}>{i.name}</option>
                               ))}
                             </select>

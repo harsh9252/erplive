@@ -1,21 +1,77 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getStockSummaryReport } from '../services/reportService';
 import { getWarehouses } from '../services/settingsService';
 
+/* ─── WAC: applied after fetch normalises the row ─────────────────── */
+const applyWAC = (row) => {
+  const openingQty   = Number(row._raw_openingQty   || 0);
+  const openingRate  = Number(row._raw_openingRate  || 0);
+  const openingValue = openingQty * openingRate;
+
+  const inQty   = Number(row._raw_inQty   || 0);
+  const inValue = Number(row._raw_inValue || 0) || inQty * openingRate;
+
+  const outQty = Number(row._raw_outQty || 0);
+
+  const totalQtyForAvg   = openingQty + inQty;
+  const totalValueForAvg = openingValue + inValue;
+  const wac = totalQtyForAvg > 0 ? totalValueForAvg / totalQtyForAvg : openingRate;
+
+  const closingQty   = Math.max(0, openingQty + inQty - outQty);
+  const outValue     = outQty * wac;
+  const closingValue = closingQty * wac;
+
+  return {
+    ...row,
+    _openingQty:   openingQty,
+    _openingRate:  openingRate,
+    _openingValue: openingValue,
+    _inQty:        inQty,
+    _inValue:      inValue,
+    _outQty:       outQty,
+    _outValue:     outValue,
+    _wac:          wac,
+    _closingQty:   closingQty,
+    _closingValue: closingValue,
+  };
+};
+
+/* stock_type: API returns enum (RAW_MATERIAL) or string (Raw Material) */
+const STOCK_TYPE_MAP = {
+  RAW_MATERIAL:      'Raw Material',
+  FINISHED_GOOD:     'Finished Good',
+  SEMI_FINISHED:     'WIP',
+  TRADING:           'Trading Good',
+  CONSUMABLE:        'Consumable',
+  'Raw Material':    'Raw Material',
+  'Finished Good':   'Finished Good',
+  'Semi-Finished / WIP': 'WIP',
+  'Trading Good':    'Trading Good',
+  'Consumable':      'Consumable',
+};
+
+const fmt  = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const fmtR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const stockColors = {
+  'Raw Material': { pill: '#f59e0b', bg: '#fffbeb', label: 'Raw Material' },
+  'Finished Good':{ pill: '#10b981', bg: '#f0fdf4', label: 'Finished Good' },
+  'WIP':          { pill: '#06b6d4', bg: '#ecfeff', label: 'WIP' },
+  'Trading Good': { pill: '#6366f1', bg: '#eef2ff', label: 'Trading Good' },
+  'Consumable':   { pill: '#ef4444', bg: '#fef2f2', label: 'Consumable' },
+};
+const getColor = (t = '') => stockColors[STOCK_TYPE_MAP[t] || t] || { pill: '#64748b', bg: '#f8fafc', label: STOCK_TYPE_MAP[t] || t || '—' };
+
+/* ─── Component ───────────────────────────────────────────────────── */
 const StockSummary = () => {
-  const [data, setData] = useState([]);
+  const [raw,        setRaw]        = useState([]);
   const [warehouses, setWarehouses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    warehouse_id: '',
-    category: '',
-    item: '',
-    search: '',
-    stock_type: ''
-  });
-  const [units, setUnits] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [whFilter,   setWhFilter]   = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [expanded,   setExpanded]   = useState({});   // item-level drill-down rows
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -24,247 +80,232 @@ const StockSummary = () => {
       const { getStockLedger } = await import('../services/inventoryService');
 
       const [reportRes, warehouseRes, itemsRes] = await Promise.all([
-        getStockSummaryReport(filters),
+        getStockSummaryReport({}),
         getWarehouses(),
         getItems(1, 5000),
       ]);
 
-      const itemsList = Array.isArray(itemsRes?.data) ? itemsRes.data : (itemsRes?.data?.rows || []);
+      const warehouseList = warehouseRes?.data || [];
+      const itemsList = Array.isArray(itemsRes?.data)
+        ? itemsRes.data
+        : (itemsRes?.data?.rows || itemsRes?.rows || []);
 
-      let reportData = reportRes.data || reportRes;
-      let dataArray = Array.isArray(reportData) ? reportData : (reportData?.rows || reportData?.items || []);
+      const rd  = reportRes?.data || reportRes || [];
+      const arr = Array.isArray(rd) ? rd : (rd?.rows || rd?.items || []);
 
-      // For each item in the report, fetch its stock ledger to get accurate in/out/avg
+      // Fetch stock ledger per item for real IN/OUT movements
       const ledgerResults = await Promise.allSettled(
-        dataArray.map(row => {
-          const rowId = row.item_id || row.id;
-          return rowId ? getStockLedger({ item_id: rowId, limit: 5000 }) : Promise.resolve({ data: [] });
+        arr.map((row) => {
+          const id = row.item_id || row.id;
+          return id
+            ? getStockLedger({ item_id: id, limit: 5000 })
+            : Promise.resolve({ data: [] });
         })
       );
 
-      const augmentedData = dataArray.map((row, idx) => {
-        const rowId = String(row.item_id || row.id || '');
-        const itemMaster = itemsList.find(i => String(i.id) === rowId);
+      const normalised = arr.map((row, idx) => {
+        const rowId      = String(row.item_id || row.id || '');
+        const master     = itemsList.find((i) => String(i.id) === rowId) || {};
 
         // Opening stock
-        const opening = Number(
-          (row.opening_stock != null && Number(row.opening_stock) !== 0)
-            ? row.opening_stock
-            : (itemMaster?.opening_stock || 0)
+        const openingQty = Number(
+          row.opening_stock ?? row.opening_qty ?? master.opening_stock ?? 0
+        );
+        const openingRate = Number(
+          row.opening_stock_rate ?? row.avg_rate ?? row.avg_cost ??
+          master.opening_stock_rate ?? master.purchase_price ?? master.cost_price ?? 0
         );
 
-        // Get ledger entries for this item
-        const ledgerRes = ledgerResults[idx];
-        const ledgerEntries = ledgerRes.status === 'fulfilled'
-          ? (ledgerRes.value?.data || ledgerRes.value || [])
+        // Ledger IN/OUT
+        const ledgerRes  = ledgerResults[idx];
+        const entries    = ledgerRes.status === 'fulfilled'
+          ? (Array.isArray(ledgerRes.value?.data)
+              ? ledgerRes.value.data
+              : (ledgerRes.value?.data?.rows || ledgerRes.value?.rows || ledgerRes.value || []))
           : [];
-        const ledgerArr = Array.isArray(ledgerEntries) ? ledgerEntries : (ledgerEntries?.rows || []);
 
-        // Compute in_qty, out_qty, and purchase value from ledger
-        let ledgerInQty = 0;
-        let ledgerOutQty = 0;
-        let ledgerPurchaseValue = 0;
-        ledgerArr.forEach(entry => {
-          const txnType = (entry.txn_type || entry.type || '').toUpperCase();
-          const qty = Number(entry.quantity || entry.qty || 0);
-          const rate = Number(entry.rate || entry.unit_price || entry.cost_price || 0);
-          if (txnType === 'IN') {
-            ledgerInQty += qty;
-            ledgerPurchaseValue += qty * rate;
-          } else if (txnType === 'OUT') {
-            ledgerOutQty += qty;
-          }
+        let ledgerInQty = 0, ledgerInValue = 0, ledgerOutQty = 0;
+        entries.forEach((e) => {
+          const type = (e.txn_type || e.type || e.transaction_type || '').toUpperCase();
+          const qty  = Number(e.quantity || e.qty || 0);
+          const rate = Number(e.rate || e.unit_price || e.cost_price || e.purchase_price || 0);
+          if (type === 'IN'  || type === 'PURCHASE' || type === 'INWARD')  { ledgerInQty += qty; ledgerInValue += qty * rate; }
+          if (type === 'OUT' || type === 'SALE'     || type === 'OUTWARD') { ledgerOutQty += qty; }
         });
 
-        // Prefer API-provided in/out if non-zero, fall back to ledger
-        const apiInQty = Number(row.in_qty || row.qty_in || row.inward_quantity || row.inward_qty || row.inward || row.purchase_qty || 0);
-        const apiOutQty = Number(row.out_qty || row.qty_out || row.outward_quantity || row.outward_qty || row.outward || row.sale_qty || 0);
+        // Prefer API fields when non-zero, fall back to ledger
+        const apiInQty  = Number(row.in_qty  || row.qty_in  || row.inward_qty  || row.purchase_qty || 0);
+        const apiOutQty = Number(row.out_qty || row.qty_out || row.outward_qty || row.sale_qty    || 0);
+        const apiInVal  = Number(row.in_value || row.purchase_value || row.inward_value || 0);
 
-        const in_qty = apiInQty > 0 ? apiInQty : ledgerInQty;
-        const out_qty = apiOutQty > 0 ? apiOutQty : ledgerOutQty;
+        const inQty   = apiInQty  > 0 ? apiInQty  : ledgerInQty;
+        const outQty  = apiOutQty > 0 ? apiOutQty : ledgerOutQty;
+        const inValue = apiInVal  > 0 ? apiInVal  : ledgerInValue;
 
-        // Weighted average cost
-        const openingPrice = Number(itemMaster?.purchase_price || itemMaster?.cost_price || itemMaster?.avg_cost || row.avg_rate || row.avg_cost || 0);
-        const openingValue = opening * openingPrice;
-        const purchaseValue = ledgerPurchaseValue > 0 ? ledgerPurchaseValue : (in_qty * openingPrice);
-        const totalQtyForAvg = opening + in_qty;
-        const avg_cost = totalQtyForAvg > 0
-          ? (openingValue + purchaseValue) / totalQtyForAvg
-          : Number(row.avg_rate || row.avg_cost || openingPrice);
-
-        // Closing stock
-        const apiClosing = Number(row.closing_stock || row.closing || row.closing_quantity || row.closing_qty || row.current_stock || row.balance || 0);
-        const closing = apiClosing > 0 ? apiClosing : Math.max(0, opening + in_qty - out_qty);
-
-        // Stock value
-        const apiValue = Number(row.stock_value || row.value || row.total_value || 0);
-        const stock_value = apiValue > 0 ? apiValue : closing * avg_cost;
+        // Stock type label normalisation
+        const rawType    = row.stock_type || master.stock_type || '';
+        const stockType  = STOCK_TYPE_MAP[rawType] || rawType || 'Raw Material';
 
         return {
           ...row,
-          opening_stock: opening,
-          in_qty,
-          out_qty,
-          closing_stock: closing,
-          avg_cost,
-          stock_value,
-          unit: row.uom || row.unit || itemMaster?.unit || itemMaster?.uom || 'PCS',
-          stock_type: row.stock_type || itemMaster?.stock_type || 'Raw Material',
+          name:       row.name || row.item_name || master.name || '—',
+          sku:        row.sku  || master.sku || '',
+          unit:       row.unit || row.uom   || master.unit || master.uom || 'PCS',
+          stock_type: stockType,
+          warehouse_id: row.warehouse_id || master.warehouse_id,
+          _raw_openingQty:  openingQty,
+          _raw_openingRate: openingRate,
+          _raw_inQty:       inQty,
+          _raw_inValue:     inValue,
+          _raw_outQty:      outQty,
         };
       });
 
-      setData(augmentedData);
-      setWarehouses(warehouseRes.data || []);
-    } catch (error) {
-      console.error('Error fetching stock summary:', error);
-      toast.error('Failed to load stock summary data');
+      setRaw(normalised.map(applyWAC));
+      setWarehouses(warehouseList);
+    } catch (e) {
+      console.error('Stock summary fetch error:', e);
+      toast.error('Failed to load stock summary');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
 
-  useEffect(() => {
-    fetchData();
-    // Load units from central registry
-    const storedUnits = localStorage.getItem('units');
-    if (storedUnits) {
-      setUnits(JSON.parse(storedUnits));
-    }
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
+  // raw already has WAC applied from fetchData
+  const computed = raw;
 
-  const getVal = (obj, keys) => {
-    for (let k of keys) {
-      if (obj[k] != null && obj[k] !== '') return Number(obj[k]) || 0;
-    }
-    return 0;
-  };
-
-  const getOpening = (item) => getVal(item, ['opening_stock', 'opening', 'opening_quantity', 'opening_qty', 'opening_balance']);
-  const getIn = (item) => getVal(item, ['in_qty', 'qty_in', 'inward_quantity', 'inward_qty', 'inward', 'purchase_qty']);
-  const getOut = (item) => getVal(item, ['out_qty', 'qty_out', 'outward_quantity', 'outward_qty', 'outward', 'sale_qty']);
-  const getClosing = (item) => getVal(item, ['closing_stock', 'closing', 'closing_quantity', 'closing_qty', 'current_stock', 'balance']);
-  const getValue = (item) => getVal(item, ['stock_value', 'value', 'total_value']);
-
-  const filteredData = React.useMemo(() => {
-    return data.filter(item => {
-      let match = true;
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        const itemName = (item.name || item.item_name || '').toLowerCase();
-        const itemSku = (item.sku || '').toLowerCase();
-        match = match && (itemName.includes(q) || itemSku.includes(q));
-      }
-      if (filters.category) {
-        match = match && (item.category === filters.category);
-      }
-      if (filters.warehouse_id && item.warehouse_id) {
-        match = match && (String(item.warehouse_id) === String(filters.warehouse_id));
-      }
-      if (filters.stock_type) {
-        match = match && ((item.stock_type || 'Raw Material') === filters.stock_type);
-      }
-      return match;
+  const filtered = React.useMemo(() => {
+    return computed.filter((r) => {
+      const name = (r.name || r.item_name || '').toLowerCase();
+      const sku  = (r.sku || '').toLowerCase();
+      const q    = search.toLowerCase();
+      if (search && !name.includes(q) && !sku.includes(q)) return false;
+      if (whFilter && r.warehouse_id && String(r.warehouse_id) !== whFilter) return false;
+      if (typeFilter && r.stock_type !== typeFilter) return false;
+      return true;
     });
-  }, [data, filters]);
+  }, [computed, search, whFilter, typeFilter]);
 
-  const totals = filteredData.reduce((acc, curr) => ({
-    opening: acc.opening + getOpening(curr),
-    in: acc.in + getIn(curr),
-    out: acc.out + getOut(curr),
-    closing: acc.closing + getClosing(curr),
-    value: acc.value + getValue(curr)
-  }), { opening: 0, in: 0, out: 0, closing: 0, value: 0 });
-
-  const handleExportPDF = async () => {
-    if (filteredData.length === 0) {
-      toast.warning('No data available to export.');
-      return;
-    }
-    const toastId = toast.loading('Generating PDF...');
-    try {
-      const jspdfModule = await import('jspdf');
-      const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
-      const autotableModule = await import('jspdf-autotable');
-      const autoTable = autotableModule.default || autotableModule;
-
-      const doc = new jsPDF();
-
-      doc.text('Stock Summary Report', 14, 15);
-      doc.setFontSize(10);
-
-      const tableData = filteredData.map(item => [
-        item.name || item.item_name || 'Stock Item',
-        item.sku || 'No SKU',
-        item.unit || 'PCS',
-        getOpening(item).toLocaleString(),
-        getIn(item) > 0 ? `+${getIn(item).toLocaleString()}` : '0',
-        getOut(item) > 0 ? `-${getOut(item).toLocaleString()}` : '0',
-        getClosing(item).toLocaleString(),
-        `Rs ${getValue(item).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-      ]);
-
-      autoTable(doc, {
-        startY: 25,
-        head: [['Item Name', 'SKU', 'Unit', 'Opening', 'IN Qty', 'OUT Qty', 'Closing', 'Stock Value']],
-        body: tableData,
-      });
-
-      doc.save('Stock_Summary_Report.pdf');
-      toast.update(toastId, { render: 'PDF generated successfully!', type: 'success', isLoading: false, autoClose: 3000 });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.update(toastId, { render: 'Failed to generate PDF.', type: 'error', isLoading: false, autoClose: 3000 });
-    }
-  };
+  const totals = filtered.reduce((a, r) => ({
+    openingQty:   a.openingQty   + r._openingQty,
+    openingValue: a.openingValue + r._openingValue,
+    inQty:        a.inQty        + r._inQty,
+    inValue:      a.inValue      + r._inValue,
+    outQty:       a.outQty       + r._outQty,
+    outValue:     a.outValue     + r._outValue,
+    closingQty:   a.closingQty   + r._closingQty,
+    closingValue: a.closingValue + r._closingValue,
+  }), { openingQty:0,openingValue:0,inQty:0,inValue:0,outQty:0,outValue:0,closingQty:0,closingValue:0 });
 
   const handleExportExcel = async () => {
-    if (filteredData.length === 0) {
-      toast.warning('No data available to export.');
-      return;
-    }
-    const toastId = toast.loading('Generating Excel...');
+    if (!filtered.length) { toast.warning('No data to export'); return; }
+    const tid = toast.loading('Generating Excel…');
     try {
       const XLSX = await import('xlsx');
-
-      const exportData = filteredData.map(item => ({
-        'Item Name': item.name || item.item_name || 'Stock Item',
-        'SKU': item.sku || 'No SKU',
-        'Unit': item.unit || 'PCS',
-        'Opening Stock': getOpening(item),
-        'Inward Qty': getIn(item),
-        'Outward Qty': getOut(item),
-        'Closing Stock': getClosing(item),
-        'Stock Value': getValue(item)
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      const ws = XLSX.utils.json_to_sheet(filtered.map((r) => ({
+        'Item Name':      r.name || r.item_name,
+        'SKU':            r.sku || '',
+        'Unit':           r.unit || 'PCS',
+        'Opening Qty':    r._openingQty,
+        'Opening Rate':   r._openingRate,
+        'Opening Value':  r._openingValue,
+        'IN Qty':         r._inQty,
+        'IN Value':       r._inValue,
+        'OUT Qty':        r._outQty,
+        'OUT Value (WAC)':r._outValue,
+        'WAC Rate':       r._wac,
+        'Closing Qty':    r._closingQty,
+        'Closing Value':  r._closingValue,
+      })));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Stock Summary');
-      XLSX.writeFile(wb, 'Stock_Summary_Report.xlsx');
-
-      toast.update(toastId, { render: 'Excel generated successfully!', type: 'success', isLoading: false, autoClose: 3000 });
-    } catch (error) {
-      console.error('Error generating Excel:', error);
-      toast.update(toastId, { render: 'Failed to generate Excel.', type: 'error', isLoading: false, autoClose: 3000 });
+      XLSX.writeFile(wb, 'Stock_Summary_WAC.xlsx');
+      toast.update(tid, { render:'Excel ready!', type:'success', isLoading:false, autoClose:3000 });
+    } catch (e) {
+      toast.update(tid, { render:'Export failed', type:'error', isLoading:false, autoClose:3000 });
     }
   };
 
+  const handleExportPDF = async () => {
+    if (!filtered.length) { toast.warning('No data to export'); return; }
+    const tid = toast.loading('Generating PDF…');
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(14);
+      doc.text('Stock Summary — Weighted Average Cost (WAC)', 14, 15);
+      autoTable(doc, {
+        startY: 22,
+        head: [['Item','SKU','Unit','Op.Qty','Op.Value','IN Qty','IN Value','OUT Qty','OUT Value','WAC Rate','Cl.Qty','Cl.Value']],
+        body: filtered.map((r) => [
+          r.name||r.item_name, r.sku||'', r.unit||'PCS',
+          fmt(r._openingQty), fmtR(r._openingValue),
+          fmt(r._inQty), fmtR(r._inValue),
+          fmt(r._outQty), fmtR(r._outValue),
+          fmtR(r._wac),
+          fmt(r._closingQty), fmtR(r._closingValue),
+        ]),
+        styles: { fontSize: 7.5 },
+        headStyles: { fillColor: [30,41,59] },
+      });
+      doc.save('Stock_Summary_WAC.pdf');
+      toast.update(tid, { render:'PDF ready!', type:'success', isLoading:false, autoClose:3000 });
+    } catch (e) {
+      toast.update(tid, { render:'Export failed', type:'error', isLoading:false, autoClose:3000 });
+    }
+  };
+
+  const typeOptions = [...new Set(raw.map((r) => r.stock_type).filter(Boolean))];
+
+  const toggleExpand = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+
+  const formatQty = (qty, unit) => {
+    if (!qty) return '';
+    const absQty = Math.abs(qty);
+    const prefix = qty < 0 ? '(-)' : '';
+    return `${prefix}${absQty.toLocaleString('en-IN')} ${unit || ''}`.trim();
+  };
+
+  const formatRate = (rate) => {
+    if (!rate) return '';
+    return Number(rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const formatValue = (val) => {
+    if (!val) return '';
+    return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  /* ─── Render ─── */
   return (
-    <div className="container-fluid py-4 text-dark">
+    <div className="container-fluid py-4">
+      {/* Top Header / Filter */}
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
-          <h4 className="fw-bold mb-1">Stock Summary</h4>
-          <p className="text-muted mb-0 fs-13">Detailed report of inventory movements and values.</p>
+          <h4 className="fw-bold mb-1">Stock Group Summary</h4>
+          <p className="text-muted mb-0 fs-13">Detailed report of inventory movements and values</p>
         </div>
         <div className="d-flex gap-2">
+          <input
+            type="text"
+            className="form-control form-control-sm shadow-none w-auto"
+            placeholder="Search item or SKU..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select className="form-select form-select-sm shadow-none w-auto" value={whFilter} onChange={(e) => setWhFilter(e.target.value)}>
+            <option value="">All Warehouses</option>
+            {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+          <button onClick={fetchData} className="btn btn-sm btn-outline-secondary d-flex align-items-center">
+            <i className="isax isax-refresh me-1"></i>Refresh
+          </button>
           <div className="dropdown">
-            <button className="btn btn-primary rounded-pill px-4 shadow-sm dropdown-toggle" data-bs-toggle="dropdown">
-              <i className="isax isax-export-1 me-2"></i>Export
+            <button className="btn btn-sm btn-primary d-flex align-items-center" data-bs-toggle="dropdown">
+              <i className="isax isax-export-1 me-1"></i>Export
             </button>
             <ul className="dropdown-menu border-0 shadow rounded-12">
               <li><button className="dropdown-item py-2" onClick={handleExportPDF}><i className="isax isax-document-text me-2 text-danger"></i>Export PDF</button></li>
@@ -274,278 +315,104 @@ const StockSummary = () => {
         </div>
       </div>
 
-      <div className="row g-3 mb-4">
-        <div className="col">
-          <div className="card border-0 shadow-sm bg-primary text-white h-100">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="opacity-75 fs-12 uppercase fw-bold">Opening</span>
-                <i className="isax isax-box-1 opacity-25 fs-20"></i>
-              </div>
-              <h4 className="fw-bold mb-0">{totals.opening.toLocaleString()}</h4>
-            </div>
-          </div>
-        </div>
-        <div className="col">
-          <div className="card border-0 shadow-sm bg-success text-white h-100">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="opacity-75 fs-12 uppercase fw-bold">Inward</span>
-                <i className="isax isax-import opacity-25 fs-20"></i>
-              </div>
-              <h4 className="fw-bold mb-0">{totals.in > 0 ? `+${totals.in.toLocaleString()}` : '0'}</h4>
-            </div>
-          </div>
-        </div>
-        <div className="col">
-          <div className="card border-0 shadow-sm bg-danger text-white h-100">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="opacity-75 fs-12 uppercase fw-bold">Outward</span>
-                <i className="isax isax-export opacity-25 fs-20"></i>
-              </div>
-              <h4 className="fw-bold mb-0">{totals.out > 0 ? `-${totals.out.toLocaleString()}` : '0'}</h4>
-            </div>
-          </div>
-        </div>
-        <div className="col">
-          <div className="card border-0 shadow-sm bg-info text-white h-100">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="opacity-75 fs-12 uppercase fw-bold">Closing</span>
-                <i className="isax isax-box opacity-25 fs-20"></i>
-              </div>
-              <h4 className="fw-bold mb-0">{totals.closing.toLocaleString()}</h4>
-            </div>
-          </div>
-        </div>
-        <div className="col">
-          <div className="card border-0 shadow-sm bg-dark text-white h-100">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="opacity-75 fs-12 uppercase fw-bold">Value</span>
-                <i className="isax isax-money opacity-25 fs-20"></i>
-              </div>
-              <h4 className="fw-bold mb-0 text-white">₹{totals.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h4>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="d-flex align-items-center gap-2 flex-wrap mb-4">
-        {['', 'Raw Material', 'Finished Good', 'Semi-Finished / WIP', 'Trading Good'].map(type => (
-          <button
-            key={type || 'all'}
-            className={`btn btn-sm rounded-pill px-3 ${filters.stock_type === type
-                ? (type === '' ? 'btn-dark' : type === 'Raw Material' ? 'btn-warning' : type === 'Finished Good' ? 'btn-success' : type === 'Semi-Finished / WIP' ? 'btn-info' : 'btn-primary')
-                : 'btn-outline-secondary'
-              }`}
-            onClick={() => setFilters(prev => ({ ...prev, stock_type: type }))}
-          >
-            {type === '' ? '🗂 All Stock' : type === 'Raw Material' ? ' Raw Material' : type === 'Finished Good' ? 'Finished Good' : type === 'Semi-Finished / WIP' ? 'WIP' : 'Trading Good'}
-          </button>
-        ))}
-      </div>
-
-      {/* Bifurcation summary */}
-      {!loading && data.length > 0 && (
-        <div className="row g-3 mb-4">
-          {['Raw Material', 'Finished Good', 'Semi-Finished / WIP', 'Trading Good'].map(type => {
-            const typeItems = data.filter(i => (i.stock_type || 'Raw Material') === type);
-            const typeValue = typeItems.reduce((s, i) => s + getValue(i), 0);
-            const typeQty = typeItems.reduce((s, i) => s + getClosing(i), 0);
-            if (typeItems.length === 0) return null;
-            const colors = {
-              'Raw Material': { bg: 'bg-warning', text: 'text-dark', icon: 'isax-box-1' },
-              'Finished Good': { bg: 'bg-success', text: 'text-white', icon: 'isax-box-tick' },
-              'Semi-Finished / WIP': { bg: 'bg-info', text: 'text-white', icon: 'isax-arrange-circle' },
-              'Trading Good': { bg: 'bg-primary', text: 'text-white', icon: 'isax-shop' },
-            }[type];
-            return (
-              <div key={type} className="col-md-3 col-6">
-                <div className={`card border-0 shadow-sm ${colors.bg}`}>
-                  <div className={`card-body py-3 ${colors.text}`}>
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <span className="fs-11 fw-bold opacity-80 text-uppercase">{type}</span>
-                      <i className={`isax ${colors.icon} opacity-50 fs-18`}></i>
-                    </div>
-                    <div className="fw-bold fs-15">₹{typeValue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}</div>
-                    <div className="fs-11 opacity-75">{typeItems.length} items · {typeQty.toLocaleString()} units</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-header bg-white py-3 border-0">
-          <div className="row g-3 align-items-center">
-            <div className="col-md-4">
-              <div className="input-group">
-                <span className="input-group-text bg-light border-0"><i className="isax isax-search-normal-1"></i></span>
-                <input
-                  type="text"
-                  className="form-control bg-light border-0 shadow-none"
-                  placeholder="Search item or SKU..."
-                  name="search"
-                  value={filters.search}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            <div className="col-md-3">
-              <select className="form-select bg-light border-0 shadow-none" name="warehouse_id" value={filters.warehouse_id} onChange={handleFilterChange}>
-                <option value="">All Warehouses</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3 text-end ms-auto">
-              <button className="btn btn-outline-primary rounded-pill px-3" data-bs-toggle="offcanvas" data-bs-target="#stockFilterCanvas">
-                <i className="isax isax-filter me-2"></i>Advanced Filter
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Table Card */}
+      <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="bg-light text-dark fw-bold uppercase fs-11 tracking-wider">
-                <tr>
-                  <th className="ps-4">Item & SKU</th>
-                  <th className="text-center">Unit</th>
-                  <th className="text-end">Opening</th>
-                  <th className="text-end text-success">IN Qty</th>
-                  <th className="text-end text-danger">OUT Qty</th>
-                  <th className="text-end fw-bold">Closing</th>
-                  <th className="text-end text-primary">Avg Price (₹)</th>
-                  <th className="text-end pe-4">Stock Value (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+          {loading ? (
+             <div className="text-center py-5">
+               <div className="spinner-border text-primary" role="status">
+                 <span className="visually-hidden">Loading...</span>
+               </div>
+             </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover table-bordered align-middle mb-0 text-nowrap fs-13">
+                <thead className="bg-light text-dark text-center fw-bold align-middle">
                   <tr>
-                    <td colSpan="8" className="text-center py-5">
-                      <div className="spinner-border text-primary"></div>
-                    </td>
+                    <th rowSpan={2} className="text-start ps-4 align-middle bg-light" style={{ minWidth: '250px' }}>Particulars</th>
+                    <th colSpan={3} className="bg-light">Opening Balance</th>
+                    <th colSpan={3} className="bg-light">Inwards</th>
+                    <th colSpan={3} className="bg-light">Outwards</th>
+                    <th colSpan={3} className="bg-light">Closing Balance</th>
                   </tr>
-                ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-5 text-muted">No stock data found for the selected filters.</td>
+                    {['Opening Balance', 'Inwards', 'Outwards', 'Closing Balance'].map((group, i) => (
+                      <React.Fragment key={group}>
+                        <th className="text-end fw-semibold bg-light text-muted fs-12">Quantity</th>
+                        <th className="text-end fw-semibold bg-light text-muted fs-12">Rate</th>
+                        <th className="text-end fw-semibold bg-light text-muted fs-12">Value</th>
+                      </React.Fragment>
+                    ))}
                   </tr>
-                ) : (
-                  filteredData.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="ps-4">
-                        <div className="fw-bold text-dark">{item.name || item.item_name || 'Stock Item'}</div>
-                        <small className="text-muted">{item.sku || 'No SKU'}</small>
-                        {item.stock_type && (
-                          <span className={`badge ms-2 fs-10 px-2 ${item.stock_type === 'Raw Material' ? 'bg-warning text-dark' :
-                              item.stock_type === 'Finished Good' ? 'bg-success text-white' :
-                                item.stock_type === 'Semi-Finished / WIP' ? 'bg-info text-white' :
-                                  item.stock_type === 'Trading Good' ? 'bg-primary text-white' : 'bg-secondary text-white'
-                            }`}>{item.stock_type}</span>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        <span className="badge bg-soft-info text-info border-info px-2">{item.unit || 'PCS'}</span>
-                        {(() => {
-                          const unitDetails = units.find(u => u.shortName === item.unit);
-                          if (unitDetails && unitDetails.isDerived && unitDetails.baseUnitId) {
-                            const baseUnit = units.find(u => u.id == unitDetails.baseUnitId);
-                            return (
-                              <div className="fs-10 text-muted mt-1 italic">
-                                1 {item.unit} = {unitDetails.conversionFactor} {baseUnit?.shortName}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </td>
-                      <td className="text-end">{getOpening(item).toLocaleString()}</td>
-                      <td className="text-end text-success">{getIn(item) > 0 ? `+${getIn(item).toLocaleString()}` : '0'}</td>
-                      <td className="text-end text-danger">{getOut(item) > 0 ? `-${getOut(item).toLocaleString()}` : '0'}</td>
-                      <td className="text-end fw-bold">
-                        {getClosing(item).toLocaleString()}
-                        {(() => {
-                          const unitDetails = units.find(u => u.shortName === item.unit);
-                          if (unitDetails && unitDetails.isDerived && unitDetails.baseUnitId) {
-                            const totalBase = getClosing(item) * Number(unitDetails.conversionFactor);
-                            const baseUnit = units.find(u => u.id == unitDetails.baseUnitId);
-                            return (
-                              <div className="fs-11 text-success fw-normal mt-1">
-                                (= {totalBase.toLocaleString()} {baseUnit?.shortName})
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </td>
-                      <td className="text-end text-primary fw-semibold">
-                        {(() => {
-                          // Use pre-computed avg_cost first (set by fetchData from invoice data)
-                          const avgCost = Number(item.avg_cost || item.average_cost || 0);
-                          if (avgCost > 0) {
-                            return `₹${avgCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-                          }
-                          // Fallback: derive from stock_value / closing
-                          const closing = getClosing(item);
-                          const value = getValue(item);
-                          if (closing > 0 && value > 0) {
-                            return `₹${(value / closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-                          }
-                          const directAvg = item.purchase_price || item.cost_price;
-                          if (directAvg) return `₹${Number(directAvg).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-                          return <span className="text-muted fs-11">—</span>;
-                        })()}
-                      </td>
-                      <td className="text-end pe-4 fw-bold text-dark">
-                        ₹{(Number(item.stock_value) || getValue(item)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan="13" className="text-center py-5 text-muted">No stock records found</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="offcanvas offcanvas-end" tabIndex="-1" id="stockFilterCanvas">
-        <div className="offcanvas-header border-bottom">
-          <h5 className="offcanvas-title fw-bold">Stock Summary Filter</h5>
-          <button type="button" className="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div className="offcanvas-body">
-          <div className="mb-4">
-            <label className="form-label fw-bold">Category</label>
-            <select className="form-select shadow-none" name="category" value={filters.category} onChange={handleFilterChange}>
-              <option value="">All Categories</option>
-              {Array.from(new Set(data.map(i => i.category).filter(Boolean))).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="form-label fw-bold">Minimum Stock</label>
-            <input type="number" className="form-control shadow-none" placeholder="Show items below..." />
-          </div>
-          <div className="d-grid mt-auto">
-            <button className="btn btn-primary rounded-pill py-2" data-bs-dismiss="offcanvas">Apply Filters</button>
-            <button className="btn btn-link text-muted mt-2 fs-13" onClick={() => setFilters({ warehouse_id: '', category: '', item: '', search: '' })}>Clear All Filters</button>
-          </div>
+                  ) : (
+                    filtered.map((item, idx) => (
+                      <tr key={idx} style={{ cursor: 'pointer' }}>
+                        <td className="ps-4 fw-medium text-dark">
+                          {item.name || item.item_name || '—'}
+                          {item.sku && <div className="text-muted fs-11 fw-normal">{item.sku}</div>}
+                        </td>
+                        
+                        {/* Opening */}
+                        <td className="text-end">{formatQty(item._openingQty, item.unit)}</td>
+                        <td className="text-end text-muted">{formatRate(item._openingRate)}</td>
+                        <td className="text-end fw-medium">{formatValue(item._openingValue)}</td>
+                        
+                        {/* Inwards */}
+                        <td className="text-end text-success">{formatQty(item._inQty, item.unit)}</td>
+                        <td className="text-end text-muted">
+                           {item._inQty > 0 ? formatRate(item._inValue / item._inQty) : ''}
+                        </td>
+                        <td className="text-end text-success fw-medium">{formatValue(item._inValue)}</td>
+                        
+                        {/* Outwards */}
+                        <td className="text-end text-danger">{formatQty(item._outQty, item.unit)}</td>
+                        <td className="text-end text-muted">
+                           {item._outQty > 0 ? formatRate(item._outValue / item._outQty) : ''}
+                        </td>
+                        <td className="text-end text-danger fw-medium">{formatValue(item._outValue)}</td>
+                        
+                        {/* Closing */}
+                        <td className="text-end fw-bold">{formatQty(item._closingQty, item.unit)}</td>
+                        <td className="text-end text-primary">{formatRate(item._wac)}</td>
+                        <td className="text-end fw-bold text-primary pe-4">{formatValue(item._closingValue)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                <tfoot className="bg-light fw-bold fs-14">
+                  <tr>
+                    <td className="ps-4 text-dark text-uppercase">Grand Total</td>
+                    
+                    <td className="text-end"></td>
+                    <td className="text-end"></td>
+                    <td className="text-end text-dark">{formatValue(totals.openingValue)}</td>
+                    
+                    <td className="text-end"></td>
+                    <td className="text-end"></td>
+                    <td className="text-end text-success">{formatValue(totals.inValue)}</td>
+                    
+                    <td className="text-end"></td>
+                    <td className="text-end"></td>
+                    <td className="text-end text-danger">{formatValue(totals.outValue)}</td>
+                    
+                    <td className="text-end"></td>
+                    <td className="text-end"></td>
+                    <td className="text-end text-primary pe-4">{formatValue(totals.closingValue)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-
-  function handleInputChange(e) {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  }
 };
 
 export default StockSummary;

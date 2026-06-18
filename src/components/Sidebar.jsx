@@ -65,8 +65,8 @@ const MENU_MAPPINGS = {
   gstTaxation: ["/tax-report", "/gst", "/settings/tds-master", "/settings/tcs-master", "/reports/tds-report", "/reports/tcs-report"],
   payrollHr: ["/payroll"],
   banking: ["/banking", "/banking/cheques", "/bank-reconciliation", "/bank-accounts", "/payment-methods", "/payments", "/supplier-payments"],
-  reportsMis: ["/mis-dashboard", "/trial-balance", "/profit-loss-report", "/balance-sheet", "/ledger-report", "/outstanding-reports", "/reports"],
-  masterData: ["/master/customers", "/master/vendors", "/master/branches"],
+  reportsMis: ["/mis-dashboard", "/trial-balance", "/profit-loss-report", "/balance-sheet", "/ledger-report", "/outstanding-reports", "/reports", "/reports/stock-valuation"],
+  masterData: ["/master/customers", "/master/vendors", "/master/ecommerce-operators", "/master/branches"],
   settingsNew: ["/company-settings", "/financial-year", "/warehouses", "/settings"]
 };
 
@@ -839,6 +839,16 @@ const Sidebar = () => {
                           HSN / SAC Codes
                         </Link>
                       </li>
+                      <li>
+                        <Link
+                          to="/reports/stock-valuation"
+                          className={
+                            isActive("/reports/stock-valuation") ? "active" : ""
+                          }
+                        >
+                          Stock Valuation
+                        </Link>
+                      </li>
                     </ul>
                   </li>
                 )}
@@ -1313,6 +1323,16 @@ const Sidebar = () => {
                           Day Book
                         </Link>
                       </li>
+                      <li>
+                        <Link
+                          to="/reports/stock-valuation"
+                          className={
+                            isActive("/reports/stock-valuation") ? "active" : ""
+                          }
+                        >
+                          Stock Valuation
+                        </Link>
+                      </li>
                     </ul>
                   </li>
                 )}
@@ -1383,6 +1403,16 @@ const Sidebar = () => {
                             className={isActive("/master/vendors") ? "active" : ""}
                           >
                             Vendors
+                          </Link>
+                        </li>
+                      )}
+                      {checkPermission("vendors", "can_read") && (
+                        <li>
+                          <Link
+                            to="/master/ecommerce-operators"
+                            className={isActive("/master/ecommerce-operators") ? "active" : ""}
+                          >
+                            E-Commerce Operators
                           </Link>
                         </li>
                       )}

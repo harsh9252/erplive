@@ -20,6 +20,9 @@ const normalizeCustomerCreatePayload = (data = {}) => {
     balance_type: data.balance_type || 'DR',
     credit_limit: data.credit_limit ? Number.parseFloat(data.credit_limit) : 0,
     payment_terms: data.payment_terms || 'net30',
+    payment_terms_days: data.payment_terms === 'custom' ? (Number.parseInt(data.payment_terms_days) || 0) : 0,
+    liable_to_tds: !!data.liable_to_tds,
+    liable_to_tcs: !!data.liable_to_tcs,
     gst_registration_type: data.gst_registration_type || "Regular",
   };
 };
@@ -41,6 +44,9 @@ const normalizeCustomerUpdatePayload = (data = {}) => {
     pincode: data.pincode || "",
     credit_limit: data.credit_limit ? Number.parseFloat(data.credit_limit) : 0,
     payment_terms: data.payment_terms || 'net30',
+    payment_terms_days: data.payment_terms === 'custom' ? (Number.parseInt(data.payment_terms_days) || 0) : 0,
+    liable_to_tds: !!data.liable_to_tds,
+    liable_to_tcs: !!data.liable_to_tcs,
     gst_registration_type: data.gst_registration_type,
   };
   

@@ -127,6 +127,13 @@ export const getLedgerReport = async (id, params = {}) =>
     params: cleanParams(params),
   });
 
+export const getStockValuationReport = async (params = {}) =>
+  apiRequest({
+    url: '/api/reports/stock-valuation',
+    method: 'GET',
+    params: cleanParams(params),
+  });
+
 const reportService = {
   getTrialBalanceReport,
   getProfitLossReport,
@@ -146,6 +153,7 @@ const reportService = {
   getCashBankBookReport,
   getDayBookReport,
   getLedgerReport,
+  getStockValuationReport,
 };
 
 export default reportService;

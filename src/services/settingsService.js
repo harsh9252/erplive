@@ -108,6 +108,13 @@ export const updateWarehouse = async (id, payload, customHeaders = {}) =>
     headers: customHeaders,
   });
 
+export const deleteWarehouse = async (id, customHeaders = {}) =>
+  apiRequest({
+    url: `/api/settings/warehouses/${id}`,
+    method: 'DELETE',
+    headers: customHeaders,
+  });
+
 export const getVoucherSeries = async () =>
   normalizeListResponse(
     await apiRequest({
@@ -163,6 +170,7 @@ export const settingsService = {
   getWarehouses,
   createWarehouse,
   updateWarehouse,
+  deleteWarehouse,
   getVoucherSeries,
   createVoucherSeries,
   updateVoucherSeries,

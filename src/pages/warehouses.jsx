@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import { settingsService } from '../services/settingsService';
 
 const Warehouses = () => {
@@ -13,7 +13,6 @@ const Warehouses = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, onConfirm: null, message: '', title: '' });
   const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
@@ -137,18 +136,42 @@ const Warehouses = () => {
   };
 
   const handleDelete = (id) => {
-    toast.info('Delete functionality is not yet supported by the backend');
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await settingsService.deleteWarehouse(id);
+          if (response && response.success !== false) {
+            Swal.fire({
+              title: 'Deleted!',
+              text: 'Warehouse has been deleted.',
+              icon: 'success',
+              iconHtml: '<i class="isax isax-tick-circle text-success fs-50"></i>',
+              customClass: {
+                icon: 'border-0'
+              }
+            });
+            await loadWarehouses();
+          } else {
+            toast.error(response?.message || 'Failed to delete warehouse');
+          }
+        } catch (error) {
+          console.error('Error deleting warehouse:', error);
+          toast.error(error.message || 'An error occurred while deleting the warehouse');
+        }
+      }
+    });
   };
 
   return (
     <>
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
-        message={confirmDialog.message}
-        title={confirmDialog.title}
-      />
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
         <div>
           <h6>Warehouses</h6>

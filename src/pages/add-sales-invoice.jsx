@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import customerService, { getCustomers, searchCustomers } from '../services/customerService';
 import { getItems, searchItems, getItemById } from '../services/itemService';
@@ -282,6 +282,22 @@ const AddSalesInvoice = () => {
     setFormData((prev) => ({ ...prev, items: newItems }));
     calculateSummary(newItems);
   };
+
+  const searchItemsFiltered = useCallback(async (query, limit) => {
+    const response = await searchItems(query, limit);
+    if (formData.invoice_layout === 'SERVICES') {
+      if (response && response.data) {
+        const rows = response.data?.items || response.data || [];
+        const filtered = rows.filter(i => String(i.inventory_type).toLowerCase() === 'service');
+        if (response.data?.items) {
+          return { ...response, data: { ...response.data, items: filtered } };
+        } else {
+          return { ...response, data: filtered };
+        }
+      }
+    }
+    return response;
+  }, [formData.invoice_layout]);
 
   const handleItemSelect = async (index, selectedItem) => {
     if (selectedItem) {
@@ -772,7 +788,8 @@ const AddSalesInvoice = () => {
                           <div className="d-flex align-items-center gap-1 mb-2">
                             <div className="flex-grow-1">
                               <AsyncSearchableSelect
-                                searchFn={searchItems}
+                                key={`item-${index}-${formData.invoice_layout}`}
+                                searchFn={searchItemsFiltered}
                                 onSelect={(selected) => handleItemSelect(index, selected)}
                                 placeholder="Search item..."
                                 defaultValue={item.itemId ? { id: item.itemId, name: items.find(i => String(i.id) === String(item.itemId))?.name || item.description || 'Selected Item' } : null}

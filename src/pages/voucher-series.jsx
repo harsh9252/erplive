@@ -259,9 +259,7 @@ const VoucherSeries = () => {
                       <label className="form-label fw-600 fs-13">Voucher Type <span className="text-danger">*</span></label>
                       <select className={`form-select ${errors.voucher_type_id ? 'is-invalid' : ''}`} name="voucher_type_id" value={formData.voucher_type_id} onChange={handleInputChange} required>
                         <option value="">Select Type</option>
-                        {voucherTypes
-                          .filter(t => ['CONTRA', 'JOURNAL', 'PAYMENT', 'RECEIPT', 'STOCK JOURNAL'].includes(t.name?.toUpperCase()))
-                          .map(t => (
+                        {voucherTypes.map(t => (
                           <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                       </select>

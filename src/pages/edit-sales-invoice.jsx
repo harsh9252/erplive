@@ -291,7 +291,19 @@ const EditSalesInvoice = () => {
       if (name === 'invoiceDate') {
         const selectedCustomer = customers.find((c) => String(c.id) === String(prev.customerId));
         if (selectedCustomer) {
-          const creditDays = parseInt(selectedCustomer.credit_limit_days || selectedCustomer.credit_days) || 0;
+          let creditDays = 0;
+          if (selectedCustomer.payment_terms === 'net30') {
+            creditDays = 30;
+          } else if (selectedCustomer.payment_terms === 'net45') {
+            creditDays = 45;
+          } else if (selectedCustomer.payment_terms === 'net60') {
+            creditDays = 60;
+          } else if (selectedCustomer.payment_terms === 'custom') {
+            creditDays = parseInt(selectedCustomer.payment_terms_days) || 0;
+          } else {
+            creditDays = parseInt(selectedCustomer.credit_limit_days || selectedCustomer.credit_days) || 0;
+          }
+          if (creditDays > 0) creditDays -= 1; // Include invoice date as day 1
           const dueDate = new Date(newValue);
           if (!isNaN(dueDate.getTime())) {
             dueDate.setDate(dueDate.getDate() + creditDays);
@@ -310,18 +322,40 @@ const EditSalesInvoice = () => {
     const newItems = [...formData.items];
     newItems[index][field] = value;
 
-    if (field === 'qty' || field === 'rate' || field === 'discountPct' || field === 'gstRate') {
-      const lineTotal = newItems[index].qty * newItems[index].rate;
-      const discAmt = (lineTotal * (newItems[index].discountPct || 0)) / 100;
-      newItems[index].discountAmount = discAmt;
-      newItems[index].taxableAmount = lineTotal - discAmt;
+    if (field === 'qty' || field === 'rate' || field === 'discountPct' || field === 'gstRate' || field === 'taxType') {
+      if (field === 'taxType' && value !== 'TAXABLE') {
+        newItems[index].gstRate = 0;
+      }
+      const qty = parseFloat(newItems[index].qty) || 0;
+      const rate = parseFloat(newItems[index].rate) || 0;
+      const gstRate = parseFloat(newItems[index].gstRate) || 0;
+      const discountPct = parseFloat(newItems[index].discountPct) || 0;
+      let taxableAmount = 0;
+      let lineTotal = qty * rate;
+
+      if (newItems[index].taxType === 'INCLUSIVE') {
+        const totalNet = lineTotal * (1 - discountPct / 100);
+        taxableAmount = totalNet / (1 + gstRate / 100);
+        newItems[index].discountAmount = lineTotal * (discountPct / 100);
+      } else {
+        const discountAmount = (lineTotal * discountPct) / 100;
+        newItems[index].discountAmount = discountAmount;
+        taxableAmount = lineTotal - discountAmount;
+      }
+
+      newItems[index].taxableAmount = taxableAmount;
 
       const gst = calculateLineGST(newItems[index], company?.state_code || '27', formData.placeOfSupply);
       newItems[index].igstAmount = gst.igst;
       newItems[index].cgstAmount = gst.cgst;
       newItems[index].sgstAmount = gst.sgst;
       newItems[index].cessAmount = gst.cess;
-      newItems[index].totalAmount = newItems[index].taxableAmount + gst.igst + gst.cgst + gst.sgst + gst.cess;
+
+      if (newItems[index].taxType === 'INCLUSIVE') {
+        newItems[index].totalAmount = lineTotal * (1 - discountPct / 100);
+      } else {
+        newItems[index].totalAmount = newItems[index].taxableAmount + gst.igst + gst.cgst + gst.sgst + gst.cess;
+      }
     }
 
     setFormData(prev => ({ ...prev, items: newItems }));
@@ -350,16 +384,36 @@ const EditSalesInvoice = () => {
         gstRate: selectedItem.tax_rate || 18,
       };
       
-      const lineTotal = newItems[index].qty * newItems[index].rate;
-      const discAmt = (lineTotal * (newItems[index].discountPct || 0)) / 100;
-      newItems[index].discountAmount = discAmt;
-      newItems[index].taxableAmount = lineTotal - discAmt;
+      const qty = parseFloat(newItems[index].qty) || 0;
+      const rate = parseFloat(newItems[index].rate) || 0;
+      const gstRate = parseFloat(newItems[index].gstRate) || 0;
+      const discountPct = parseFloat(newItems[index].discountPct) || 0;
+      let taxableAmount = 0;
+      let lineTotal = qty * rate;
+
+      if (newItems[index].taxType === 'INCLUSIVE') {
+        const totalNet = lineTotal * (1 - discountPct / 100);
+        taxableAmount = totalNet / (1 + gstRate / 100);
+        newItems[index].discountAmount = lineTotal * (discountPct / 100);
+      } else {
+        const discountAmount = (lineTotal * discountPct) / 100;
+        newItems[index].discountAmount = discountAmount;
+        taxableAmount = lineTotal - discountAmount;
+      }
+      
+      newItems[index].taxableAmount = taxableAmount;
 
       const gst = calculateLineGST(newItems[index], company?.state_code || '27', formData.placeOfSupply);
       newItems[index].igstAmount = gst.igst;
       newItems[index].cgstAmount = gst.cgst;
       newItems[index].sgstAmount = gst.sgst;
-      newItems[index].totalAmount = newItems[index].taxableAmount + gst.igst + gst.cgst + gst.sgst;
+      newItems[index].cessAmount = gst.cess || 0;
+
+      if (newItems[index].taxType === 'INCLUSIVE') {
+        newItems[index].totalAmount = lineTotal * (1 - discountPct / 100);
+      } else {
+        newItems[index].totalAmount = newItems[index].taxableAmount + gst.igst + gst.cgst + gst.sgst + (gst.cess || 0);
+      }
 
       setFormData(prev => ({ ...prev, items: newItems }));
       calculateSummary(newItems, formData.placeOfSupply);
@@ -488,6 +542,16 @@ const EditSalesInvoice = () => {
                 </select>
               </div>
               <div className="col-md-3">
+                <label className="form-label fs-13 text-muted">Invoice No. *</label>
+                <input
+                  type="text"
+                  className="form-control fs-14 bg-light"
+                  value={formData.invoiceNumber}
+                  readOnly
+                  title="Invoice number cannot be changed after creation"
+                />
+              </div>
+              <div className="col-md-3">
                 <label className="form-label fs-13 text-muted">Customer *</label>
                 <select key={`cust-${customers.length}`} className="form-select fs-14" value={String(formData.customerId)} onChange={(e) => {
                   const customerId = e.target.value;
@@ -501,6 +565,25 @@ const EditSalesInvoice = () => {
                       customerId: customerId,
                       placeOfSupply: newPlaceOfSupply
                     };
+
+                    if (prev.invoiceDate && cust) {
+                      let creditDays = 0;
+                      if (cust.payment_terms === 'net30') {
+                        creditDays = 30;
+                      } else if (cust.payment_terms === 'net45') {
+                        creditDays = 45;
+                      } else if (cust.payment_terms === 'net60') {
+                        creditDays = 60;
+                      } else if (cust.payment_terms === 'custom') {
+                        creditDays = parseInt(cust.payment_terms_days) || 0;
+                      } else {
+                        creditDays = parseInt(cust.credit_limit_days || cust.credit_days) || 0;
+                      }
+                      if (creditDays > 0) creditDays -= 1; // Include invoice date as day 1
+                      const dueDate = new Date(prev.invoiceDate);
+                      dueDate.setDate(dueDate.getDate() + creditDays);
+                      updated.dueDate = dueDate.toISOString().split('T')[0];
+                    }
 
                     // Re-calculate all items GST based on new place of supply
                     updated.items = prev.items.map(item => {
@@ -591,8 +674,11 @@ const EditSalesInvoice = () => {
                     <tr key={index}>
                       <td>
                         <select key={`item-${index}-${items.length}`} className="form-select form-select-sm" value={String(item.itemId)} onChange={(e) => handleItemSelect(index, e.target.value)} required>
-                          <option value="">Select Item</option>
-                          {items.map(i => <option key={i.id} value={String(i.id)}>{i.name}</option>)}
+                          <option value="">{formData.invoice_layout === 'SERVICES' ? 'Select Service' : 'Select Item'}</option>
+                          {(formData.invoice_layout === 'SERVICES'
+                            ? items.filter(i => String(i.inventory_type).toLowerCase() === 'service')
+                            : items
+                          ).map(i => <option key={i.id} value={String(i.id)}>{i.name}</option>)}
                         </select>
                         <small className="text-muted fs-11 mt-1 d-block">HSN: {item.hsnCode || 'N/A'}</small>
                       </td>
@@ -616,6 +702,7 @@ const EditSalesInvoice = () => {
                       <td>
                         <select className="form-select form-select-sm" value={item.taxType} onChange={(e) => handleItemChange(index, 'taxType', e.target.value)}>
                           <option value="TAXABLE">Taxable</option>
+                          <option value="INCLUSIVE">Inclusive / MRP</option>
                           <option value="EXEMPT">Exempt</option>
                           <option value="NIL_RATED">Nil Rated</option>
                           <option value="NON_GST">Non GST</option>

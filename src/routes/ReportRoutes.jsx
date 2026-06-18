@@ -29,6 +29,7 @@ const InventoryReport = lazy(() => import('../pages/inventory-report'));
 const OutstandingReports = lazy(() => import('../pages/outstanding-reports'));
 const TdsReport = lazy(() => import('../pages/tds-report'));
 const TcsReport = lazy(() => import('../pages/tcs-report'));
+const StockValuationReport = lazy(() => import('../pages/stock-valuation'));
 
 const ReportRoutes = () => (
   <Routes>
@@ -61,6 +62,7 @@ const ReportRoutes = () => (
     <Route path="tax-report" element={<ProtectedRoute module="reports" action="can_read"><TaxReport /></ProtectedRoute>} />
     <Route path="inventory-report" element={<ProtectedRoute module="reports" action="can_read"><InventoryReport /></ProtectedRoute>} />
     <Route path="outstanding-reports" element={<ProtectedRoute module="reports" action="can_read"><OutstandingReports /></ProtectedRoute>} />
+    <Route path="stock-valuation" element={<ProtectedRoute module="reports" action="can_read"><StockValuationReport /></ProtectedRoute>} />
   </Routes>
 );
 

@@ -189,6 +189,22 @@ const AddPurchaseInvoice = () => {
     }));
   };
 
+  const searchItemsFiltered = useCallback(async (query, limit) => {
+    const response = await searchItems(query, limit);
+    if (formData.invoice_layout === 'SERVICES') {
+      if (response && response.data) {
+        const rows = response.data?.items || response.data || [];
+        const filtered = rows.filter(i => String(i.inventory_type).toLowerCase() === 'service');
+        if (response.data?.items) {
+          return { ...response, data: { ...response.data, items: filtered } };
+        } else {
+          return { ...response, data: filtered };
+        }
+      }
+    }
+    return response;
+  }, [formData.invoice_layout]);
+
   const handleItemChange = async (index, field, value) => {
     const newItems = [...formData.items];
 
@@ -369,6 +385,8 @@ const AddPurchaseInvoice = () => {
     if (!formData.invoice_date) newErrors.invoice_date = 'Invoice Date is required';
     if (!formData.place_of_supply) newErrors.place_of_supply = 'Place of Supply is required';
     if (!formData.branch_id) newErrors.branch_id = 'Branch is required';
+    if (availableSeries.length > 0 && !formData.voucher_series_id) newErrors.voucher_series_id = 'Please select a purchase series';
+    if (!formData.invoice_number || !formData.invoice_number.trim()) newErrors.invoice_number = 'Invoice Number is required';
 
     if (formData.invoice_date && formData.due_date) {
       if (new Date(formData.due_date) < new Date(formData.invoice_date)) {
@@ -524,21 +542,41 @@ const AddPurchaseInvoice = () => {
                 </div>
                 {errors.vendor_id && <div className="invalid-feedback d-block">{errors.vendor_id}</div>}
               </div>
-              {/* <div className="col-md-4">
-                <label className="form-label fw-600">Vendor Invoice No.</label>
-                <input type="text" className="form-control shadow-none" name="invoice_number" value={formData.invoice_number} onChange={handleHeaderChange} placeholder="Enter Invoice No" />
-              </div> */}
-
-              {availableSeries.length > 1 && (
+              {availableSeries.length > 0 && (
                 <div className="col-md-3">
-                  <label className="form-label fw-600">Purchase Series</label>
-                  <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id} onChange={handleHeaderChange}>
+                  <label className="form-label fw-600">Purchase Series <span className="text-danger">*</span></label>
+                  <select className={`form-select shadow-none ${errors.voucher_series_id ? 'is-invalid' : ''}`} name="voucher_series_id" value={formData.voucher_series_id} onChange={handleHeaderChange}>
+                    <option value="">-- Select Series --</option>
                     {availableSeries.map(s => (
                       <option key={s.id} value={String(s.id)}>{s.name}</option>
                     ))}
                   </select>
+                  {errors.voucher_series_id && <div className="invalid-feedback d-block">{errors.voucher_series_id}</div>}
                 </div>
               )}
+
+              <div className="col-md-3">
+                <label className="form-label fw-600">Invoice No. <span className="text-danger">*</span></label>
+                {availableSeries.length > 0 ? (
+                  <input
+                    type="text"
+                    className="form-control shadow-none bg-light"
+                    value={formData.invoice_number}
+                    readOnly
+                    placeholder="Auto-generated from series"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    className={`form-control shadow-none ${errors.invoice_number ? 'is-invalid' : ''}`}
+                    name="invoice_number"
+                    value={formData.invoice_number}
+                    onChange={handleHeaderChange}
+                    placeholder="Enter Invoice No"
+                  />
+                )}
+                {errors.invoice_number && <div className="invalid-feedback d-block">{errors.invoice_number}</div>}
+              </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Invoice Date <span className="text-danger">*</span></label>
                 <input type="date" className={`form-control shadow-none ${errors.invoice_date ? 'is-invalid' : ''}`} name="invoice_date" value={formData.invoice_date} onChange={handleHeaderChange} />
@@ -678,7 +716,8 @@ const AddPurchaseInvoice = () => {
                         <div className="d-flex align-items-center gap-1 mb-2">
                           <div className="flex-grow-1">
                             <AsyncSearchableSelect
-                              searchFn={searchItems}
+                              key={`item-${index}-${formData.invoice_layout}`}
+                              searchFn={searchItemsFiltered}
                               onSelect={(selectedItem) => handleItemChange(index, 'item_id', selectedItem)}
                               placeholder="Search item..."
                               defaultValue={item.item_id ? { id: item.item_id, name: items.find(i => String(i.id) === String(item.item_id))?.name || item.description || 'Selected Item' } : null}

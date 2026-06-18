@@ -6,6 +6,8 @@ const Customers = lazy(() => import('../pages/customers'));
 const AddCustomer = lazy(() => import('../pages/add-customer'));
 const Vendors = lazy(() => import('../pages/vendors'));
 const AddVendor = lazy(() => import('../pages/add-vendor'));
+const EcommerceOperators = lazy(() => import('../pages/ecommerce-operators'));
+const AddEcommerceOperator = lazy(() => import('../pages/add-ecommerce-operator'));
 const Countries = lazy(() => import('../pages/countries'));
 const States = lazy(() => import('../pages/states'));
 const Cities = lazy(() => import('../pages/cities'));
@@ -24,6 +26,10 @@ const MasterRoutes = () => (
     <Route path="vendors" element={<ProtectedRoute module="vendors" action="can_read"><Vendors /></ProtectedRoute>} />
     <Route path="vendors/add" element={<ProtectedRoute module="vendors" action="can_create"><AddVendor /></ProtectedRoute>} />
     <Route path="vendors/edit/:id" element={<ProtectedRoute module="vendors" action="can_update"><AddVendor /></ProtectedRoute>} />
+    
+    <Route path="ecommerce-operators" element={<ProtectedRoute module="vendors" action="can_read"><EcommerceOperators /></ProtectedRoute>} />
+    <Route path="ecommerce-operators/add" element={<ProtectedRoute module="vendors" action="can_create"><AddEcommerceOperator /></ProtectedRoute>} />
+    <Route path="ecommerce-operators/edit/:id" element={<ProtectedRoute module="vendors" action="can_update"><AddEcommerceOperator /></ProtectedRoute>} />
     
     <Route path="hsn-sac" element={<ProtectedRoute module="settings" action="can_read"><HSNSACMaster /></ProtectedRoute>} />
     <Route path="branches" element={<ProtectedRoute module="settings" action="can_read"><Branches /></ProtectedRoute>} />

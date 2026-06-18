@@ -54,6 +54,9 @@ const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose
     balance_type: 'DR',
     credit_limit: '0',
     payment_terms: 'net30',
+    payment_terms_days: '0',
+    liable_to_tds: false,
+    liable_to_tcs: false,
     gst_registration_type: 'Regular',
   });
 
@@ -76,6 +79,9 @@ const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose
         balance_type: initialData.ledger?.balance_type || initialData.balance_type || 'DR',
         credit_limit: String(initialData.credit_limit || '0'),
         payment_terms: initialData.payment_terms || 'net30',
+        payment_terms_days: String(initialData.payment_terms_days || '0'),
+        liable_to_tds: initialData.liable_to_tds === 1 || initialData.liable_to_tds === '1' || initialData.liable_to_tds === true || initialData.liable_to_tds === 'true',
+        liable_to_tcs: initialData.liable_to_tcs === 1 || initialData.liable_to_tcs === '1' || initialData.liable_to_tcs === true || initialData.liable_to_tcs === 'true',
         gst_registration_type: initialData.gst_registration_type || 'Regular',
       });
     } else {
@@ -94,6 +100,9 @@ const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose
         balance_type: 'DR',
         credit_limit: '0',
         payment_terms: 'net30',
+        payment_terms_days: '0',
+        liable_to_tds: false,
+        liable_to_tcs: false,
         gst_registration_type: 'Regular',
       });
     }
@@ -424,6 +433,52 @@ const CustomerForm = ({ initialData = null, onSubmit, isLoading = false, onClose
                   <option value="net60">Net 60 Days</option>
                   <option value="custom">Custom Terms</option>
                 </select>
+              </div>
+            </div>
+            {formData.payment_terms === 'custom' && (
+              <div className="col-md-6">
+                <div className="form-group mb-0">
+                  <label className="form-label fw-semibold">Payment Terms (Days)</label>
+                  <input
+                    type="number"
+                    className="form-control bg-light border-0 py-2"
+                    name="payment_terms_days"
+                    value={formData.payment_terms_days}
+                    onChange={handleInputChange}
+                    placeholder="Enter number of days"
+                    min="0"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="col-md-6">
+              <div className="form-check form-switch p-3 bg-light rounded-3 d-flex align-items-center justify-content-between mb-0">
+                <label className="form-check-label fw-semibold mb-0" htmlFor="liable_to_tds">
+                  Liable to TDS (Tax Deducted at Source)
+                </label>
+                <input
+                  className="form-check-input ms-3 me-0"
+                  type="checkbox"
+                  id="liable_to_tds"
+                  name="liable_to_tds"
+                  checked={formData.liable_to_tds}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-check form-switch p-3 bg-light rounded-3 d-flex align-items-center justify-content-between mb-0">
+                <label className="form-check-label fw-semibold mb-0" htmlFor="liable_to_tcs">
+                  Liable to TCS (Tax Collected at Source)
+                </label>
+                <input
+                  className="form-check-input ms-3 me-0"
+                  type="checkbox"
+                  id="liable_to_tcs"
+                  name="liable_to_tcs"
+                  checked={formData.liable_to_tcs}
+                  onChange={handleInputChange}
+                />
               </div>
             </div>
           </div>

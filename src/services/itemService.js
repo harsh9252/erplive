@@ -71,6 +71,13 @@ export const searchItems = async (q = '', limit = 10) =>
     params: { q, limit },
   });
 
+export const searchServiceItems = async (q = '', limit = 10) =>
+  apiRequest({
+    url: '/api/items/search',
+    method: 'GET',
+    params: { q, limit, inventory_type: 'Service' },
+  });
+
 export const getItemById = async (id) =>
   apiRequest({
     url: `/api/items/${id}`,
