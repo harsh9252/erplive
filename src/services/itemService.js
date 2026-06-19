@@ -64,11 +64,11 @@ export const getItems = async (page = 1, limit = 20, filters = {}) =>
     }),
   );
 
-export const searchItems = async (q = '', limit = 10) =>
+export const searchItems = async (q = '', limit = 10, extraParams = {}) =>
   apiRequest({
     url: '/api/items/search',
     method: 'GET',
-    params: { q, limit },
+    params: { q, limit, ...extraParams },
   });
 
 export const searchServiceItems = async (q = '', limit = 10) =>
