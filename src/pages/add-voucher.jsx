@@ -259,7 +259,7 @@ const AddVoucher = () => {
     if (!formData.voucher_type_id) newErrors.voucher_type_id = 'Voucher Type is required';
     if (!formData.voucher_date) newErrors.voucher_date = 'Voucher Date is required';
     if (!formData.branch_id) newErrors.branch_id = 'Branch is required';
-    if (!formData.voucher_number?.trim()) newErrors.voucher_number = 'Voucher No is required';
+    // voucher_number is optional — backend auto-generates it from the series when not provided
     
     const validLines = entries.filter(e => e.ledger_id && parseFloat(e.amount) > 0);
     if (validLines.length < 2) {
@@ -295,14 +295,15 @@ const AddVoucher = () => {
 
     setLoading(true);
     try {
-      // The backend now accepts voucher_series_id and voucher_number.
-      // We also ensure voucher_type_id is a number.
-      const { branch_id, voucher_series_id, ...rest } = formData;
+      // voucher_number is optional — omit it to let the backend auto-generate from the series.
+      // Only include it if the user explicitly typed a custom number.
+      const { branch_id, voucher_series_id, voucher_number, financial_year_id, ...rest } = formData;
 
       const payload = {
         ...rest,
         voucher_type_id: parseInt(rest.voucher_type_id),
         ...(voucher_series_id ? { voucher_series_id: parseInt(voucher_series_id) } : {}),
+        ...(voucher_number?.trim() ? { voucher_number: voucher_number.trim() } : {}),
         entries: entries.map(({ ledger_id, dr_cr, amount, narration, cost_center_id }) => {
           const entry = {
             ledger_id: parseInt(ledger_id),
@@ -319,7 +320,7 @@ const AddVoucher = () => {
 
       let response;
       if (isEditMode) {
-        response = await voucherService.createVoucher(payload); 
+        response = await voucherService.updateVoucher(id, payload);
       } else {
         response = await voucherService.createVoucher(payload);
       }
@@ -475,16 +476,18 @@ const AddVoucher = () => {
               </div>
 
               <div className="col-lg-3 col-md-6">
-                <label className="form-label fw-600">Voucher No <span className="text-danger">*</span></label>
+                <label className="form-label fw-600">
+                  Voucher No
+                  <span className="text-muted fw-normal ms-1" style={{ fontSize: '0.75rem' }}>(auto-generated if blank)</span>
+                </label>
                 <input
                   type="text"
                   name="voucher_number"
-                  className={`form-control fw-600 ${errors.voucher_number ? 'is-invalid' : ''}`}
+                  className="form-control fw-600"
                   value={formData.voucher_number}
                   onChange={handleInputChange}
-                  placeholder="Enter Voucher No"
+                  placeholder="Leave blank to auto-generate"
                 />
-                {errors.voucher_number && <div className="invalid-feedback d-block">{errors.voucher_number}</div>}
               </div>
 
               <div className="col-lg-4 col-md-6">
