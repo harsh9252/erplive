@@ -31,6 +31,7 @@ const AddDebitNote = () => {
     place_of_supply: "",
     remarks: "",
     invoice_layout: "PRODUCTS",
+    ecommerce_operator_gstin: "",
     items: [
       {
         item_id: "",
@@ -384,6 +385,12 @@ const AddDebitNote = () => {
     if (!formData.reason) newErrors.reason = "Reason for Return is required";
     if (!formData.place_of_supply) newErrors.place_of_supply = "Place of Supply is required";
 
+    if (formData.invoice_layout === 'ECOMMERCE') {
+      if (!formData.ecommerce_operator_gstin || formData.ecommerce_operator_gstin.trim() === '') {
+        newErrors.ecommerce_operator_gstin = 'E-Commerce GSTIN is required';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -400,6 +407,8 @@ const AddDebitNote = () => {
       const payload = {
         ...formData,
         debit_note_date: formData.debit_date,
+        invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
+        ecommerce_gstin: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_gstin || null) : null,
         items: formData.items.map(item => ({
           ...item,
           qty: isServices ? 1 : parseFloat(item.qty || 0),
@@ -616,7 +625,7 @@ const AddDebitNote = () => {
                   <label className="form-label fw-600">E-Commerce Operator GSTIN <span className="text-danger">*</span></label>
                   <input
                     type="text"
-                    className="form-control shadow-none"
+                    className={`form-control shadow-none ${errors.ecommerce_operator_gstin ? 'is-invalid' : ''}`}
                     name="ecommerce_operator_gstin"
                     value={formData.ecommerce_operator_gstin || ''}
                     onChange={(e) => {
@@ -624,6 +633,7 @@ const AddDebitNote = () => {
                     }}
                     placeholder="Enter Operator's GSTIN"
                   />
+                  {errors.ecommerce_operator_gstin && <div className="invalid-feedback">{errors.ecommerce_operator_gstin}</div>}
                 </div>
               )}
             </div>
