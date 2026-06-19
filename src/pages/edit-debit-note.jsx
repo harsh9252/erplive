@@ -76,7 +76,8 @@ const EditDebitNote = () => {
         reason: dnData.reason || '',
         place_of_supply: String(dnData.place_of_supply || '').trim(),
         remarks: dnData.remarks || '',
-        invoice_layout: isServiceOnlyLocal ? 'SERVICES' : (dnData.invoice_layout || 'PRODUCTS'),
+        invoice_layout: isServiceOnlyLocal ? 'SERVICES' : (dnData.invoice_type === 'SERVICE' ? 'SERVICES' : dnData.invoice_type === 'ECOMMERCE' ? 'ECOMMERCE' : (dnData.invoice_layout || 'PRODUCTS')),
+        ecommerce_operator_gstin: dnData.ecommerce_gstin || '',
         items: (dnData.items || []).map(i => {
           const itemId = String(i.item_id || i.itemId || '').trim();
           const fetchedItem = itemsList.find(it => String(it.id) === itemId);
@@ -279,6 +280,12 @@ const EditDebitNote = () => {
     if (!formData.reason) newErrors.reason = 'Reason for Return is required';
     if (!formData.place_of_supply) newErrors.place_of_supply = 'Place of Supply is required';
 
+    if (formData.invoice_layout === 'ECOMMERCE') {
+      if (!formData.ecommerce_operator_gstin || formData.ecommerce_operator_gstin.trim() === '') {
+        newErrors.ecommerce_operator_gstin = 'E-Commerce GSTIN is required';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -291,6 +298,8 @@ const EditDebitNote = () => {
         ...formData,
         purchase_invoice_id: formData.original_invoice_id || null,
         debit_note_date: formData.debit_date,
+        invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
+        ecommerce_gstin: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_gstin || null) : null,
         items: formData.items.map(item => ({
           ...item,
           qty: isServices ? 1 : parseFloat(item.qty || 0),
@@ -303,7 +312,7 @@ const EditDebitNote = () => {
       };
       await updateDebitNote(id, payload);
       toast.success('Debit note updated successfully');
-      navigate(`/invoicing/debit-notes/${id}`);
+      navigate('/invoicing/debit-notes');
     } catch (error) {
       console.error('Error updating debit note:', error);
       toast.error(error.message || 'Failed to update debit note');
@@ -427,7 +436,7 @@ const EditDebitNote = () => {
                   <label className="form-label fw-600">E-Commerce Operator GSTIN <span className="text-danger">*</span></label>
                   <input
                     type="text"
-                    className="form-control shadow-none"
+                    className={`form-control shadow-none ${errors.ecommerce_operator_gstin ? 'is-invalid' : ''}`}
                     name="ecommerce_operator_gstin"
                     value={formData.ecommerce_operator_gstin || ''}
                     onChange={(e) => {
@@ -435,6 +444,7 @@ const EditDebitNote = () => {
                     }}
                     placeholder="Enter Operator's GSTIN"
                   />
+                  {errors.ecommerce_operator_gstin && <div className="invalid-feedback">{errors.ecommerce_operator_gstin}</div>}
                 </div>
               )}
             </div>
