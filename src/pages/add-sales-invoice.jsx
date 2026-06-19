@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import customerService, { getCustomers, searchCustomers } from '../services/customerService';
 import { getItems, searchItems, getItemById } from '../services/itemService';
@@ -15,9 +15,13 @@ import { INDIAN_STATES } from '../utils/constants';
 import AsyncSearchableSelect from '../components/AsyncSearchableSelect';
 import Swal from 'sweetalert2';
 import CustomerFormModal from '../components/CustomerFormModal';
+import ledgerService from '../services/ledgerService';
+import { getEcommerceOperators } from '../services/ecommerceOperatorService';
+import { useAuth } from '../components/AuthContext';
 
 const AddSalesInvoice = () => {
   const navigate = useNavigate();
+  const { activeCompany } = useAuth();
 
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
@@ -35,6 +39,8 @@ const AddSalesInvoice = () => {
   const [gstRates] = useState([0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 14, 18, 28]);
   const [financialYears, setFinancialYears] = useState([]);
   const [errors, setErrors] = useState({});
+  const [ecommerceOperators, setEcommerceOperators] = useState([]);
+  const [ledgers, setLedgers] = useState([]);
 
   // Fetch master data on mount
   useEffect(() => {
@@ -95,13 +101,40 @@ const AddSalesInvoice = () => {
         if (branchList.length > 0) {
           setFormData(prev => ({ ...prev, branchId: branchList[0].id }));
         }
+
+        // Fetch Ecommerce Operators and Ledgers
+        let operatorsList = [];
+        try {
+          const opRes = await getEcommerceOperators({ page: 1, limit: 1000 });
+          operatorsList = Array.isArray(opRes.data) ? opRes.data : (opRes.data?.rows || []);
+        } catch (err) {
+          console.warn("Failed to load ecommerce operators", err);
+        }
+        setEcommerceOperators(operatorsList);
+
+        let ledgerList = [];
+        try {
+          const ledgerRes = await ledgerService.getLedgers({ limit: 1000 });
+          ledgerList = Array.isArray(ledgerRes.data) ? ledgerRes.data : (ledgerRes.data?.rows || []);
+        } catch (err) {
+          console.warn("Failed to load ledgers", err);
+        }
+        setLedgers(ledgerList);
+
+        const isServiceOnly = localStorage.getItem('businessNature') === 'SERVICES' ||
+          companyRes.data?.business_nature?.toUpperCase() === 'SERVICES' ||
+          activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+        
+        if (isServiceOnly) {
+          setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }));
+        }
       } catch (error) {
         console.error('Error fetching master data:', error);
         toast.error('Failed to load master data');
       }
     };
     fetchData();
-  }, []);
+  }, [activeCompany]);
 
   // Listen for global branch updates
   useEffect(() => {
@@ -131,7 +164,14 @@ const AddSalesInvoice = () => {
     termsAndConditions: '',
     invoice_layout: 'PRODUCTS',
     show_discount: true,
+    ecommerce_operator_id: '',
     ecommerce_operator_gstin: '',
+    ref_customer_name: '',
+    ref_customer_address: '',
+    ref_customer_type: 'CONSUMER',
+    ref_customer_place_of_supply: '',
+    ref_customer_invoice_no: '',
+    ref_customer_invoice_date: '',
     additional_charges: [
       { name: '', amount: 0, gstRate: 18 }
     ],
@@ -217,6 +257,14 @@ const AddSalesInvoice = () => {
     return () => clearTimeout(timer);
   }, [formData.invoiceDate]);
 
+  const determineInvoiceType = (customer) => {
+    if (!customer) return 'B2C';
+    if (customer.gst_registration_type === 'SEZ') return 'SEZ';
+    if (customer.gst_registration_type === 'Deemed Export' || customer.gst_registration_type === 'Overseas') return 'EXPORT';
+    if (customer.gstin && customer.gstin.trim() !== '') return 'B2B';
+    return 'B2C';
+  };
+
   const handleCustomerSelect = (selectedCustomer) => {
     if (errors.customerId) setErrors(prev => ({ ...prev, customerId: null }));
     if (!selectedCustomer) {
@@ -227,10 +275,15 @@ const AddSalesInvoice = () => {
     const customerId = selectedCustomer.id;
     setFormData((prev) => {
       const updated = { ...prev, customerId };
+      updated.invoiceType = determineInvoiceType(selectedCustomer);
       if (prev.invoiceDate) {
-        const creditDays = parseInt(selectedCustomer.credit_limit_days || selectedCustomer.credit_days) || 0;
+        const paymentDays = parseInt(
+          selectedCustomer.payment_terms_days ??
+          selectedCustomer.credit_limit_days ??
+          selectedCustomer.credit_days
+        ) || 0;
         const dueDate = new Date(prev.invoiceDate);
-        dueDate.setDate(dueDate.getDate() + creditDays);
+        dueDate.setDate(dueDate.getDate() + paymentDays);
         updated.dueDate = dueDate.toISOString().split('T')[0];
       }
       const newPlaceOfSupply = selectedCustomer.state_code || company?.state_code || '';
@@ -284,8 +337,9 @@ const AddSalesInvoice = () => {
   };
 
   const searchItemsFiltered = useCallback(async (query, limit) => {
-    const response = await searchItems(query, limit);
-    if (formData.invoice_layout === 'SERVICES') {
+    const isServices = formData.invoice_layout === 'SERVICES';
+    const response = await searchItems(query, limit, isServices ? { inventory_type: 'Service' } : {});
+    if (isServices) {
       if (response && response.data) {
         const rows = response.data?.items || response.data || [];
         const filtered = rows.filter(i => String(i.inventory_type).toLowerCase() === 'service');
@@ -358,10 +412,10 @@ const AddSalesInvoice = () => {
 
   const updateLineCalculations = (itemsList, index, placeOfSupply) => {
     const item = itemsList[index];
-    const qty = parseFloat(item.qty) || 0;
+    const qty = formData.invoice_layout === 'SERVICES' ? 1 : (parseFloat(item.qty) || 0);
     const rate = parseFloat(item.rate) || 0;
     const gstRate = parseFloat(item.gstRate) || 0;
-    const discountPct = parseFloat(item.discountPct) || 0;
+    const discountPct = formData.invoice_layout === 'SERVICES' ? 0 : (parseFloat(item.discountPct) || 0);
     let taxableAmount = 0;
     let lineTotal = qty * rate;
     if (item.taxType === 'INCLUSIVE') {
@@ -393,7 +447,7 @@ const AddSalesInvoice = () => {
     newItems[index][field] = value;
 
     // Auto-sync tax rate based on tax type
-    if (field === 'taxType' && value !== 'TAXABLE') {
+    if (field === 'taxType' && value !== 'TAXABLE' && value !== 'INCLUSIVE') {
       newItems[index].gstRate = 0;
     }
 
@@ -428,10 +482,14 @@ const AddSalesInvoice = () => {
       if (name === 'invoiceDate' && prev.customerId) {
         const selectedCustomer = customers.find((c) => String(c.id) === String(prev.customerId));
         if (selectedCustomer) {
-          const creditDays = parseInt(selectedCustomer.credit_limit_days || selectedCustomer.credit_days) || 0;
+          const paymentDays = parseInt(
+            selectedCustomer.payment_terms_days ??
+            selectedCustomer.credit_limit_days ??
+            selectedCustomer.credit_days
+          ) || 0;
           const dueDate = new Date(newValue);
           if (!isNaN(dueDate.getTime())) {
-            dueDate.setDate(dueDate.getDate() + creditDays);
+            dueDate.setDate(dueDate.getDate() + paymentDays);
             updated.dueDate = dueDate.toISOString().split('T')[0];
           }
         }
@@ -480,6 +538,25 @@ const AddSalesInvoice = () => {
     }
     
     if (formData.invoice_layout === 'ECOMMERCE') {
+      if (!formData.ecommerce_operator_id) {
+        newErrors.ecommerce_operator_id = 'Please select an E-Commerce operator';
+      }
+      if (!formData.ref_customer_name || formData.ref_customer_name.trim() === '') {
+        newErrors.ref_customer_name = 'Reference Customer Name is required';
+      }
+      if (!formData.ref_customer_address || formData.ref_customer_address.trim() === '') {
+        newErrors.ref_customer_address = 'Reference Customer Address is required';
+      }
+      if (!formData.ref_customer_place_of_supply || formData.ref_customer_place_of_supply.trim() === '') {
+        newErrors.ref_customer_place_of_supply = 'Reference Customer Place of Supply is required';
+      }
+      if (!formData.ref_customer_invoice_no || formData.ref_customer_invoice_no.trim() === '') {
+        newErrors.ref_customer_invoice_no = 'Reference Customer Invoice Number is required';
+      }
+      if (!formData.ref_customer_invoice_date || formData.ref_customer_invoice_date.trim() === '') {
+        newErrors.ref_customer_invoice_date = 'Reference Customer Invoice Date is required';
+      }
+      
       if (!formData.ecommerce_operator_gstin || formData.ecommerce_operator_gstin.trim() === '') {
         newErrors.ecommerce_operator_gstin = 'GSTIN is required for E-Commerce layout';
       } else {
@@ -496,9 +573,26 @@ const AddSalesInvoice = () => {
     }
 
     if (formData.items.some((item) => !item.itemId)) return toast.error('Please select an item for all lines');
-    if (formData.items.some((item) => !item.uomId)) return toast.error('Please select a Unit of Measure (UOM) for all items');
+    if (formData.invoice_layout !== 'SERVICES' && formData.items.some((item) => !item.uomId)) return toast.error('Please select a Unit of Measure (UOM) for all items');
     setLoading(true);
     try {
+      let finalRemarks = formData.remarks;
+      if (formData.invoice_layout === 'ECOMMERCE') {
+        const opName = ecommerceOperators.find(o => String(o.id) === String(formData.ecommerce_operator_id))?.name || '';
+        finalRemarks = JSON.stringify({
+          text: formData.remarks,
+          is_ecommerce: true,
+          ecommerce_operator_id: formData.ecommerce_operator_id,
+          ecommerce_operator_name: opName,
+          ref_customer_name: formData.ref_customer_name,
+          ref_customer_address: formData.ref_customer_address,
+          ref_customer_type: formData.ref_customer_type,
+          ref_customer_place_of_supply: formData.ref_customer_place_of_supply,
+          ref_customer_invoice_no: formData.ref_customer_invoice_no,
+          ref_customer_invoice_date: formData.ref_customer_invoice_date
+        });
+      }
+
       const payload = {
         branch_id: formData.branchId,
         customer_id: formData.customerId,
@@ -511,24 +605,31 @@ const AddSalesInvoice = () => {
         invoice_type: formData.invoiceType,
         place_of_supply: formData.placeOfSupply,
         reverse_charge: formData.reverseCharge,
-        remarks: formData.remarks,
+        remarks: finalRemarks,
         terms_and_conditions: formData.termsAndConditions,
         invoice_layout: formData.invoice_layout,
-        show_discount: formData.show_discount,
-        ecommerce_operator_gstin: formData.ecommerce_operator_gstin || null,
+        show_discount: formData.invoice_layout === 'SERVICES' ? false : formData.show_discount,
+        ecommerce_operator_id: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_id || null) : null,
+        ecommerce_operator_gstin: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_gstin || null) : null,
+        ref_customer_name: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_name || null) : null,
+        ref_customer_address: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_address || null) : null,
+        ref_customer_type: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_type || null) : null,
+        ref_customer_place_of_supply: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_place_of_supply || null) : null,
+        ref_customer_invoice_no: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_invoice_no || null) : null,
+        ref_customer_invoice_date: formData.invoice_layout === 'ECOMMERCE' ? (formData.ref_customer_invoice_date || null) : null,
         additional_charges: formData.additional_charges.filter(c => c.name && c.amount > 0).map(c => ({ name: c.name, amount: parseFloat(c.amount), gst_rate: parseFloat(c.gstRate) })),
         items: formData.items.map(item => ({
           item_id: item.itemId,
           description: item.description,
           hsn_code: item.hsnCode,
-          qty: parseFloat(item.qty),
-          uom_id: item.uomId ? parseInt(item.uomId) : null,
+          qty: formData.invoice_layout === 'SERVICES' ? 1 : parseFloat(item.qty),
+          uom_id: formData.invoice_layout === 'SERVICES' ? null : (item.uomId ? parseInt(item.uomId) : null),
           rate: parseFloat(item.rate),
-          discount_pct: parseFloat(item.discountPct || 0),
+          discount_pct: formData.invoice_layout === 'SERVICES' ? 0 : parseFloat(item.discountPct || 0),
           gst_rate: parseFloat(item.gstRate),
           tax_type: item.taxType || 'EXCLUSIVE',
-          conversion_factor: parseFloat(uoms.find(u => String(u.id) === String(item.uomId))?.conversion_factor || 1),
-          warehouse_id: item.warehouseId ? parseInt(item.warehouseId) : null,
+          conversion_factor: formData.invoice_layout === 'SERVICES' ? 1 : parseFloat(uoms.find(u => String(u.id) === String(item.uomId))?.conversion_factor || 1),
+          warehouse_id: formData.invoice_layout === 'SERVICES' ? null : (item.warehouseId ? parseInt(item.warehouseId) : null),
         }))
       };
       await createSalesInvoice(payload);
@@ -540,6 +641,14 @@ const AddSalesInvoice = () => {
       setLoading(false);
     }
   };
+
+  const isServiceOnly = useMemo(() => {
+    return localStorage.getItem('businessNature') === 'SERVICES' ||
+      company?.business_nature?.toUpperCase() === 'SERVICES' ||
+      activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+  }, [company, activeCompany]);
+
+
 
   return (
     <div className="container-fluid py-4 text-dark">
@@ -564,6 +673,42 @@ const AddSalesInvoice = () => {
       <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
           <form onSubmit={handleSubmit} noValidate>
+            
+            {(() => {
+              const isServiceOnly = localStorage.getItem('businessNature') === 'SERVICES' ||
+                company?.business_nature?.toUpperCase() === 'SERVICES' ||
+                activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+              if (isServiceOnly) return null;
+              return (
+                <div className="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
+                  <h6 className="fw-bold mb-2">Select Invoice Layout</h6>
+                  <div className="d-flex justify-content-center gap-3">
+                    <button
+                      type="button"
+                      className={`btn px-4 py-2 ${formData.invoice_layout === 'PRODUCTS' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                      onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'PRODUCTS' }))}
+                    >
+                      <i className="isax isax-box me-2"></i>Product-Based
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn px-4 py-2 ${formData.invoice_layout === 'SERVICES' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                      onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }))}
+                    >
+                      <i className="isax isax-teacher me-2"></i>Service-Based
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn px-4 py-2 ${formData.invoice_layout === 'ECOMMERCE' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                      onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'ECOMMERCE' }))}
+                    >
+                      <i className="isax isax-shopping-cart me-2"></i>E-Commerce Operator
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="row g-3 mb-4">
               <div className="col-md-3">
                 <div className="d-flex justify-content-between align-items-end mb-2">
@@ -586,6 +731,16 @@ const AddSalesInvoice = () => {
                   />
                 </div>
                 {errors.customerId && <div className="invalid-feedback d-block">{errors.customerId}</div>}
+                
+                {selectedCustomer && (
+                  <div className="mt-2 p-2 border rounded bg-white fs-12 text-muted">
+                    <div className="fw-bold text-dark">{selectedCustomer.name}</div>
+                    {selectedCustomer.gstin && <div>GSTIN: <span className="fw-semibold text-primary">{selectedCustomer.gstin}</span></div>}
+                    {selectedCustomer.phone && <div>Phone: {selectedCustomer.phone}</div>}
+                    {selectedCustomer.email && <div>Email: {selectedCustomer.email}</div>}
+                    {selectedCustomer.address && <div>Address: {selectedCustomer.address}, {selectedCustomer.city}, {selectedCustomer.state} {selectedCustomer.pincode}</div>}
+                  </div>
+                )}
               </div>
 
               <div className="col-md-3">
@@ -616,18 +771,6 @@ const AddSalesInvoice = () => {
                 </div>
               )}
 
-              {/* <div className="col-md-3">
-                <label className="form-label fw-600">Invoice No.</label>
-                <input
-                  type="text"
-                  className="form-control shadow-none"
-                  placeholder="Enter Invoice No"
-                  name="invoiceNumber"
-                  value={formData.invoiceNumber}
-                  onChange={(e) => { handleInputChange(e); setFormData(prev => ({ ...prev, voucher_series_id: '' })); }}
-                />
-              </div> */}
-
               <div className="col-md-3">
                 <label className="form-label fw-600">Invoice Date <span className="text-danger">*</span></label>
                 <input
@@ -654,7 +797,7 @@ const AddSalesInvoice = () => {
             </div>
 
             <div className="row g-3 mb-4 p-3 bg-light rounded-12">
-              <div className="col-md-3">
+              <div className="col-md-3 d-none">
                 <label className="form-label fw-600">Invoice Type</label>
                 <select
                   className="form-select shadow-none"
@@ -704,20 +847,134 @@ const AddSalesInvoice = () => {
                   ))}
                 </select>
               </div>
-              <div className="col-md-3">
-                <label className="form-label fw-600">Invoice Layout</label>
-                <select
-                  className="form-select shadow-none"
-                  name="invoice_layout"
-                  value={formData.invoice_layout}
-                  onChange={handleInputChange}
-                >
-                  <option value="PRODUCTS">Products</option>
-                  <option value="SERVICES">Services </option>
-                  <option value="ECOMMERCE">E-Commerce</option>
-                </select>
-              </div>
             </div>
+
+            {formData.invoice_layout === 'ECOMMERCE' && (
+              <div className="card border-0 bg-light p-3 mb-4 rounded-3 border-start border-primary border-3">
+                <h6 className="fw-bold mb-3 text-primary">
+                  <i className="isax isax-shopping-cart me-2"></i>E-Commerce Platform & Buyer Reference Details
+                </h6>
+                <div className="row g-3">
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">E-Commerce Operator <span className="text-danger">*</span></label>
+                    <select
+                      className={`form-select shadow-none bg-white ${errors.ecommerce_operator_id ? 'is-invalid' : ''}`}
+                      name="ecommerce_operator_id"
+                      value={formData.ecommerce_operator_id || ''}
+                      onChange={(e) => {
+                        const opId = e.target.value;
+                        const operator = ecommerceOperators.find(o => String(o.id) === String(opId));
+                        setFormData(prev => ({
+                          ...prev,
+                          ecommerce_operator_id: opId,
+                          ecommerce_operator_gstin: operator ? operator.gstin : ''
+                        }));
+                        if (errors.ecommerce_operator_id) setErrors(prev => ({ ...prev, ecommerce_operator_id: null }));
+                        if (errors.ecommerce_operator_gstin) setErrors(prev => ({ ...prev, ecommerce_operator_gstin: null }));
+                      }}
+                    >
+                      <option value="">Select Platform Operator</option>
+                      {ecommerceOperators.map(o => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
+                    </select>
+                    {errors.ecommerce_operator_id && <div className="invalid-feedback">{errors.ecommerce_operator_id}</div>}
+                  </div>
+                  
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Operator GSTIN</label>
+                    <input
+                      type="text"
+                      className={`form-control bg-light ${errors.ecommerce_operator_gstin ? 'is-invalid' : ''}`}
+                      value={formData.ecommerce_operator_gstin || ''}
+                      readOnly
+                      placeholder="Operator GSTIN"
+                    />
+                    {errors.ecommerce_operator_gstin && <div className="invalid-feedback">{errors.ecommerce_operator_gstin}</div>}
+                  </div>
+
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Ref. Buyer Name <span className="text-danger">*</span></label>
+                    <input
+                      type="text"
+                      className={`form-control bg-white ${errors.ref_customer_name ? 'is-invalid' : ''}`}
+                      name="ref_customer_name"
+                      value={formData.ref_customer_name || ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter buyer name"
+                    />
+                    {errors.ref_customer_name && <div className="invalid-feedback">{errors.ref_customer_name}</div>}
+                  </div>
+
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Ref. Buyer Registration Type <span className="text-danger">*</span></label>
+                    <select
+                      className="form-select bg-white"
+                      name="ref_customer_type"
+                      value={formData.ref_customer_type || 'CONSUMER'}
+                      onChange={handleInputChange}
+                    >
+                      <option value="CONSUMER">Consumer / Unregistered</option>
+                      <option value="REGISTERED">Registered Business (B2B)</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Ref. Buyer Place of Supply <span className="text-danger">*</span></label>
+                    <select
+                      className={`form-select bg-white ${errors.ref_customer_place_of_supply ? 'is-invalid' : ''}`}
+                      name="ref_customer_place_of_supply"
+                      value={formData.ref_customer_place_of_supply || ''}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Select State</option>
+                      {INDIAN_STATES.map(s => (
+                        <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
+                      ))}
+                    </select>
+                    {errors.ref_customer_place_of_supply && <div className="invalid-feedback">{errors.ref_customer_place_of_supply}</div>}
+                  </div>
+
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Ref. Platform Invoice Number <span className="text-danger">*</span></label>
+                    <input
+                      type="text"
+                      className={`form-control bg-white ${errors.ref_customer_invoice_no ? 'is-invalid' : ''}`}
+                      name="ref_customer_invoice_no"
+                      value={formData.ref_customer_invoice_no || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. AZ-12345"
+                    />
+                    {errors.ref_customer_invoice_no && <div className="invalid-feedback">{errors.ref_customer_invoice_no}</div>}
+                  </div>
+
+                  <div className="col-md-3">
+                    <label className="form-label fw-600">Ref. Platform Invoice Date <span className="text-danger">*</span></label>
+                    <input
+                      type="date"
+                      className={`form-control bg-white ${errors.ref_customer_invoice_date ? 'is-invalid' : ''}`}
+                      name="ref_customer_invoice_date"
+                      value={formData.ref_customer_invoice_date || ''}
+                      onChange={handleInputChange}
+                    />
+                    {errors.ref_customer_invoice_date && <div className="invalid-feedback">{errors.ref_customer_invoice_date}</div>}
+                  </div>
+
+                  <div className="col-md-12">
+                    <label className="form-label fw-600">Ref. Buyer Address <span className="text-danger">*</span></label>
+                    <textarea
+                      className={`form-control bg-white ${errors.ref_customer_address ? 'is-invalid' : ''}`}
+                      name="ref_customer_address"
+                      value={formData.ref_customer_address || ''}
+                      onChange={handleInputChange}
+                      rows="2"
+                      placeholder="Enter buyer complete billing address"
+                    />
+                    {errors.ref_customer_address && <div className="invalid-feedback">{errors.ref_customer_address}</div>}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="row g-3 mb-4">
               <div className="col-md-3">
@@ -733,27 +990,6 @@ const AddSalesInvoice = () => {
                   <label className="form-check-label fw-600" htmlFor="show_discount">Enable Item Discount</label>
                 </div>
               </div>
-              {formData.invoice_layout === 'ECOMMERCE' && (
-                <div className="col-md-3">
-                  <label className="form-label fw-600">E-Commerce Operator GSTIN <span className="text-danger">*</span></label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.ecommerce_operator_gstin ? 'is-invalid' : ''}`}
-                    name="ecommerce_operator_gstin"
-                    value={formData.ecommerce_operator_gstin}
-                    onChange={(e) => {
-                      handleInputChange({
-                        target: {
-                          name: e.target.name,
-                          value: e.target.value.toUpperCase()
-                        }
-                      });
-                    }}
-                    placeholder="Enter TCS operator GSTIN"
-                  />
-                  {errors.ecommerce_operator_gstin && <div className="invalid-feedback">{errors.ecommerce_operator_gstin}</div>}
-                </div>
-              )}
             </div>
 
             {/* Line Items Section */}
@@ -769,14 +1005,16 @@ const AddSalesInvoice = () => {
                 <table className="table table-borderless align-top mb-0" style={{ minWidth: '1000px' }}>
                   <thead className="bg-light border-bottom">
                     <tr className="fs-12 fw-bold text-muted text-uppercase">
-                      <th style={{ width: '30%' }} className="ps-3">Item Details</th>
-                      <th style={{ width: '12%' }}>Warehouse</th>
-                      <th style={{ width: '8%' }} className="text-center">Qty</th>
+                      <th style={{ width: formData.invoice_layout === 'SERVICES' ? '40%' : '30%' }} className="ps-3">
+                        {formData.invoice_layout === 'SERVICES' ? 'Service Details' : 'Item Details'}
+                      </th>
+                      {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '12%' }}>Warehouse</th>}
+                      {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '8%' }} className="text-center">Qty</th>}
                       <th style={{ width: '10%' }} className="text-end">Rate</th>
-                      <th style={{ width: '8%', minWidth: '95px' }} className="text-center">Tax Type</th>
-                      {formData.show_discount && <th style={{ width: '7%' }} className="text-end">Disc%</th>}
+                      <th style={{ width: '12%', minWidth: '110px' }} className="text-center">Tax Type</th>
+                      {formData.invoice_layout !== 'SERVICES' && formData.show_discount && <th style={{ width: '7%' }} className="text-end">Disc%</th>}
                       <th style={{ width: '10%' }} className="text-end">Taxable</th>
-                      <th style={{ width: '10%' }}>Tax Rate</th>
+                      <th style={{ width: '12%' }}>Tax Rate</th>
                       <th style={{ width: '12%' }} className="text-end pe-3">Total</th>
                       <th style={{ width: '3%' }}></th>
                     </tr>
@@ -791,28 +1029,32 @@ const AddSalesInvoice = () => {
                                 key={`item-${index}-${formData.invoice_layout}`}
                                 searchFn={searchItemsFiltered}
                                 onSelect={(selected) => handleItemSelect(index, selected)}
-                                placeholder="Search item..."
+                                placeholder={formData.invoice_layout === 'SERVICES' ? "Search service..." : "Search item..."}
                                 defaultValue={item.itemId ? { id: item.itemId, name: items.find(i => String(i.id) === String(item.itemId))?.name || item.description || 'Selected Item' } : null}
                                 displayKey="name"
                                 className="border-0 shadow-none"
                               />
                             </div>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-light p-2 d-flex align-items-center justify-content-center border"
-                              style={{ height: '38px', width: '38px' }}
-                              onClick={() => setProductModal({ isOpen: true, index })}
-                            >
-                              <i className="isax isax-add fs-18"></i>
-                            </button>
+                            {formData.invoice_layout !== 'SERVICES' && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-light p-2 d-flex align-items-center justify-content-center border"
+                                style={{ height: '38px', width: '38px' }}
+                                onClick={() => setProductModal({ isOpen: true, index })}
+                              >
+                                <i className="isax isax-add fs-18"></i>
+                              </button>
+                            )}
                           </div>
                           <div className="row g-2">
                             <div className="col-4">
-                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">HSN</label>
-                              <input type="text" className="form-control form-control-xs border-0 bg-light shadow-none fs-11" placeholder="HSN" value={item.hsnCode} onChange={(e) => handleItemChange(index, 'hsnCode', e.target.value)} />
+                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">
+                                {formData.invoice_layout === 'SERVICES' ? 'SAC Code' : 'HSN'}
+                              </label>
+                              <input type="text" className="form-control form-control-xs border-0 bg-light shadow-none fs-11" placeholder={formData.invoice_layout === 'SERVICES' ? 'SAC' : 'HSN'} value={item.hsnCode} onChange={(e) => handleItemChange(index, 'hsnCode', e.target.value)} />
                             </div>
                             <div className="col-8">
-                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Description / UOM</label>
+                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Description {formData.invoice_layout !== 'SERVICES' && '/ UOM'}</label>
                               <div className="input-group input-group-sm">
                                 <input
                                   type="text"
@@ -821,45 +1063,51 @@ const AddSalesInvoice = () => {
                                   onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                                   placeholder="Add description..."
                                 />
-                                <select
-                                  className="form-select form-select-xs border-0 bg-light shadow-none fs-11 flex-grow-0 w-auto"
-                                  value={item.uomId}
-                                  onChange={(e) => handleItemChange(index, 'uomId', e.target.value)}
-                                  required
-                                >
-                                  <option value="">UOM</option>
-                                  {uoms.map((u) => (
-                                    <option key={u.id} value={String(u.id)}>{u.symbol}</option>
-                                  ))}
-                                </select>
+                                {formData.invoice_layout !== 'SERVICES' && (
+                                  <select
+                                    className="form-select form-select-xs border-0 bg-light shadow-none fs-11 flex-grow-0 w-auto"
+                                    value={item.uomId}
+                                    onChange={(e) => handleItemChange(index, 'uomId', e.target.value)}
+                                    required
+                                  >
+                                    <option value="">UOM</option>
+                                    {uoms.map((u) => (
+                                      <option key={u.id} value={String(u.id)}>{u.symbol}</option>
+                                    ))}
+                                  </select>
+                                )}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3">
-                          <select
-                            className="form-select form-select-sm shadow-none border bg-white fs-12"
-                            value={item.warehouseId}
-                            onChange={(e) => handleItemChange(index, 'warehouseId', e.target.value)}
-                            required
-                          >
-                            <option value="">Select</option>
-                            {warehouses.map((w) => (
-                              <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-3">
-                          <input
-                            type="number"
-                            className="form-control form-control-sm shadow-none text-center fs-12 border bg-white"
-                            value={item.qty}
-                            onChange={(e) => handleItemChange(index, 'qty', parseFloat(e.target.value) || 0)}
-                            min="0.001"
-                            step="any"
-                            required
-                          />
-                        </td>
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td className="py-3">
+                            <select
+                              className="form-select form-select-sm shadow-none border bg-white fs-12"
+                              value={item.warehouseId}
+                              onChange={(e) => handleItemChange(index, 'warehouseId', e.target.value)}
+                              required
+                            >
+                              <option value="">Select</option>
+                              {warehouses.map((w) => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                        )}
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td className="py-3">
+                            <input
+                              type="number"
+                              className="form-control form-control-sm shadow-none text-center fs-12 border bg-white"
+                              value={item.qty}
+                              onChange={(e) => handleItemChange(index, 'qty', parseFloat(e.target.value) || 0)}
+                              min="0.001"
+                              step="any"
+                              required
+                            />
+                          </td>
+                        )}
                         <td className="py-3">
                           <input
                             type="number"
@@ -878,12 +1126,13 @@ const AddSalesInvoice = () => {
                             onChange={(e) => handleItemChange(index, 'taxType', e.target.value)}
                           >
                             <option value="TAXABLE">Taxable</option>
+                            <option value="INCLUSIVE">Tax Inclusive</option>
                             <option value="EXEMPT">Exempt</option>
                             <option value="NIL_RATED">Nil Rated</option>
                             <option value="NON_GST">Non GST</option>
                           </select>
                         </td>
-                        {formData.show_discount && (
+                        {formData.invoice_layout !== 'SERVICES' && formData.show_discount && (
                           <td className="py-3">
                             <input
                               type="number"
@@ -910,7 +1159,7 @@ const AddSalesInvoice = () => {
                             className="form-select form-select-sm shadow-none fs-12 border bg-white"
                             value={item.gstRate}
                             onChange={(e) => handleItemChange(index, 'gstRate', parseFloat(e.target.value) || 0)}
-                            disabled={item.taxType !== 'TAXABLE'}
+                            disabled={item.taxType !== 'TAXABLE' && item.taxType !== 'INCLUSIVE'}
                           >
                             {gstRates.map((rate) => (
                               <option key={rate} value={rate}>{rate}%</option>
@@ -993,17 +1242,22 @@ const AddSalesInvoice = () => {
                     {formData.additional_charges.map((charge, cidx) => (
                       <div className="row g-2 mb-2 align-items-center" key={cidx}>
                         <div className="col-md-5">
-                          <input
-                            type="text"
-                            className="form-control form-control-sm border-0 bg-white"
-                            placeholder="Charge Name (e.g. Packing)"
+                          <select
+                            className="form-select form-select-sm border-0 bg-white"
                             value={charge.name}
                             onChange={(e) => {
                               const newCharges = [...formData.additional_charges];
                               newCharges[cidx].name = e.target.value;
                               setFormData(prev => ({ ...prev, additional_charges: newCharges }));
                             }}
-                          />
+                          >
+                            <option value="">Select Ledger (Charge Name)</option>
+                            {ledgers.map((l) => (
+                              <option key={l.id} value={l.name}>
+                                {l.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div className="col-md-3">
                           <input

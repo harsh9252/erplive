@@ -14,6 +14,7 @@ const normalizeDebitNotePayload = (data = {}) => ({
   reason: data.reason || "",
   place_of_supply: data.place_of_supply || "",
   remarks: data.remarks || "",
+  invoice_layout: data.invoice_layout || 'PRODUCTS',
   items: (data.items || []).map((item) => ({
     item_id: toNumberOrValue(item.item_id ?? item.productId),
     description: item.description ?? "",

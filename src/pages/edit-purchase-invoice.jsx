@@ -9,10 +9,12 @@ import { getUoms } from '../services/uomService';
 import branchService from '../services/branchService';
 import purchaseOrderService from '../services/purchaseOrderService';
 import { INDIAN_STATES } from '../utils/constants';
+import { useAuth } from '../components/AuthContext';
 
 const EditPurchaseInvoice = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { activeCompany } = useAuth();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [vendors, setVendors] = useState([]);
@@ -216,6 +218,45 @@ const EditPurchaseInvoice = () => {
     }));
   };
 
+  const isServiceOnly = useMemo(() => {
+    return localStorage.getItem('businessNature') === 'SERVICES' ||
+      companySettings?.business_nature?.toUpperCase() === 'SERVICES' ||
+      activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+  }, [companySettings, activeCompany]);
+
+  const getLineTotals = (item) => {
+    const isServices = formData.invoice_layout === 'SERVICES';
+    const qty = isServices ? 1 : (parseFloat(item.qty) || 0);
+    const rate = parseFloat(item.rate) || 0;
+    const discountPct = isServices ? 0 : (parseFloat(item.discount_pct) || 0);
+    const amount = qty * rate;
+    const discount = amount * (discountPct / 100);
+    const totalNet = amount - discount;
+    const gstRate = parseFloat(item.gst_rate) || 0;
+
+    let taxable = totalNet;
+    let taxRes = 0;
+
+    if (item.tax_type === 'INCLUSIVE') {
+      taxable = totalNet / (1 + gstRate / 100);
+      taxRes = totalNet - taxable;
+    } else if (item.tax_type === 'EXEMPT' || item.tax_type === 'NIL_RATED' || item.tax_type === 'NON_GST') {
+      taxable = totalNet;
+      taxRes = 0;
+    } else {
+      taxable = totalNet;
+      taxRes = taxable * gstRate / 100;
+    }
+
+    const lineTotal = taxable + taxRes;
+
+    return {
+      taxable,
+      taxRes,
+      lineTotal
+    };
+  };
+
   const removeItemRow = (index) => {
     if (formData.items.length > 1) {
       const newItems = formData.items.filter((_, i) => i !== index);
@@ -231,26 +272,22 @@ const EditPurchaseInvoice = () => {
     const isInterState = String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim();
 
     formData.items.forEach(item => {
-      const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
-      const discount = amount * (parseFloat(item.discount_pct) || 0) / 100;
-      const taxable = amount - discount;
-      const taxRes = taxable * (parseFloat(item.gst_rate) || 0) / 100;
-
-      subtotal += taxable;
-      totalTax += taxRes;
+      const line = getLineTotals(item);
+      subtotal += line.taxable;
+      totalTax += line.taxRes;
 
       if (isInterState) {
         const rate = item.gst_rate;
-        taxBreakdown[`IGST ${rate}%`] = (taxBreakdown[`IGST ${rate}%`] || 0) + taxRes;
+        taxBreakdown[`IGST ${rate}%`] = (taxBreakdown[`IGST ${rate}%`] || 0) + line.taxRes;
       } else {
         const rate = item.gst_rate / 2;
-        taxBreakdown[`CGST ${rate}%`] = (taxBreakdown[`CGST ${rate}%`] || 0) + (taxRes / 2);
-        taxBreakdown[`SGST ${rate}%`] = (taxBreakdown[`SGST ${rate}%`] || 0) + (taxRes / 2);
+        taxBreakdown[`CGST ${rate}%`] = (taxBreakdown[`CGST ${rate}%`] || 0) + (line.taxRes / 2);
+        taxBreakdown[`SGST ${rate}%`] = (taxBreakdown[`SGST ${rate}%`] || 0) + (line.taxRes / 2);
       }
     });
 
     const chargesTotal = (formData.additional_charges || []).reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
-    const chargesTax = (formData.additional_charges || []).reduce((sum, c) => sum + ((parseFloat(c.amount) || 0) * (parseFloat(c.gstRate) || 0)) / 100, 0);
+    const chargesTax = (formData.additional_charges || []).reduce((sum, c) => sum + ((parseFloat(c.amount) || 0) * (parseFloat(c.gstRate || c.gst_rate) || 0)) / 100, 0);
 
     const netTotal = subtotal + totalTax + chargesTotal + chargesTax;
     const roundOff = Math.round(netTotal) - netTotal;
@@ -264,7 +301,9 @@ const EditPurchaseInvoice = () => {
       roundOff,
       netTotal: Math.round(netTotal)
     };
-  }, [formData.items, formData.place_of_supply, formData.additional_charges, companySettings]);
+  }, [formData.items, formData.place_of_supply, formData.additional_charges, companySettings, formData.invoice_layout]);
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -276,7 +315,7 @@ const EditPurchaseInvoice = () => {
     let hasItemErrors = false;
     const newErrors = {};
     formData.items.forEach((item, index) => {
-      if (item.item_id && !item.warehouse_id) {
+      if (formData.invoice_layout !== 'SERVICES' && item.item_id && !item.warehouse_id) {
         newErrors[`items_${index}_warehouse_id`] = 'Warehouse is required';
         hasItemErrors = true;
       }
@@ -315,20 +354,30 @@ const EditPurchaseInvoice = () => {
 
     setProcessing(true);
     try {
+      const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
         items: formData.items.map(item => {
           const itemPayload = {
             ...item,
-            warehouse_id: item.warehouse_id ? parseInt(item.warehouse_id, 10) : null,
-            discount: parseFloat(item.discount_pct || item.discount_percent || item.discount || 0),
-            discount_percent: parseFloat(item.discount_pct || item.discount_percent || item.discount || 0),
-            discount_pct: parseFloat(item.discount_pct || item.discount_percent || item.discount || 0)
+            qty: isServices ? 1 : parseFloat(item.qty || 0),
+            warehouse_id: isServices ? null : (item.warehouse_id ? parseInt(item.warehouse_id, 10) : null),
+            uom_id: isServices ? null : item.uom_id || null,
+            discount: isServices ? 0 : parseFloat(item.discount_pct || item.discount_percent || item.discount || 0),
+            discount_percent: isServices ? 0 : parseFloat(item.discount_pct || item.discount_percent || item.discount || 0),
+            discount_pct: isServices ? 0 : parseFloat(item.discount_pct || item.discount_percent || item.discount || 0),
+            amount: (isServices ? 1 : parseFloat(item.qty || 0)) * parseFloat(item.rate || 0)
           };
 
-          if (!itemPayload.batch_number) delete itemPayload.batch_number;
-          if (!itemPayload.mfg_date) delete itemPayload.mfg_date;
-          if (!itemPayload.expiry_date) delete itemPayload.expiry_date;
+          if (isServices) {
+            delete itemPayload.batch_number;
+            delete itemPayload.mfg_date;
+            delete itemPayload.expiry_date;
+          } else {
+            if (!itemPayload.batch_number) delete itemPayload.batch_number;
+            if (!itemPayload.mfg_date) delete itemPayload.mfg_date;
+            if (!itemPayload.expiry_date) delete itemPayload.expiry_date;
+          }
 
           return itemPayload;
         }),
@@ -374,6 +423,38 @@ const EditPurchaseInvoice = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
+        {(() => {
+          if (isServiceOnly) return null;
+          return (
+            <div className="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
+              <h6 className="fw-bold mb-2">Select Invoice Layout</h6>
+              <div className="d-flex justify-content-center gap-3">
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'PRODUCTS' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'PRODUCTS' }))}
+                >
+                  <i className="isax isax-box me-2"></i>Product-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'SERVICES' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }))}
+                >
+                  <i className="isax isax-activity me-2"></i>Service-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'ECOMMERCE' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'ECOMMERCE' }))}
+                >
+                  <i className="isax isax-shopping-bag me-2"></i>E-Commerce Operator
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="card border-0 shadow-sm mb-4">
 
           <div className="card-body">
@@ -434,7 +515,7 @@ const EditPurchaseInvoice = () => {
                   ))}
                 </select>
               </div>
-              <div className="col-md-3">
+              <div className={`col-md-3 ${isServiceOnly ? 'd-none' : ''}`}>
                 <label className="form-label fw-600">Invoice Layout</label>
                 <select className="form-select shadow-none" name="invoice_layout" value={formData.invoice_layout} onChange={handleHeaderChange}>
                   <option value="PRODUCTS">Products</option>
@@ -493,13 +574,15 @@ const EditPurchaseInvoice = () => {
               <table className="table table-nowrap align-middle mb-0">
                 <thead className="bg-light">
                   <tr>
-                    <th style={{ width: '25%' }}>Item / Description</th>
-                    <th style={{ width: '15%' }}>Warehouse</th>
-                    <th style={{ width: '10%' }}>UOM</th>
-                    <th style={{ width: '10%' }}>Qty</th>
+                    <th style={{ width: formData.invoice_layout === 'SERVICES' ? '40%' : '25%' }}>
+                      {formData.invoice_layout === 'SERVICES' ? 'Service / Description' : 'Item / Description'}
+                    </th>
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '15%' }}>Warehouse</th>}
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '10%' }}>UOM</th>}
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '10%' }}>Qty</th>}
                     <th style={{ width: '10%' }}>Rate</th>
                     <th style={{ width: '10%' }}>Tax Type</th>
-                    {formData.show_discount && <th style={{ width: '10%' }}>Disc %</th>}
+                    {formData.show_discount && formData.invoice_layout !== 'SERVICES' && <th style={{ width: '10%' }}>Disc %</th>}
                     <th style={{ width: '10%' }}>GST %</th>
                     <th style={{ width: '15%' }}>ITC Eligibility</th>
                     <th className="text-center" style={{ width: '50px' }}></th>
@@ -522,7 +605,7 @@ const EditPurchaseInvoice = () => {
                             </select>
                             <input type="text" className="form-control shadow-none border-0 bg-transparent fs-12 text-muted mt-n2" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Description" />
                           </div>
-                          {(item.track_batch || item.track_expiry) && (
+                          {formData.invoice_layout !== 'SERVICES' && (item.track_batch || item.track_expiry) && (
                             <div className="mt-2 d-flex flex-column gap-2 bg-light p-2 rounded">
                               <div className="d-flex align-items-center gap-2">
                                 <div className="flex-grow-1">
@@ -545,38 +628,45 @@ const EditPurchaseInvoice = () => {
                           )}
                         </div>
                       </td>
-                      <td>
-                        <select key={`wh-${warehouses.length}`} className={`form-select shadow-none border-0 bg-transparent ${errors[`items_${index}_warehouse_id`] ? 'is-invalid' : ''}`} value={String(item.warehouse_id)} onChange={(e) => handleItemChange(index, 'warehouse_id', e.target.value)} required>
-                          <option value="">Warehouse</option>
-                          {warehouses.map(w => (
-                            <option key={w.id} value={String(w.id)}>{w.name}</option>
-                          ))}
-                        </select>
-                        {errors[`items_${index}_warehouse_id`] && <div className="invalid-feedback text-start">{errors[`items_${index}_warehouse_id`]}</div>}
-                      </td>
-                      <td>
-                        <select className="form-select shadow-none border-0 bg-transparent" value={item.uom_id} onChange={(e) => handleItemChange(index, 'uom_id', e.target.value)} required>
-                          <option value="">UOM</option>
-                          {uoms.map(u => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="1" step="any" required />
-                      </td>
+                      {formData.invoice_layout !== 'SERVICES' && (
+                        <td>
+                          <select key={`wh-${warehouses.length}`} className={`form-select shadow-none border-0 bg-transparent ${errors[`items_${index}_warehouse_id`] ? 'is-invalid' : ''}`} value={String(item.warehouse_id)} onChange={(e) => handleItemChange(index, 'warehouse_id', e.target.value)} required>
+                            <option value="">Warehouse</option>
+                            {warehouses.map(w => (
+                              <option key={w.id} value={String(w.id)}>{w.name}</option>
+                            ))}
+                          </select>
+                          {errors[`items_${index}_warehouse_id`] && <div className="invalid-feedback text-start">{errors[`items_${index}_warehouse_id`]}</div>}
+                        </td>
+                      )}
+                      {formData.invoice_layout !== 'SERVICES' && (
+                        <td>
+                          <select className="form-select shadow-none border-0 bg-transparent" value={item.uom_id} onChange={(e) => handleItemChange(index, 'uom_id', e.target.value)} required>
+                            <option value="">UOM</option>
+                            {uoms.map(u => (
+                              <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
+                      {formData.invoice_layout !== 'SERVICES' && (
+                        <td>
+                          <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="1" step="any" required />
+                        </td>
+                      )}
                       <td>
                         <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
                       </td>
                       <td>
                         <select className="form-select shadow-none border-0 bg-transparent" value={item.tax_type || 'TAXABLE'} onChange={(e) => handleItemChange(index, 'tax_type', e.target.value)}>
                           <option value="TAXABLE">Taxable</option>
+                          <option value="INCLUSIVE">Inclusive</option>
                           <option value="EXEMPT">Exempt</option>
                           <option value="NIL_RATED">Nil Rated</option>
                           <option value="NON_GST">Non GST</option>
                         </select>
                       </td>
-                      {formData.show_discount && (
+                      {formData.show_discount && formData.invoice_layout !== 'SERVICES' && (
                         <td>
                           <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.discount_pct} onChange={(e) => handleItemChange(index, 'discount_pct', e.target.value)} step="any" />
                         </td>

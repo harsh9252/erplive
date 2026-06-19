@@ -8,10 +8,12 @@ import { getSalesInvoices } from '../services/salesInvoiceService';
 import { getCreditNoteById, updateCreditNote } from '../services/creditNoteService';
 import { getUoms } from '../services/uomService';
 import { INDIAN_STATES, CREDIT_NOTE_REASONS } from '../utils/constants';
+import { useAuth } from '../components/AuthContext';
 
 const EditCreditNote = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { activeCompany } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -28,8 +30,15 @@ const EditCreditNote = () => {
     reason: 'SALES_RETURN',
     place_of_supply: '',
     remarks: '',
+    invoice_layout: '',
     items: []
   });
+
+  const isServiceOnly = useMemo(() => {
+    return localStorage.getItem('businessNature') === 'SERVICES' ||
+      companySettings?.business_nature?.toUpperCase() === 'SERVICES' ||
+      activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+  }, [companySettings, activeCompany]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -64,6 +73,10 @@ const EditCreditNote = () => {
       });
       setItems(augmentedItems);
 
+      const isServiceOnlyLocal = localStorage.getItem('businessNature') === 'SERVICES' ||
+        (settingsRes.data || settingsRes)?.business_nature?.toUpperCase() === 'SERVICES' ||
+        activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+
       setFormData({
         customer_id: invCustId,
         credit_date: (cnData.credit_note_date || cnData.credit_date || cnData.date || '').split('T')[0],
@@ -71,6 +84,7 @@ const EditCreditNote = () => {
         reason: cnData.reason || 'SALES_RETURN',
         place_of_supply: String(cnData.place_of_supply || cnData.customer?.state_code || '').trim(),
         remarks: cnData.remarks || '',
+        invoice_layout: isServiceOnlyLocal ? 'SERVICES' : (cnData.invoice_layout || 'PRODUCTS'),
         items: (cnData.items || []).map(i => {
           const itemId = String(i.item_id || i.itemId || '').trim();
           const fetchedItem = itemList.find(it => String(it.id) === itemId);
@@ -85,7 +99,9 @@ const EditCreditNote = () => {
             rate: parseFloat(i.rate) || 0,
             gst_rate: parseFloat(i.gst_rate) || 18,
             uom_id: String(itemUomId || '').trim(),
-            hsn_code: i.hsn_code || i.item?.hsn_code || (fetchedItem && fetchedItem.hsn_code) || ''
+            hsn_code: i.hsn_code || i.item?.hsn_code || (fetchedItem && fetchedItem.hsn_code) || '',
+            discount_pct: parseFloat(i.discount_pct || i.discount_percent || i.discount || 0),
+            tax_type: i.tax_type || i.taxType || 'TAXABLE'
           };
         })
       });
@@ -105,6 +121,12 @@ const EditCreditNote = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (isServiceOnly) {
+      setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }));
+    }
+  }, [isServiceOnly]);
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
@@ -152,6 +174,8 @@ const EditCreditNote = () => {
         newItems[index].gst_rate = selectedItem.gst_rate || 18;
         newItems[index].uom_id = selectedItem.uom_id || '';
         newItems[index].hsn_code = selectedItem.hsn_code || '';
+        newItems[index].discount_pct = 0;
+        newItems[index].tax_type = 'TAXABLE';
       }
     }
 
@@ -170,7 +194,9 @@ const EditCreditNote = () => {
           rate: 0, 
           gst_rate: 18, 
           uom_id: '',
-          hsn_code: '' 
+          hsn_code: '',
+          discount_pct: 0,
+          tax_type: 'TAXABLE'
         }
       ]
     }));
@@ -183,6 +209,39 @@ const EditCreditNote = () => {
     }
   };
 
+  const getLineTotals = (item) => {
+    const isServices = formData.invoice_layout === 'SERVICES';
+    const qty = isServices ? 1 : (parseFloat(item.qty) || 0);
+    const rate = parseFloat(item.rate) || 0;
+    const discountPct = isServices ? 0 : (parseFloat(item.discount_pct || item.discount) || 0);
+    const amount = qty * rate;
+    const discount = amount * (discountPct / 100);
+    const totalNet = amount - discount;
+    const gstRate = parseFloat(item.gst_rate) || 0;
+
+    let taxable = totalNet;
+    let taxRes = 0;
+
+    if (item.tax_type === 'INCLUSIVE') {
+      taxable = totalNet / (1 + gstRate / 100);
+      taxRes = totalNet - taxable;
+    } else if (item.tax_type === 'EXEMPT' || item.tax_type === 'NIL_RATED' || item.tax_type === 'NON_GST') {
+      taxable = totalNet;
+      taxRes = 0;
+    } else {
+      taxable = totalNet;
+      taxRes = taxable * gstRate / 100;
+    }
+
+    const lineTotal = taxable + taxRes;
+
+    return {
+      taxable,
+      taxRes,
+      lineTotal
+    };
+  };
+
   const summary = useMemo(() => {
     let subtotal = 0;
     let totalTax = 0;
@@ -191,24 +250,21 @@ const EditCreditNote = () => {
     const isInterState = formData.place_of_supply !== companyState;
 
     formData.items.forEach(item => {
-      const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
-      const taxRate = parseFloat(item.gst_rate) || 0;
-      const taxRes = amount * taxRate / 100;
-
-      subtotal += amount;
-      totalTax += taxRes;
+      const line = getLineTotals(item);
+      subtotal += line.taxable;
+      totalTax += line.taxRes;
 
       if (isInterState) {
-        taxBreakdown[`IGST ${taxRate}%`] = (taxBreakdown[`IGST ${taxRate}%`] || 0) + taxRes;
+        taxBreakdown[`IGST ${item.gst_rate}%`] = (taxBreakdown[`IGST ${item.gst_rate}%`] || 0) + line.taxRes;
       } else {
-        const rate = taxRate / 2;
-        taxBreakdown[`CGST ${rate}%`] = (taxBreakdown[`CGST ${rate}%`] || 0) + (taxRes / 2);
-        taxBreakdown[`SGST ${rate}%`] = (taxBreakdown[`SGST ${rate}%`] || 0) + (taxRes / 2);
+        const rate = (parseFloat(item.gst_rate) || 0) / 2;
+        taxBreakdown[`CGST ${rate}%`] = (taxBreakdown[`CGST ${rate}%`] || 0) + (line.taxRes / 2);
+        taxBreakdown[`SGST ${rate}%`] = (taxBreakdown[`SGST ${rate}%`] || 0) + (line.taxRes / 2);
       }
     });
 
     return { subtotal, totalTax, taxBreakdown, netTotal: Math.round(subtotal + totalTax) };
-  }, [formData.items, formData.place_of_supply, companySettings]);
+  }, [formData.items, formData.place_of_supply, companySettings, formData.invoice_layout]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -227,13 +283,19 @@ const EditCreditNote = () => {
 
     setSaving(true);
     try {
+      const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
         sales_invoice_id: formData.original_invoice_id || null,
         credit_note_date: formData.credit_date,
         items: formData.items.map(item => ({
           ...item,
-          amount: parseFloat(item.qty || 0) * parseFloat(item.rate || 0)
+          qty: isServices ? 1 : parseFloat(item.qty || 0),
+          uom_id: isServices ? null : item.uom_id || null,
+          discount: isServices ? 0 : parseFloat(item.discount_pct || item.discount || 0),
+          discount_percent: isServices ? 0 : parseFloat(item.discount_pct || item.discount || 0),
+          discount_pct: isServices ? 0 : parseFloat(item.discount_pct || item.discount || 0),
+          amount: (isServices ? 1 : parseFloat(item.qty || 0)) * parseFloat(item.rate || 0)
         }))
       };
       await updateCreditNote(id, payload);
@@ -264,6 +326,38 @@ const EditCreditNote = () => {
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
+        {(() => {
+          if (isServiceOnly) return null;
+          return (
+            <div className="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
+              <h6 className="fw-bold mb-2">Select Return Layout</h6>
+              <div className="d-flex justify-content-center gap-3">
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'PRODUCTS' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'PRODUCTS' }))}
+                >
+                  <i className="isax isax-box me-2"></i>Product-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'SERVICES' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }))}
+                >
+                  <i className="isax isax-activity me-2"></i>Service-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'ECOMMERCE' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'ECOMMERCE' }))}
+                >
+                  <i className="isax isax-shopping-bag me-2"></i>E-Commerce Operator
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-3">
@@ -311,6 +405,22 @@ const EditCreditNote = () => {
                 </select>
                 {errors.place_of_supply && <div className="invalid-feedback">{errors.place_of_supply}</div>}
               </div>
+
+              {formData.invoice_layout === 'ECOMMERCE' && (
+                <div className="col-md-3">
+                  <label className="form-label fw-600">E-Commerce Operator GSTIN <span className="text-danger">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control shadow-none"
+                    name="ecommerce_operator_gstin"
+                    value={formData.ecommerce_operator_gstin || ''}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, ecommerce_operator_gstin: e.target.value.toUpperCase() }));
+                    }}
+                    placeholder="Enter Operator's GSTIN"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -323,13 +433,17 @@ const EditCreditNote = () => {
             </button>
           </div>
           <div className="card-body p-0">
-            <div className="table-responsive">
+            <div className="table-responsive-none">
               <table className="table table-nowrap align-middle mb-0">
                 <thead className="bg-light">
                   <tr>
-                    <th style={{ width: '30%' }}>Item / Description</th>
-                    <th style={{ width: '8%' }}>Qty</th>
+                    <th style={{ width: formData.invoice_layout === 'SERVICES' ? '35%' : '25%' }}>
+                      {formData.invoice_layout === 'SERVICES' ? 'Service / Description' : 'Item / Description'}
+                    </th>
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '8%' }}>Qty</th>}
                     <th style={{ width: '10%' }}>Rate</th>
+                    <th style={{ width: '10%' }}>Tax Type</th>
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '8%' }}>Disc %</th>}
                     <th style={{ width: '8%' }}>GST %</th>
                     {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
                       <th style={{ width: '10%' }}>IGST</th>
@@ -344,57 +458,79 @@ const EditCreditNote = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {formData.items.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <select key={`item-${index}-${items.length}`} className="form-select shadow-none border-0 bg-transparent mb-1" value={String(item.item_id)} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
-                          <option value="">Select Item</option>
-                          {items.map(i => (
-                            <option key={i.id} value={String(i.id)}>{i.name}</option>
-                          ))}
-                        </select>
-                        {item.hsn_code && (
-                          <div className="fs-10 text-primary fw-bold ms-2 mb-1">
-                            HSN: {item.hsn_code}
-                          </div>
-                        )}
-                        <input type="text" className="form-control shadow-none border-0 bg-transparent fs-12 text-muted mt-n2" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Note for return..." />
-                      </td>
-                      <td>
-                        <input type="number" className="form-control shadow-none border-0 bg-transparent text-center" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="0.1" step="any" required />
-                      </td>
-                      <td>
-                        <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
-                      </td>
-                      <td>
-                        <select className="form-select shadow-none border-0 bg-transparent" value={item.gst_rate} onChange={(e) => handleItemChange(index, 'gst_rate', e.target.value)}>
-                          {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
-                        </select>
-                      </td>
-                      {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
-                        <td className="text-end fs-12 text-muted">
-                          ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 100).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                  {formData.items.map((item, index) => {
+                    const line = getLineTotals(item);
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <select key={`item-${index}-${items.length}`} className="form-select shadow-none border-0 bg-transparent mb-1" value={String(item.item_id)} onChange={(e) => handleItemChange(index, 'item_id', e.target.value)} required>
+                            <option value="">{formData.invoice_layout === 'SERVICES' ? 'Select Service' : 'Select Item'}</option>
+                            {(formData.invoice_layout === 'SERVICES'
+                              ? items.filter(i => String(i.inventory_type).toLowerCase() === 'service')
+                              : items
+                            ).map(i => (
+                              <option key={i.id} value={String(i.id)}>{i.name}</option>
+                            ))}
+                          </select>
+                          {item.hsn_code && (
+                            <div className="fs-10 text-primary fw-bold ms-2 mb-1">
+                              {formData.invoice_layout === 'SERVICES' ? 'SAC' : 'HSN'}: {item.hsn_code}
+                            </div>
+                          )}
+                          <input type="text" className="form-control shadow-none border-0 bg-transparent fs-12 text-muted mt-n2" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Note for return..." />
                         </td>
-                      ) : (
-                        <>
-                          <td className="text-end fs-12 text-muted">
-                            ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 200).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td>
+                            <input type="number" className="form-control shadow-none border-0 bg-transparent text-center" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="0.1" step="any" required />
                           </td>
-                          <td className="text-end fs-12 text-muted">
-                            ₹{((item.qty || 0) * (item.rate || 0) * (item.gst_rate || 0) / 200).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        )}
+                        <td>
+                          <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
+                        </td>
+                        <td>
+                          <select className="form-select shadow-none border-0 bg-transparent" value={item.tax_type || 'TAXABLE'} onChange={(e) => handleItemChange(index, 'tax_type', e.target.value)}>
+                            <option value="TAXABLE">Taxable</option>
+                            <option value="INCLUSIVE">Inclusive</option>
+                            <option value="EXEMPT">Exempt</option>
+                            <option value="NIL_RATED">Nil Rated</option>
+                            <option value="NON_GST">Non GST</option>
+                          </select>
+                        </td>
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td>
+                            <input type="number" className="form-control shadow-none border-0 bg-transparent" value={item.discount_pct || 0} onChange={(e) => handleItemChange(index, 'discount_pct', e.target.value)} step="any" />
                           </td>
-                        </>
-                      )}
-                      <td className="fw-bold text-dark text-end fs-12">
-                        ₹{(item.qty * item.rate * (1 + item.gst_rate / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="text-center">
-                        <button type="button" className="btn btn-icon-sm text-danger border-0 h-100" onClick={() => removeItemRow(index)}>
-                          <i className="isax isax-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        )}
+                        <td>
+                          <select className="form-select shadow-none border-0 bg-transparent" value={item.gst_rate} onChange={(e) => handleItemChange(index, 'gst_rate', e.target.value)}>
+                            {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                          </select>
+                        </td>
+                        {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
+                          <td className="text-end fs-12 text-muted">
+                            ₹{line.taxRes.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                          </td>
+                        ) : (
+                          <>
+                            <td className="text-end fs-12 text-muted">
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            </td>
+                            <td className="text-end fs-12 text-muted">
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            </td>
+                          </>
+                        )}
+                        <td className="fw-bold text-dark text-end fs-12">
+                          ₹{line.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="text-center">
+                          <button type="button" className="btn btn-icon-sm text-danger border-0 h-100" onClick={() => removeItemRow(index)}>
+                            <i className="isax isax-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

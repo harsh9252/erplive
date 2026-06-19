@@ -15,9 +15,11 @@ import ProductFormModal from '../components/ProductFormModal';
 import { INDIAN_STATES } from '../utils/constants';
 import AsyncSearchableSelect from '../components/AsyncSearchableSelect';
 import VendorFormModal from '../components/VendorFormModal';
+import { useAuth } from '../components/AuthContext';
 
 const AddPurchaseInvoice = () => {
   const navigate = useNavigate();
+  const { activeCompany } = useAuth();
   const [loading, setLoading] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [items, setItems] = useState([]);
@@ -120,10 +122,17 @@ const AddPurchaseInvoice = () => {
       }
 
       if (settingsRes.data?.state_code || settingsRes.state_code) {
-        setFormData(prev => ({
-          ...prev,
-          place_of_supply: settingsRes.data?.state_code || settingsRes.state_code
-        }));
+        setFormData(prev => {
+          const isServiceOnly = localStorage.getItem('businessNature') === 'SERVICES' ||
+            settingsRes.data?.business_nature?.toUpperCase() === 'SERVICES' ||
+            activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+
+          return {
+            ...prev,
+            place_of_supply: settingsRes.data?.state_code || settingsRes.state_code,
+            invoice_layout: isServiceOnly ? 'SERVICES' : prev.invoice_layout
+          };
+        });
       }
     } catch (error) {
       console.error('Error fetching master data:', error);
@@ -190,8 +199,9 @@ const AddPurchaseInvoice = () => {
   };
 
   const searchItemsFiltered = useCallback(async (query, limit) => {
-    const response = await searchItems(query, limit);
-    if (formData.invoice_layout === 'SERVICES') {
+    const isServices = formData.invoice_layout === 'SERVICES';
+    const response = await searchItems(query, limit, isServices ? { inventory_type: 'Service' } : {});
+    if (isServices) {
       if (response && response.data) {
         const rows = response.data?.items || response.data || [];
         const filtered = rows.filter(i => String(i.inventory_type).toLowerCase() === 'service');
@@ -327,6 +337,39 @@ const AddPurchaseInvoice = () => {
     }));
   };
 
+  const getLineTotals = (item) => {
+    const isServices = formData.invoice_layout === 'SERVICES';
+    const qty = isServices ? 1 : (parseFloat(item.qty) || 0);
+    const rate = parseFloat(item.rate) || 0;
+    const discountPct = isServices ? 0 : (parseFloat(item.discount_pct) || 0);
+    const amount = qty * rate;
+    const discount = amount * (discountPct / 100);
+    const totalNet = amount - discount;
+    const gstRate = parseFloat(item.gst_rate) || 0;
+
+    let taxable = totalNet;
+    let taxRes = 0;
+
+    if (item.tax_type === 'INCLUSIVE') {
+      taxable = totalNet / (1 + gstRate / 100);
+      taxRes = totalNet - taxable;
+    } else if (item.tax_type === 'EXEMPT' || item.tax_type === 'NIL_RATED' || item.tax_type === 'NON_GST') {
+      taxable = totalNet;
+      taxRes = 0;
+    } else {
+      taxable = totalNet;
+      taxRes = taxable * gstRate / 100;
+    }
+
+    const lineTotal = taxable + taxRes;
+
+    return {
+      taxable,
+      taxRes,
+      lineTotal
+    };
+  };
+
   const removeItemRow = (index) => {
     if (formData.items.length > 1) {
       const newItems = formData.items.filter((_, i) => i !== index);
@@ -342,19 +385,34 @@ const AddPurchaseInvoice = () => {
     const isInterState = String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim();
 
     formData.items.forEach(item => {
-      const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
-      const discount = amount * (parseFloat(item.discount_pct) || 0) / 100;
-      const taxable = amount - discount;
-      const taxRes = taxable * (parseFloat(item.gst_rate) || 0) / 100;
+      const isServices = formData.invoice_layout === 'SERVICES';
+      const qty = isServices ? 1 : (parseFloat(item.qty) || 0);
+      const amount = qty * (parseFloat(item.rate) || 0);
+      const discount = isServices ? 0 : amount * (parseFloat(item.discount_pct || 0) / 100);
+      const totalNet = amount - discount;
+
+      let taxable = totalNet;
+      let taxRes = 0;
+      const taxRate = parseFloat(item.gst_rate) || 0;
+
+      if (item.tax_type === 'INCLUSIVE') {
+        taxable = totalNet / (1 + taxRate / 100);
+        taxRes = totalNet - taxable;
+      } else if (item.tax_type === 'EXEMPT' || item.tax_type === 'NIL_RATED' || item.tax_type === 'NON_GST') {
+        taxable = totalNet;
+        taxRes = 0;
+      } else {
+        taxable = totalNet;
+        taxRes = taxable * taxRate / 100;
+      }
 
       subtotal += taxable;
       totalTax += taxRes;
 
       if (isInterState) {
-        const rate = item.gst_rate;
-        taxBreakdown[`IGST ${rate}%`] = (taxBreakdown[`IGST ${rate}%`] || 0) + taxRes;
+        taxBreakdown[`IGST ${taxRate}%`] = (taxBreakdown[`IGST ${taxRate}%`] || 0) + taxRes;
       } else {
-        const rate = item.gst_rate / 2;
+        const rate = taxRate / 2;
         taxBreakdown[`CGST ${rate}%`] = (taxBreakdown[`CGST ${rate}%`] || 0) + (taxRes / 2);
         taxBreakdown[`SGST ${rate}%`] = (taxBreakdown[`SGST ${rate}%`] || 0) + (taxRes / 2);
       }
@@ -375,7 +433,7 @@ const AddPurchaseInvoice = () => {
       roundOff,
       netTotal: Math.round(netTotal)
     };
-  }, [formData.items, formData.place_of_supply, formData.additional_charges, companySettings]);
+  }, [formData.items, formData.place_of_supply, formData.additional_charges, companySettings, formData.invoice_layout]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -407,7 +465,7 @@ const AddPurchaseInvoice = () => {
 
     let hasItemErrors = false;
     formData.items.forEach((item, index) => {
-      if (item.item_id && !item.warehouse_id) {
+      if (formData.invoice_layout !== 'SERVICES' && item.item_id && !item.warehouse_id) {
         newErrors[`items_${index}_warehouse_id`] = 'Warehouse is required';
         hasItemErrors = true;
       }
@@ -430,20 +488,30 @@ const AddPurchaseInvoice = () => {
 
     setLoading(true);
     try {
+      const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
         items: formData.items.map(item => {
           const itemPayload = {
             ...item,
-            warehouse_id: item.warehouse_id ? parseInt(item.warehouse_id, 10) : null,
-            discount: parseFloat(item.discount_pct || 0),
-            discount_percent: parseFloat(item.discount_pct || 0),
-            discount_pct: parseFloat(item.discount_pct || 0)
+            qty: isServices ? 1 : parseFloat(item.qty || 0),
+            warehouse_id: isServices ? null : (item.warehouse_id ? parseInt(item.warehouse_id, 10) : null),
+            uom_id: isServices ? null : item.uom_id || null,
+            discount: isServices ? 0 : parseFloat(item.discount_pct || 0),
+            discount_percent: isServices ? 0 : parseFloat(item.discount_pct || 0),
+            discount_pct: isServices ? 0 : parseFloat(item.discount_pct || 0),
+            amount: (isServices ? 1 : parseFloat(item.qty || 0)) * parseFloat(item.rate || 0)
           };
 
-          if (!itemPayload.batch_number) delete itemPayload.batch_number;
-          if (!itemPayload.mfg_date) delete itemPayload.mfg_date;
-          if (!itemPayload.expiry_date) delete itemPayload.expiry_date;
+          if (isServices) {
+            delete itemPayload.batch_number;
+            delete itemPayload.mfg_date;
+            delete itemPayload.expiry_date;
+          } else {
+            if (!itemPayload.batch_number) delete itemPayload.batch_number;
+            if (!itemPayload.mfg_date) delete itemPayload.mfg_date;
+            if (!itemPayload.expiry_date) delete itemPayload.expiry_date;
+          }
 
           return itemPayload;
         }),
@@ -493,6 +561,14 @@ const AddPurchaseInvoice = () => {
     }
   };
 
+  const isServiceOnly = useMemo(() => {
+    return localStorage.getItem('businessNature') === 'SERVICES' ||
+      companySettings?.business_nature?.toUpperCase() === 'SERVICES' ||
+      activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
+  }, [companySettings, activeCompany]);
+
+
+
   return (
     <div className="container-fluid py-4 text-dark">
       <div className="page-header d-flex align-items-center justify-content-between mb-4">
@@ -514,6 +590,38 @@ const AddPurchaseInvoice = () => {
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
+        {(() => {
+          if (isServiceOnly) return null;
+          return (
+            <div className="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
+              <h6 className="fw-bold mb-2">Select Invoice Layout</h6>
+              <div className="d-flex justify-content-center gap-3">
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'PRODUCTS' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'PRODUCTS' }))}
+                >
+                  <i className="isax isax-box me-2"></i>Product-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'SERVICES' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }))}
+                >
+                  <i className="isax isax-activity me-2"></i>Service-Based
+                </button>
+                <button
+                  type="button"
+                  className={`btn px-4 py-2 ${formData.invoice_layout === 'ECOMMERCE' ? 'btn-primary' : 'btn-outline-primary bg-white'}`}
+                  onClick={() => setFormData(prev => ({ ...prev, invoice_layout: 'ECOMMERCE' }))}
+                >
+                  <i className="isax isax-shopping-bag me-2"></i>E-Commerce Operator
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-header bg-white py-3">
             <h6 className="mb-0 fw-bold"><i className="isax isax-info-circle me-2 text-primary"></i>Invoice Header</h6>
@@ -630,7 +738,7 @@ const AddPurchaseInvoice = () => {
                 </select>
               </div>
 
-              <div className="col-md-3">
+              <div className={`col-md-3 ${isServiceOnly ? 'd-none' : ''}`}>
                 <label className="form-label fw-600">Invoice Layout</label>
                 <select className="form-select shadow-none" name="invoice_layout" value={formData.invoice_layout} onChange={handleHeaderChange}>
                   <option value="PRODUCTS">Products</option>
@@ -697,12 +805,14 @@ const AddPurchaseInvoice = () => {
               <table className="table table-borderless align-top mb-0" style={{ minWidth: '1000px' }}>
                 <thead className="bg-light border-bottom">
                   <tr className="fs-12 fw-bold text-muted text-uppercase">
-                    <th style={{ width: '30%' }} className="ps-3">Item Details</th>
-                    <th style={{ width: '12%' }}>Warehouse</th>
-                    <th style={{ width: '8%' }} className="text-center">Qty</th>
+                    <th style={{ width: formData.invoice_layout === 'SERVICES' ? '42%' : '30%' }} className="ps-3">
+                      {formData.invoice_layout === 'SERVICES' ? 'Service Details' : 'Item Details'}
+                    </th>
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '12%' }}>Warehouse</th>}
+                    {formData.invoice_layout !== 'SERVICES' && <th style={{ width: '8%' }} className="text-center">Qty</th>}
                     <th style={{ width: '10%' }} className="text-end">Rate</th>
                     <th style={{ width: '9%', minWidth: '95px' }} className="text-center">Tax Type</th>
-                    {formData.show_discount && <th style={{ width: '7%' }} className="text-end">Disc%</th>}
+                    {formData.show_discount && formData.invoice_layout !== 'SERVICES' && <th style={{ width: '7%' }} className="text-end">Disc%</th>}
                     <th style={{ width: '10%' }} className="text-end">Taxable</th>
                     <th style={{ width: '10%' }}>Tax Rate</th>
                     <th style={{ width: '12%' }} className="text-end pe-3">Total</th>
@@ -710,153 +820,167 @@ const AddPurchaseInvoice = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {formData.items.map((item, index) => (
-                    <tr key={index} className="border-bottom align-top">
-                      <td className="ps-3 py-3">
-                        <div className="d-flex align-items-center gap-1 mb-2">
-                          <div className="flex-grow-1">
-                            <AsyncSearchableSelect
-                              key={`item-${index}-${formData.invoice_layout}`}
-                              searchFn={searchItemsFiltered}
-                              onSelect={(selectedItem) => handleItemChange(index, 'item_id', selectedItem)}
-                              placeholder="Search item..."
-                              defaultValue={item.item_id ? { id: item.item_id, name: items.find(i => String(i.id) === String(item.item_id))?.name || item.description || 'Selected Item' } : null}
-                              displayKey="name"
-                              className="border-0 shadow-none"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-light p-2 d-flex align-items-center justify-content-center border"
-                            style={{ height: '38px', width: '38px' }}
-                            onClick={() => setProductModal({ isOpen: true, index })}
-                          >
-                            <i className="isax isax-add fs-18"></i>
-                          </button>
-                        </div>
-                        <div className="row g-2">
-                          <div className="col-4">
-                            <label className="fs-10 text-muted text-uppercase fw-bold mb-0">HSN</label>
-                            <input type="text" className="form-control form-control-xs border-0 bg-light shadow-none fs-11" placeholder="HSN" value={item.hsn_code} onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)} />
-                          </div>
-                          <div className="col-8">
-                            <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Description / UOM</label>
-                            <div className="input-group input-group-sm">
-                              <input
-                                type="text"
-                                className="form-control form-control-xs border-0 bg-light shadow-none fs-11"
-                                value={item.description}
-                                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                placeholder="Add description..."
+                  {formData.items.map((item, index) => {
+                    const line = getLineTotals(item);
+                    return (
+                      <tr key={index} className="border-bottom align-top">
+                        <td className="ps-3 py-3">
+                          <div className="d-flex align-items-center gap-1 mb-2">
+                            <div className="flex-grow-1">
+                              <AsyncSearchableSelect
+                                key={`item-${index}-${formData.invoice_layout}`}
+                                searchFn={searchItemsFiltered}
+                                onSelect={(selectedItem) => handleItemChange(index, 'item_id', selectedItem)}
+                                placeholder={formData.invoice_layout === 'SERVICES' ? "Search service..." : "Search item..."}
+                                defaultValue={item.item_id ? { id: item.item_id, name: items.find(i => String(i.id) === String(item.item_id))?.name || item.description || 'Selected Item' } : null}
+                                displayKey="name"
+                                className="border-0 shadow-none"
                               />
-                              <select
-                                className="form-select form-select-xs border-0 bg-light shadow-none fs-11 flex-grow-0 w-auto"
-                                value={item.uom_id}
-                                onChange={(e) => handleItemChange(index, 'uom_id', e.target.value)}
-                                required
-                              >
-                                <option value="">UOM</option>
-                                {uoms.map((u) => (
-                                  <option key={u.id} value={String(u.id)}>{u.symbol}</option>
-                                ))}
-                              </select>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-light p-2 d-flex align-items-center justify-content-center border"
+                              style={{ height: '38px', width: '38px' }}
+                              onClick={() => setProductModal({ isOpen: true, index })}
+                            >
+                              <i className="isax isax-add fs-18"></i>
+                            </button>
+                          </div>
+                          <div className="row g-2">
+                            <div className="col-4">
+                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">
+                                {formData.invoice_layout === 'SERVICES' ? 'SAC' : 'HSN'}
+                              </label>
+                              <input type="text" className="form-control form-control-xs border-0 bg-light shadow-none fs-11" placeholder={formData.invoice_layout === 'SERVICES' ? "SAC" : "HSN"} value={item.hsn_code} onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)} />
+                            </div>
+                            <div className={formData.invoice_layout === 'SERVICES' ? "col-8" : "col-8"}>
+                              <label className="fs-10 text-muted text-uppercase fw-bold mb-0">
+                                {formData.invoice_layout === 'SERVICES' ? 'Description' : 'Description / UOM'}
+                              </label>
+                              <div className="input-group input-group-sm">
+                                <input
+                                  type="text"
+                                  className="form-control form-control-xs border-0 bg-light shadow-none fs-11"
+                                  value={item.description}
+                                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                  placeholder="Add description..."
+                                />
+                                {formData.invoice_layout !== 'SERVICES' && (
+                                  <select
+                                    className="form-select form-select-xs border-0 bg-light shadow-none fs-11 flex-grow-0 w-auto"
+                                    value={item.uom_id}
+                                    onChange={(e) => handleItemChange(index, 'uom_id', e.target.value)}
+                                    required
+                                  >
+                                    <option value="">UOM</option>
+                                    {uoms.map((u) => (
+                                      <option key={u.id} value={String(u.id)}>{u.symbol}</option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        {(item.track_batch || item.track_expiry) && (
-                          <div className="mt-2 d-flex flex-column gap-2 bg-light p-2 rounded">
-                            <div className="d-flex align-items-center gap-2">
-                              <div className="flex-grow-1">
-                                <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Batch No</label>
-                                <input type="text" className="form-control form-control-xs border-0 bg-white shadow-none fs-11" placeholder="Batch No" value={item.batch_number || ''} onChange={(e) => handleItemChange(index, 'batch_number', e.target.value)} />
+                          {formData.invoice_layout !== 'SERVICES' && (item.track_batch || item.track_expiry) && (
+                            <div className="mt-2 d-flex flex-column gap-2 bg-light p-2 rounded">
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="flex-grow-1">
+                                  <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Batch No</label>
+                                  <input type="text" className="form-control form-control-xs border-0 bg-white shadow-none fs-11" placeholder="Batch No" value={item.batch_number || ''} onChange={(e) => handleItemChange(index, 'batch_number', e.target.value)} />
+                                </div>
+                              </div>
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="w-50">
+                                  <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Mfg Date</label>
+                                  <input type="date" className="form-control form-control-xs border-0 bg-white shadow-none fs-11 text-muted" value={item.mfg_date || ''} onChange={(e) => handleItemChange(index, 'mfg_date', e.target.value)} title="Mfg Date" />
+                                </div>
+                                <div className="w-50">
+                                  <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Expiry Date</label>
+                                  <input type="date" className={`form-control form-control-xs ${errors[`items_${index}_expiry_date`] ? 'is-invalid border border-danger' : 'border-0'} bg-white shadow-none fs-11 text-muted`} value={item.expiry_date || ''} onChange={(e) => handleItemChange(index, 'expiry_date', e.target.value)} title="Expiry Date" />
+                                  {errors[`items_${index}_expiry_date`] && <div className="invalid-feedback d-block fs-10 mt-1">{errors[`items_${index}_expiry_date`]}</div>}
+                                </div>
                               </div>
                             </div>
-                            <div className="d-flex align-items-center gap-2">
-                              <div className="w-50">
-                                <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Mfg Date</label>
-                                <input type="date" className="form-control form-control-xs border-0 bg-white shadow-none fs-11 text-muted" value={item.mfg_date || ''} onChange={(e) => handleItemChange(index, 'mfg_date', e.target.value)} title="Mfg Date" />
-                              </div>
-                              <div className="w-50">
-                                <label className="fs-10 text-muted text-uppercase fw-bold mb-0">Expiry Date</label>
-                                <input type="date" className={`form-control form-control-xs ${errors[`items_${index}_expiry_date`] ? 'is-invalid border border-danger' : 'border-0'} bg-white shadow-none fs-11 text-muted`} value={item.expiry_date || ''} onChange={(e) => handleItemChange(index, 'expiry_date', e.target.value)} title="Expiry Date" />
-                                {errors[`items_${index}_expiry_date`] && <div className="invalid-feedback d-block fs-10 mt-1">{errors[`items_${index}_expiry_date`]}</div>}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3">
-                        <select className={`form-select form-select-sm shadow-none border bg-white fs-12 ${errors[`items_${index}_warehouse_id`] ? 'is-invalid' : ''}`} value={item.warehouse_id} onChange={(e) => handleItemChange(index, 'warehouse_id', e.target.value)} required>
-                          <option value="">Select</option>
-                          {warehouses.map(w => (
-                            <option key={w.id} value={String(w.id)}>{w.name}</option>
-                          ))}
-                        </select>
-                        {errors[`items_${index}_warehouse_id`] && <div className="invalid-feedback">{errors[`items_${index}_warehouse_id`]}</div>}
-                      </td>
-                      <td className="py-3">
-                        <input type="number" className="form-control form-control-sm shadow-none text-center fs-12 border bg-white" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="0.001" step="any" required />
-                      </td>
-                      <td className="py-3">
-                        <input type="number" className="form-control form-control-sm shadow-none text-end fs-12 border bg-white" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
-                      </td>
-                      <td className="py-3">
-                        <select className="form-select form-select-sm shadow-none text-center fs-12 border bg-white" value={item.tax_type || 'TAXABLE'} onChange={(e) => handleItemChange(index, 'tax_type', e.target.value)}>
-                          <option value="TAXABLE">Taxable</option>
-                          <option value="EXEMPT">Exempt</option>
-                          <option value="NIL_RATED">Nil Rated</option>
-                          <option value="NON_GST">Non GST</option>
-                        </select>
-                      </td>
-                      {formData.show_discount && (
-                        <td className="py-3">
-                          <input
-                            type="number"
-                            className="form-control form-control-sm shadow-none text-end fs-12 border bg-white"
-                            value={item.discount_pct === 0 ? '' : item.discount_pct}
-                            onChange={(e) => {
-                              let val = parseFloat(e.target.value) || 0;
-                              if (val > 100) val = 100;
-                              if (val < 0) val = 0;
-                              handleItemChange(index, 'discount_pct', val);
-                            }}
-                            min="0"
-                            max="100"
-                            step="any"
-                          />
-                        </td>
-                      )}
-                      <td className="text-end py-3">
-                        <div className="fw-bold text-dark fs-13">
-                          ₹{((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * (1 - (parseFloat(item.discount_pct) || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <select className="form-select form-select-sm shadow-none fs-12 border bg-white" value={item.gst_rate} onChange={(e) => handleItemChange(index, 'gst_rate', e.target.value)}>
-                          {[0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 14, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
-                        </select>
-                        <div className="fs-10 text-muted mt-1">
-                          {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
-                            <span>IGST: ₹{(((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * (1 - (parseFloat(item.discount_pct) || 0) / 100)) * (parseFloat(item.gst_rate) || 0) / 100).toFixed(2)}</span>
-                          ) : (
-                            <span>CGST/SGST: ₹{(((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * (1 - (parseFloat(item.discount_pct) || 0) / 100)) * (parseFloat(item.gst_rate) || 0) / 200).toFixed(2)}</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="text-end py-3 pe-3">
-                        <div className="fw-bold text-primary fs-14">
-                          ₹{((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * (1 - (parseFloat(item.discount_pct) || 0) / 100) * (1 + (parseFloat(item.gst_rate) || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </div>
-                      </td>
-                      <td className="text-center py-3">
-                        {formData.items.length > 1 && (
-                          <button type="button" className="btn btn-link link-danger p-0 shadow-none border-0" onClick={() => removeItemRow(index)}>
-                            <i className="isax isax-trash fs-18"></i>
-                          </button>
+                        </td>
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td className="py-3">
+                            <select className={`form-select form-select-sm shadow-none border bg-white fs-12 ${errors[`items_${index}_warehouse_id`] ? 'is-invalid' : ''}`} value={item.warehouse_id} onChange={(e) => handleItemChange(index, 'warehouse_id', e.target.value)} required>
+                              <option value="">Select</option>
+                              {warehouses.map(w => (
+                                <option key={w.id} value={String(w.id)}>{w.name}</option>
+                              ))}
+                            </select>
+                            {errors[`items_${index}_warehouse_id`] && <div className="invalid-feedback">{errors[`items_${index}_warehouse_id`]}</div>}
+                          </td>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                        {formData.invoice_layout !== 'SERVICES' && (
+                          <td className="py-3">
+                            <input type="number" className="form-control form-control-sm shadow-none text-center fs-12 border bg-white" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} min="0.001" step="any" required />
+                          </td>
+                        )}
+                        <td className="py-3">
+                          <input type="number" className="form-control form-control-sm shadow-none text-end fs-12 border bg-white" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} step="any" required />
+                        </td>
+                        <td className="py-3">
+                          <select className="form-select form-select-sm shadow-none text-center fs-12 border bg-white" value={item.tax_type || 'TAXABLE'} onChange={(e) => handleItemChange(index, 'tax_type', e.target.value)}>
+                            <option value="TAXABLE">Taxable</option>
+                            <option value="INCLUSIVE">Inclusive</option>
+                            <option value="EXEMPT">Exempt</option>
+                            <option value="NIL_RATED">Nil Rated</option>
+                            <option value="NON_GST">Non GST</option>
+                          </select>
+                        </td>
+                        {formData.show_discount && formData.invoice_layout !== 'SERVICES' && (
+                          <td className="py-3">
+                            <input
+                              type="number"
+                              className="form-control form-control-sm shadow-none text-end fs-12 border bg-white"
+                              value={item.discount_pct === 0 ? '' : item.discount_pct}
+                              onChange={(e) => {
+                                let val = parseFloat(e.target.value) || 0;
+                                if (val > 100) val = 100;
+                                if (val < 0) val = 0;
+                                handleItemChange(index, 'discount_pct', val);
+                              }}
+                              min="0"
+                              max="100"
+                              step="any"
+                            />
+                          </td>
+                        )}
+                        <td className="text-end py-3">
+                          <div className="fw-bold text-dark fs-13">
+                            ₹{line.taxable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <select className="form-select form-select-sm shadow-none fs-12 border bg-white" value={item.gst_rate} onChange={(e) => handleItemChange(index, 'gst_rate', e.target.value)}>
+                            {[0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 14, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                          </select>
+                          <div className="fs-10 text-muted mt-1">
+                            {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
+                              <span>IGST: ₹{line.taxRes.toFixed(2)}</span>
+                            ) : (
+                              <span>CGST/SGST: ₹{(line.taxRes / 2).toFixed(2)}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-end py-3 pe-3">
+                          <div className="fw-bold text-primary fs-14">
+                            ₹{line.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        </td>
+                        <td className="text-center py-3">
+                          {formData.items.length > 1 && (
+                            <button type="button" className="btn btn-link link-danger p-0 shadow-none border-0" onClick={() => removeItemRow(index)}>
+                              <i className="isax isax-trash fs-18"></i>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

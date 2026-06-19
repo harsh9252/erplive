@@ -113,7 +113,7 @@ const AsyncSearchableSelect = ({
               />
             </div>
           </div>
-          <div className="overflow-auto" style={{ maxHeight: '250px' }}>
+          <div className="overflow-auto" style={{ maxHeight: '350px' }}>
             {loading ? (
               <div className="p-3 text-center">
                 <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
