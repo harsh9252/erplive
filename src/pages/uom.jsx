@@ -50,7 +50,7 @@ const UOM = () => {
     try {
       const response = await uomService.getUoms(1, 200, { company_id: activeCompany.id }); // Fetch a large batch to avoid pagination for now
       let uomList = response.data || [];
-      uomList = uomList.filter(u => !u.company_id || String(u.company_id) === String(activeCompany.id));
+      uomList = uomList.filter(u => String(u.company_id) === String(activeCompany.id));
       setUoms(uomList);
     } catch (error) {
       console.error('Failed to fetch UOMs:', error);
@@ -390,9 +390,6 @@ const UOM = () => {
                           <td className="ps-4">
                             <div className="d-flex align-items-center gap-2">
                               <span className="fw-semibold text-dark">{uom.name}</span>
-                              {!uom.company_id && (
-                                <span className="badge bg-light text-secondary border" style={{ fontSize: '10px' }}>Global</span>
-                              )}
                             </div>
                           </td>
                           <td>
@@ -407,26 +404,22 @@ const UOM = () => {
                           </td>
                           <td className="text-end pe-4">
                             <div className="d-flex justify-content-end gap-1">
-                              {uom.company_id && (
-                                <>
-                                  <button
-                                    className="btn btn-icon btn-soft-primary border-0"
-                                    onClick={() => handleEdit(uom)}
-                                    title="Edit"
-                                    disabled={isLoading}
-                                  >
-                                    <i className="isax isax-edit-25"></i>
-                                  </button>
-                                  <button
-                                    className="btn btn-icon btn-soft-danger border-0"
-                                    onClick={() => handleDelete(uom.id)}
-                                    title="Delete"
-                                    disabled={isLoading}
-                                  >
-                                    <i className="isax isax-trash"></i>
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                className="btn btn-icon btn-soft-primary border-0"
+                                onClick={() => handleEdit(uom)}
+                                title="Edit"
+                                disabled={isLoading}
+                              >
+                                <i className="isax isax-edit-25"></i>
+                              </button>
+                              <button
+                                className="btn btn-icon btn-soft-danger border-0"
+                                onClick={() => handleDelete(uom.id)}
+                                title="Delete"
+                                disabled={isLoading}
+                              >
+                                <i className="isax isax-trash"></i>
+                              </button>
                             </div>
                           </td>
                         </tr>

@@ -224,9 +224,6 @@ const HSNSACMaster = () => {
                                         <tr key={item.id}>
                                             <td className="ps-4 fw-600 text-dark">
                                                 {item.code}
-                                                {!item.company_id && (
-                                                    <span className="badge bg-light text-secondary ms-2 border" style={{ fontSize: '10px' }}>Global</span>
-                                                )}
                                             </td>
                                             <td>
                                                 <span className={`badge rounded-pill px-2 py-1 fs-11 ${item.type === 'HSN' ? 'bg-light-primary text-primary' : 'bg-light-success text-success'}`}>
@@ -252,24 +249,20 @@ const HSNSACMaster = () => {
                                                     >
                                                         <i className="isax isax-clock fs-16"></i>
                                                     </button>
-                                                    {item.company_id && (
-                                                        <>
-                                                            <button 
-                                                                className="btn btn-sm btn-soft-warning border-0" 
-                                                                onClick={() => handleEdit(item.id)} 
-                                                                title="Edit"
-                                                            >
-                                                                <i className="isax isax-edit-2 fs-16"></i>
-                                                            </button>
-                                                            <button 
-                                                                className="btn btn-sm btn-soft-danger border-0" 
-                                                                onClick={() => handleDelete(item.id)} 
-                                                                title="Delete"
-                                                            >
-                                                                <i className="isax isax-trash fs-16"></i>
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                    <button 
+                                                        className="btn btn-sm btn-soft-warning border-0" 
+                                                        onClick={() => handleEdit(item.id)} 
+                                                        title="Edit"
+                                                    >
+                                                        <i className="isax isax-edit-2 fs-16"></i>
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-sm btn-soft-danger border-0" 
+                                                        onClick={() => handleDelete(item.id)} 
+                                                        title="Delete"
+                                                    >
+                                                        <i className="isax isax-trash fs-16"></i>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

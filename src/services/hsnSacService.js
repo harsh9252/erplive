@@ -5,13 +5,19 @@ export const getHsnSacCodes = async (params = {}) => {
   const defaultParams = { page: 1, limit: 50 };
   const mergedParams = { ...defaultParams, ...params };
   
-  return normalizeListResponse(
+  const response = normalizeListResponse(
     await apiRequest({
       url: '/api/hsn-sac',
       method: 'GET',
       params: cleanParams(mergedParams),
     })
   );
+
+  if (response && Array.isArray(response.data)) {
+    response.data = response.data.filter(item => item.company_id);
+  }
+
+  return response;
 };
 
 export const createHsnSacCode = async (payload) =>

@@ -110,12 +110,27 @@ export const getItemStockSummary = async (id) =>
     method: 'GET',
   });
 
-export const getHsnSacItems = async (search = '') =>
-  apiRequest({
+export const getHsnSacItems = async (search = '') => {
+  const response = await apiRequest({
     url: '/api/hsn-sac',
     method: 'GET',
     params: { search },
   });
+
+  if (response && response.data) {
+    if (Array.isArray(response.data.items)) {
+      response.data.items = response.data.items.filter(item => item.company_id);
+    } else if (Array.isArray(response.data.data)) {
+      response.data.data = response.data.data.filter(item => item.company_id);
+    } else if (Array.isArray(response.data)) {
+      response.data = response.data.filter(item => item.company_id);
+    }
+  } else if (Array.isArray(response)) {
+    return response.filter(item => item.company_id);
+  }
+
+  return response;
+};
 
 export const getStockAgeingReport = async (filters = {}) =>
   apiRequest({

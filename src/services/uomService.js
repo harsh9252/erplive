@@ -1,14 +1,21 @@
 import { apiRequest } from './apiClient';
 import { cleanParams, normalizeListResponse } from './apiUtils';
 
-export const getUoms = async (page = 1, limit = 100, filters = {}) =>
-  normalizeListResponse(
+export const getUoms = async (page = 1, limit = 100, filters = {}) => {
+  const response = normalizeListResponse(
     await apiRequest({
       url: '/api/uom',
       method: 'GET',
       params: cleanParams({ page, limit, ...filters }),
     }),
   );
+  
+  if (response && Array.isArray(response.data)) {
+    response.data = response.data.filter(u => u.company_id);
+  }
+  
+  return response;
+};
 
 export const getUomById = async (id) =>
   apiRequest({
