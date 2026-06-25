@@ -22,24 +22,24 @@ const STOCK_TYPE_LABEL = {
 };
 
 const TYPE_COLORS = {
-  'Raw Material':   { pill: 'warning',  icon: 'isax-box' },
-  'Finished Good':  { pill: 'success',  icon: 'isax-box-tick' },
-  'WIP':            { pill: 'info',     icon: 'isax-setting-2' },
-  'Trading Good':   { pill: 'primary',  icon: 'isax-shop' },
-  'Consumable':     { pill: 'danger',   icon: 'isax-trash' },
+  'Raw Material': { pill: 'warning', icon: 'isax-box' },
+  'Finished Good': { pill: 'success', icon: 'isax-box-tick' },
+  'WIP': { pill: 'info', icon: 'isax-setting-2' },
+  'Trading Good': { pill: 'primary', icon: 'isax-shop' },
+  'Consumable': { pill: 'danger', icon: 'isax-trash' },
 };
 const getTypeColor = (t = '') => TYPE_COLORS[t] || { pill: 'secondary', icon: 'isax-box' };
 
-const fmt  = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 const fmtR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /* ─── Component ─────────────────────────────────────────────────── */
 const StockValuation = () => {
-  const [rows,       setRows]       = useState([]);
-  const [summary,    setSummary]    = useState({ total_value: 0, total_qty: 0, item_count: 0, bifurcation: {} });
-  const [loading,    setLoading]    = useState(true);
-  const [stockType,  setStockType]  = useState('');
-  const [search,     setSearch]     = useState('');
+  const [rows, setRows] = useState([]);
+  const [summary, setSummary] = useState({ total_value: 0, total_qty: 0, item_count: 0, bifurcation: {} });
+  const [loading, setLoading] = useState(true);
+  const [stockType, setStockType] = useState('');
+  const [search, setSearch] = useState('');
 
   /* fetch --------------------------------------------------------- */
   const fetchData = useCallback(async (type = stockType) => {
@@ -65,22 +65,22 @@ const StockValuation = () => {
       //             opening_value, purchased_qty, purchased_value,
       //             avg_rate, current_qty, current_value
       const normalised = rawRows.map((r) => ({
-        id:          r.item_id || r.id,
-        name:        r.item_name || r.name || '—',
-        sku:         r.sku || '',
-        unit:        r.unit || r.uom || 'PCS',
-        stock_type:  STOCK_TYPE_LABEL[r.stock_type] || r.stock_type || '—',
-        warehouse:   r.warehouse_name || r.warehouse || '',
-        qty:         Number(r.current_qty ?? r.closing_qty ?? r.qty ?? r.quantity ?? 0),
-        avg_cost:    Number(r.avg_rate ?? r.avg_cost ?? r.average_cost ?? r.rate ?? 0),
+        id: r.item_id || r.id,
+        name: r.item_name || r.name || '—',
+        sku: r.sku || '',
+        unit: r.unit || r.uom || 'PCS',
+        stock_type: STOCK_TYPE_LABEL[r.stock_type] || r.stock_type || '—',
+        warehouse: r.warehouse_name || r.warehouse || '',
+        qty: Number(r.current_qty ?? r.closing_qty ?? r.qty ?? r.quantity ?? 0),
+        avg_cost: Number(r.avg_rate ?? r.avg_cost ?? r.average_cost ?? r.rate ?? 0),
         total_value: Number(r.current_value ?? r.total_value ?? r.closing_value ?? r.valuation ?? 0),
-        opening_qty:   Number(r.opening_qty   ?? 0),
-        opening_rate:  Number(r.opening_rate  ?? 0),
+        opening_qty: Number(r.opening_qty ?? 0),
+        opening_rate: Number(r.opening_rate ?? 0),
         opening_value: Number(r.opening_value ?? 0),
-        purchased_qty:   Number(r.purchased_qty   ?? 0),
+        purchased_qty: Number(r.purchased_qty ?? 0),
         purchased_value: Number(r.purchased_value ?? 0),
-        hsn_code:    r.hsn_code || '',
-        category:    r.category_name || r.category || '',
+        hsn_code: r.hsn_code || '',
+        category: r.category_name || r.category || '',
       }));
 
       setRows(normalised);
@@ -88,8 +88,8 @@ const StockValuation = () => {
       // Build summary — API provides total_stock_value and bifurcation array at top level of data
       const totalValue = Number(payload.total_stock_value)
         || normalised.reduce((s, r) => s + r.total_value, 0);
-      const totalQty   = normalised.reduce((s, r) => s + r.qty, 0);
-      const itemCount  = normalised.length;
+      const totalQty = normalised.reduce((s, r) => s + r.qty, 0);
+      const itemCount = normalised.length;
 
       // Build bifurcation map from API array or compute from rows
       const bifurcation = {};
@@ -126,7 +126,7 @@ const StockValuation = () => {
   }, [rows, search]);
 
   const filteredTotals = useMemo(() => ({
-    qty:   filtered.reduce((s, r) => s + r.qty, 0),
+    qty: filtered.reduce((s, r) => s + r.qty, 0),
     value: filtered.reduce((s, r) => s + r.total_value, 0),
   }), [filtered]);
 
@@ -143,22 +143,22 @@ const StockValuation = () => {
     try {
       const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(filtered.map((r) => ({
-        'Item Name':         r.name,
-        'SKU':               r.sku,
-        'Stock Type':        r.stock_type,
-        'Unit':              r.unit,
-        'Opening Qty':       r.opening_qty,
-        'Opening Rate (₹)':  r.opening_rate,
+        'Item Name': r.name,
+        'SKU': r.sku,
+        'Stock Type': r.stock_type,
+        'Unit': r.unit,
+        'Opening Qty': r.opening_qty,
+        'Opening Rate (₹)': r.opening_rate,
         'Opening Value (₹)': r.opening_value,
-        'Purchased Qty':     r.purchased_qty,
+        'Purchased Qty': r.purchased_qty,
         'Purchased Value (₹)': r.purchased_value,
-        'Avg Rate (₹)':      r.avg_cost,
-        'Current Qty':       r.qty,
+        'Avg Rate (₹)': r.avg_cost,
+        'Current Qty': r.qty,
         'Current Value (₹)': r.total_value,
       })));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Stock Valuation');
-      XLSX.writeFile(wb, `stock_valuation_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `stock_valuation_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast.update(tid, { render: 'Excel ready!', type: 'success', isLoading: false, autoClose: 3000 });
     } catch {
       toast.update(tid, { render: 'Export failed', type: 'error', isLoading: false, autoClose: 3000 });
@@ -169,7 +169,7 @@ const StockValuation = () => {
     if (!filtered.length) { toast.warning('No data to export'); return; }
     const tid = toast.loading('Generating PDF…');
     try {
-      const { default: jsPDF } = await import('jspdf');
+      const { jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
       const doc = new jsPDF({ orientation: 'landscape' });
       doc.setFontSize(14);
@@ -185,7 +185,7 @@ const StockValuation = () => {
           fmt(r.purchased_qty), fmtR(r.purchased_value),
           fmtR(r.avg_cost), fmt(r.qty), fmtR(r.total_value),
         ]),
-        styles:     { fontSize: 7.5 },
+        styles: { fontSize: 7.5 },
         headStyles: { fillColor: [30, 41, 59] },
         foot: [[
           'Grand Total', '', '', '',
@@ -199,7 +199,7 @@ const StockValuation = () => {
         ]],
         footStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: 'bold' },
       });
-      doc.save(`stock_valuation_${new Date().toISOString().slice(0,10)}.pdf`);
+      doc.save(`stock_valuation_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.update(tid, { render: 'PDF ready!', type: 'success', isLoading: false, autoClose: 3000 });
     } catch {
       toast.update(tid, { render: 'Export failed', type: 'error', isLoading: false, autoClose: 3000 });
@@ -232,6 +232,23 @@ const StockValuation = () => {
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
+          <div className="dropdown">
+            <button className="btn btn-sm btn-primary d-flex align-items-center" data-bs-toggle="dropdown">
+              <i className="isax isax-export-1 me-1" />Export
+            </button>
+            <ul className="dropdown-menu border-0 shadow rounded-3">
+              <li>
+                <button className="dropdown-item py-2" onClick={handleExportPDF}>
+                  <i className="isax isax-document-text me-2 text-danger" />Export PDF
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item py-2" onClick={handleExportExcel}>
+                  <i className="isax isax-document-1 me-2 text-success" />Export Excel
+                </button>
+              </li>
+            </ul>
+          </div>
           {/* Search */}
           <input
             type="text"
@@ -252,23 +269,7 @@ const StockValuation = () => {
             Refresh
           </button>
           {/* Export */}
-          <div className="dropdown">
-            <button className="btn btn-sm btn-primary d-flex align-items-center" data-bs-toggle="dropdown">
-              <i className="isax isax-export-1 me-1" />Export
-            </button>
-            <ul className="dropdown-menu border-0 shadow rounded-3">
-              <li>
-                <button className="dropdown-item py-2" onClick={handleExportPDF}>
-                  <i className="isax isax-document-text me-2 text-danger" />Export PDF
-                </button>
-              </li>
-              <li>
-                <button className="dropdown-item py-2" onClick={handleExportExcel}>
-                  <i className="isax isax-document-1 me-2 text-success" />Export Excel
-                </button>
-              </li>
-            </ul>
-          </div>
+
         </div>
       </div>
 
@@ -276,30 +277,30 @@ const StockValuation = () => {
       <div className="row g-3 mb-4">
         {[
           {
-            label:  'Total Stock Value',
-            value:  fmtR(summary.total_value),
-            color:  'primary',
-            icon:   'isax-dollar-circle',
+            label: 'Total Stock Value',
+            value: fmtR(summary.total_value),
+            color: 'primary',
+            icon: 'isax-dollar-circle',
           },
           {
-            label:  'Total Items',
-            value:  summary.item_count.toLocaleString('en-IN'),
-            color:  'success',
-            icon:   'isax-box',
+            label: 'Total Items',
+            value: summary.item_count.toLocaleString('en-IN'),
+            color: 'success',
+            icon: 'isax-box',
           },
           {
-            label:  'Total Qty',
-            value:  fmt(summary.total_qty),
-            color:  'warning',
-            icon:   'isax-weight',
+            label: 'Total Qty',
+            value: fmt(summary.total_qty),
+            color: 'warning',
+            icon: 'isax-weight',
           },
           {
-            label:  'Avg Cost / Item',
-            value:  summary.item_count
+            label: 'Avg Cost / Item',
+            value: summary.item_count
               ? fmtR(summary.total_value / summary.item_count)
               : '₹0.00',
-            color:  'info',
-            icon:   'isax-calculator',
+            color: 'info',
+            icon: 'isax-calculator',
           },
         ].map((card, i) => (
           <div className="col-md-3 col-sm-6" key={i}>
@@ -318,7 +319,7 @@ const StockValuation = () => {
         ))}
       </div>
 
-      /* Type bifurcation cards (only when "All Types" selected) */
+
       {!stockType && Object.keys(summary.bifurcation).length > 1 && (
         <div className="row g-3 mb-4">
           {Object.entries(summary.bifurcation).map(([type, val]) => {

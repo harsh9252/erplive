@@ -229,6 +229,10 @@ const EditItem = () => {
                         <option value="3">Liters</option>
                         <option value="4">Meters</option>
                       </select>
+                      <div className="fs-11 text-muted mt-1">
+                        <i className="isax isax-info-circle me-1"></i>
+                        Ensure UOM matches the GST-approved unit for that product category.
+                      </div>
                     </div>
                   </div>
                 </div>

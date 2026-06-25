@@ -9,7 +9,8 @@ const AsyncSearchableSelect = ({
   valueKey = 'id',
   disabled = false,
   className = "",
-  limit = 20
+  limit = 20,
+  isClearable = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,8 +21,12 @@ const AsyncSearchableSelect = ({
   const debounceTimer = useRef(null);
 
   useEffect(() => {
-    setSelectedItem(defaultValue);
-  }, [defaultValue]);
+    setSelectedItem(prev => {
+      if (!prev && !defaultValue) return prev;
+      if (prev && defaultValue && prev[valueKey] === defaultValue[valueKey]) return prev;
+      return defaultValue;
+    });
+  }, [defaultValue, valueKey]);
 
   const performSearch = useCallback(async (query) => {
     // Allow empty query to show default results
@@ -89,7 +94,20 @@ const AsyncSearchableSelect = ({
         <span className="text-truncate flex-grow-1">
           {selectedItem ? (selectedItem[displayKey] || selectedItem.label || "Selected") : <span className="text-muted">{placeholder}</span>}
         </span>
-        <i className={`isax isax-arrow-down-1 fs-14 ms-2 transition-all ${isOpen ? 'rotate-180' : ''}`}></i>
+        <div className="d-flex align-items-center">
+          {isClearable && selectedItem && !disabled && (
+            <i 
+              className="isax isax-close-circle fs-14 ms-2 text-muted cursor-pointer hover-text-danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedItem(null);
+                onSelect(null);
+              }}
+              title="Clear selection"
+            ></i>
+          )}
+          <i className={`isax isax-arrow-down-1 fs-14 ms-2 transition-all text-muted ${isOpen ? 'rotate-180' : ''}`}></i>
+        </div>
       </div>
 
       {isOpen && (
@@ -143,6 +161,7 @@ const AsyncSearchableSelect = ({
         .rotate-180 { transform: rotate(180deg); }
         .transition-all { transition: all 0.2s ease; }
         .cursor-pointer { cursor: pointer; }
+        .hover-text-danger:hover { color: #dc3545 !important; }
         .fs-13 { font-size: 13px !important; }
         .fs-11 { font-size: 11px !important; }
       `}</style>

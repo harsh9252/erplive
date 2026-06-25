@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import customerService from '../services/customerService';
 import { getItems, searchItems } from '../services/itemService';
-import { getCompanySettings } from '../services/settingsService';
+import { getCompanySettings, getVoucherSeries, getVoucherTypes } from '../services/settingsService';
 // Wait, getUoms is in uomService
 import { getUoms } from '../services/uomService';
 import { getSalesInvoices, getSalesInvoiceById } from '../services/salesInvoiceService';
@@ -23,9 +23,12 @@ const AddCreditNote = () => {
   const [customerInvoices, setCustomerInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
   const [errors, setErrors] = useState({});
-  
+  const [availableSeries, setAvailableSeries] = useState([]);
+
   const [formData, setFormData] = useState({
     customer_id: '',
+    voucher_series_id: '',
+    note_number: '',
     credit_date: new Date().toISOString().split('T')[0],
     original_invoice_id: '',
     place_of_supply: '',
@@ -34,12 +37,12 @@ const AddCreditNote = () => {
     invoice_layout: 'PRODUCTS',
     ecommerce_operator_gstin: '',
     items: [
-      { 
-        item_id: '', 
-        description: '', 
-        qty: 1, 
-        rate: 0, 
-        gst_rate: 18, 
+      {
+        item_id: '',
+        description: '',
+        qty: 1,
+        rate: 0,
+        gst_rate: 18,
         uom_id: '',
         hsn_code: '',
         discount_pct: 0,
@@ -50,22 +53,40 @@ const AddCreditNote = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [customersRes, itemsRes, settingsRes, uomsRes] = await Promise.all([
+      const [customersRes, itemsRes, settingsRes, uomsRes, seriesRes, typesRes] = await Promise.all([
         customerService.getCustomers(1, 1000),
         getItems(1, 1000),
         getCompanySettings(),
-        getUoms(1, 1000)
+        getUoms(1, 1000),
+        getVoucherSeries(),
+        getVoucherTypes()
       ]);
-      
+
       setCustomers(Array.isArray(customersRes.data) ? customersRes.data : (customersRes.data?.rows || []));
       setItems(Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []));
       setCompanySettings(settingsRes.data || settingsRes);
       setUoms(Array.isArray(uomsRes.data) ? uomsRes.data : (uomsRes.data?.rows || []));
-      
+
+      if (seriesRes?.data && typesRes?.data) {
+        const creditNoteType = typesRes.data.find(t => String(t.code).toUpperCase() === 'CREDIT_NOTE' || String(t.name).toUpperCase().includes('CREDIT NOTE'));
+        if (creditNoteType) {
+          const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(creditNoteType.id));
+          setAvailableSeries(relatedSeries);
+          if (relatedSeries.length > 0) {
+            const def = relatedSeries.find(s => s.is_default) || relatedSeries[0];
+            setFormData(prev => ({
+              ...prev,
+              voucher_series_id: def.id.toString(),
+              note_number: `${def.prefix || ''}${String(def.starting_number || '').padStart(def.padding || 0, '0')}${def.suffix || ''}`
+            }));
+          }
+        }
+      }
+
       if (settingsRes.data?.state_code || settingsRes.state_code) {
-        setFormData(prev => ({ 
-          ...prev, 
-          place_of_supply: settingsRes.data?.state_code || settingsRes.state_code 
+        setFormData(prev => ({
+          ...prev,
+          place_of_supply: settingsRes.data?.state_code || settingsRes.state_code
         }));
       }
     } catch (error) {
@@ -110,7 +131,16 @@ const AddCreditNote = () => {
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'voucher_series_id' && value) {
+        const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
+        if (selectedSeries) {
+          updated.note_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+        }
+      }
+      return updated;
+    });
   };
 
   const handleCustomerChange = (e) => {
@@ -122,8 +152,8 @@ const AddCreditNote = () => {
       return newErr;
     });
     const customer = customers.find(c => String(c.id) === String(customerId));
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       customer_id: customerId,
       original_invoice_id: '',
       place_of_supply: customer?.state_code || companySettings?.state_code || companySettings?.data?.state_code || ''
@@ -134,9 +164,9 @@ const AddCreditNote = () => {
     const invoiceId = e.target.value;
     if (errors.original_invoice_id) setErrors(prev => ({ ...prev, original_invoice_id: null }));
     const invoice = customerInvoices.find(inv => String(inv.id) === String(invoiceId));
-    
+
     setFormData(prev => ({ ...prev, original_invoice_id: invoiceId }));
-    
+
     // Auto-populate items if requested
     if (invoice) {
       const result = await Swal.fire({
@@ -158,9 +188,9 @@ const AddCreditNote = () => {
         try {
           const res = await getSalesInvoiceById(invoiceId);
           const fullInvoice = res.data;
-          
+
           const itemsToMap = fullInvoice?.items?.length ? fullInvoice.items : (invoice.items || []);
-          
+
           if (!itemsToMap || itemsToMap.length === 0) {
             toast.warning('No items found in this invoice');
             return;
@@ -195,7 +225,7 @@ const AddCreditNote = () => {
             }
           });
           setItems(newItemsList);
-          
+
           setFormData(prev => ({
             ...prev,
             invoice_layout: isServiceOnly ? 'SERVICES' : (fullInvoice.invoice_layout || prev.invoice_layout || 'PRODUCTS'),
@@ -253,12 +283,12 @@ const AddCreditNote = () => {
       ...prev,
       items: [
         ...prev.items,
-        { 
-          item_id: '', 
-          description: '', 
-          qty: 1, 
-          rate: 0, 
-          gst_rate: 18, 
+        {
+          item_id: '',
+          description: '',
+          qty: 1,
+          rate: 0,
+          gst_rate: 18,
           uom_id: '',
           hsn_code: '',
           discount_pct: 0,
@@ -374,6 +404,8 @@ const AddCreditNote = () => {
       const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
+        voucher_series_id: formData.voucher_series_id || null,
+        note_number: formData.note_number || undefined,
         credit_note_date: formData.credit_date,
         invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
         ecommerce_gstin: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_gstin || null) : null,
@@ -387,7 +419,7 @@ const AddCreditNote = () => {
           amount: (isServices ? 1 : parseFloat(item.qty || 0)) * parseFloat(item.rate || 0)
         }))
       };
-      
+
       if (formData.original_invoice_id) {
         payload.sales_invoice_id = Number(formData.original_invoice_id);
       } else {
@@ -399,7 +431,7 @@ const AddCreditNote = () => {
       navigate('/invoicing/credit-notes');
     } catch (error) {
       console.error('Error creating credit note:', error);
-      
+
       const humanizeError = (msg) => {
         if (typeof msg !== 'string') return msg;
         return msg
@@ -490,7 +522,7 @@ const AddCreditNote = () => {
           </div>
           <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label fw-600">Customer <span className="text-danger">*</span></label>
                 <select key={`cust-${customers.length}`} className={`form-select shadow-none ${errors.customer_id ? 'is-invalid' : ''}`} name="customer_id" value={String(formData.customer_id)} onChange={handleCustomerChange}>
                   <option value="">Select Customer</option>
@@ -499,6 +531,20 @@ const AddCreditNote = () => {
                   ))}
                 </select>
                 {errors.customer_id && <div className="invalid-feedback">{errors.customer_id}</div>}
+              </div>
+              {availableSeries.length > 0 && (
+                <div className="col-md-2">
+                  <label className="form-label fw-600">Voucher Series</label>
+                  <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id || ''} onChange={handleHeaderChange}>
+                    {availableSeries.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="col-md-2">
+                <label className="form-label fw-600">Note Number</label>
+                <input type="text" className="form-control shadow-none" name="note_number" value={formData.note_number || ''} onChange={handleHeaderChange} placeholder="Auto or Custom" />
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Return Date <span className="text-danger">*</span></label>
@@ -642,15 +688,15 @@ const AddCreditNote = () => {
                         </td>
                         {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
                           <td className="text-end fs-12 text-muted">
-                            ₹{line.taxRes.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            ₹{line.taxRes.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                         ) : (
                           <>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                           </>
                         )}

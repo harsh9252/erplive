@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import customerService from '../services/customerService';
 import { getItems } from '../services/productService';
-import { getCompanySettings } from '../services/settingsService';
+import { getCompanySettings, getVoucherSeries, getVoucherTypes } from '../services/settingsService';
 import { getSalesInvoices } from '../services/salesInvoiceService';
 import { getCreditNoteById, updateCreditNote } from '../services/creditNoteService';
 import { getUoms } from '../services/uomService';
@@ -22,9 +22,12 @@ const EditCreditNote = () => {
   const [customerInvoices, setCustomerInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
   const [errors, setErrors] = useState({});
-  
+  const [availableSeries, setAvailableSeries] = useState([]);
+
   const [formData, setFormData] = useState({
     customer_id: '',
+    voucher_series_id: '',
+    note_number: '',
     credit_date: '',
     original_invoice_id: '',
     reason: 'SALES_RETURN',
@@ -42,20 +45,30 @@ const EditCreditNote = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [customersRes, itemsRes, settingsRes, uomsRes, cnRes] = await Promise.all([
+      const [customersRes, itemsRes, settingsRes, uomsRes, seriesRes, typesRes, cnRes] = await Promise.all([
         customerService.getCustomers(1, 1000),
         getItems(1, 1000),
         getCompanySettings(),
         getUoms(1, 1000),
+        getVoucherSeries(),
+        getVoucherTypes(),
         getCreditNoteById(id)
       ]);
       setUoms(Array.isArray(uomsRes.data) ? uomsRes.data : (uomsRes.data?.rows || []));
-      
+
       const cnData = cnRes.data || cnRes;
       const customerList = Array.isArray(customersRes.data) ? customersRes.data : (customersRes.data?.rows || []);
       const itemList = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []);
       setCompanySettings(settingsRes.data || settingsRes);
-      
+
+      if (seriesRes?.data && typesRes?.data) {
+        const creditNoteType = typesRes.data.find(t => String(t.code).toUpperCase() === 'CREDIT_NOTE' || String(t.name).toUpperCase().includes('CREDIT NOTE'));
+        if (creditNoteType) {
+          const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(creditNoteType.id));
+          setAvailableSeries(relatedSeries);
+        }
+      }
+
       // Virtual Injection
       const augmentedCustomers = [...customerList];
       const invCustId = String(cnData.customer_id || cnData.customerId || '').trim();
@@ -79,6 +92,8 @@ const EditCreditNote = () => {
 
       setFormData({
         customer_id: invCustId,
+        voucher_series_id: cnData.voucher_series_id ? String(cnData.voucher_series_id) : '',
+        note_number: cnData.credit_note_number || cnData.note_number || '',
         credit_date: (cnData.credit_note_date || cnData.credit_date || cnData.date || '').split('T')[0],
         original_invoice_id: cnData.sales_invoice_id ? String(cnData.sales_invoice_id).trim() : String(cnData.original_invoice_id || '').trim(),
         reason: cnData.reason || 'SALES_RETURN',
@@ -132,7 +147,16 @@ const EditCreditNote = () => {
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'voucher_series_id' && value) {
+        const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
+        if (selectedSeries) {
+          updated.note_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+        }
+      }
+      return updated;
+    });
   };
 
   const handleCustomerChange = async (e) => {
@@ -144,8 +168,8 @@ const EditCreditNote = () => {
       return newErr;
     });
     const customer = customers.find(c => String(c.id) === String(customerId));
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       customer_id: customerId,
       original_invoice_id: '',
       place_of_supply: customer?.state_code || companySettings?.state_code || companySettings?.data?.state_code || ''
@@ -188,12 +212,12 @@ const EditCreditNote = () => {
       ...prev,
       items: [
         ...prev.items,
-        { 
-          item_id: '', 
-          description: '', 
-          qty: 1, 
-          rate: 0, 
-          gst_rate: 18, 
+        {
+          item_id: '',
+          description: '',
+          qty: 1,
+          rate: 0,
+          gst_rate: 18,
           uom_id: '',
           hsn_code: '',
           discount_pct: 0,
@@ -293,6 +317,8 @@ const EditCreditNote = () => {
       const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
+        voucher_series_id: formData.voucher_series_id || null,
+        note_number: formData.note_number || undefined,
         sales_invoice_id: formData.original_invoice_id || null,
         credit_note_date: formData.credit_date,
         invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
@@ -370,7 +396,7 @@ const EditCreditNote = () => {
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label fw-600">Customer <span className="text-danger">*</span></label>
                 <select key={`cust-${customers.length}`} className={`form-select shadow-none ${errors.customer_id ? 'is-invalid' : ''}`} name="customer_id" value={String(formData.customer_id)} onChange={handleCustomerChange}>
                   <option value="">Select Customer</option>
@@ -379,6 +405,21 @@ const EditCreditNote = () => {
                   ))}
                 </select>
                 {errors.customer_id && <div className="invalid-feedback">{errors.customer_id}</div>}
+              </div>
+              {availableSeries.length > 0 && (
+                <div className="col-md-2">
+                  <label className="form-label fw-600">Voucher Series</label>
+                  <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id || ''} onChange={handleHeaderChange}>
+                    <option value="">Select Series</option>
+                    {availableSeries.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="col-md-2">
+                <label className="form-label fw-600">Note Number</label>
+                <input type="text" className="form-control shadow-none" name="note_number" value={formData.note_number || ''} onChange={handleHeaderChange} placeholder="Auto or Custom" />
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Return Date <span className="text-danger">*</span></label>
@@ -407,10 +448,10 @@ const EditCreditNote = () => {
               <div className="col-md-3">
                 <label className="form-label fw-600">Place of Supply <span className="text-danger">*</span></label>
                 <select className={`form-select shadow-none ${errors.place_of_supply ? 'is-invalid' : ''}`} name="place_of_supply" value={String(formData.place_of_supply)} onChange={handleHeaderChange}>
-                   <option value="">Select State</option>
-                   {INDIAN_STATES.map(state => (
-                     <option key={state.code} value={String(state.code)}>{state.name} ({state.code})</option>
-                   ))}
+                  <option value="">Select State</option>
+                  {INDIAN_STATES.map(state => (
+                    <option key={state.code} value={String(state.code)}>{state.name} ({state.code})</option>
+                  ))}
                 </select>
                 {errors.place_of_supply && <div className="invalid-feedback">{errors.place_of_supply}</div>}
               </div>
@@ -518,15 +559,15 @@ const EditCreditNote = () => {
                         </td>
                         {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
                           <td className="text-end fs-12 text-muted">
-                            ₹{line.taxRes.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            ₹{line.taxRes.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                         ) : (
                           <>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                           </>
                         )}

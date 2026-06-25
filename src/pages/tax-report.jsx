@@ -111,15 +111,12 @@ const TaxReport = () => {
           <h6 className="mb-0">Tax Report</h6>
         </div>
         <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
-          <div className="dropdown">
-            <button className="btn btn-outline-white d-inline-flex align-items-center shadow-none" data-bs-toggle="dropdown">
-              <i className="isax isax-export-1 me-1"></i>Export
-            </button>
-            <ul className="dropdown-menu">
-              <li><button className="dropdown-item bg-transparent border-0 py-2">Download as PDF</button></li>
-              <li><button className="dropdown-item bg-transparent border-0 py-2">Download as Excel</button></li>
-            </ul>
-          </div>
+          <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={() => typeof handleExport === 'function' ? handleExport('PDF') : null}>
+                        <i className="isax isax-document-download me-2"></i>PDF
+                      </button>
+                      <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={() => typeof handleExport === 'function' ? handleExport('Excel') : null}>
+                        <i className="isax isax-export-1 me-2"></i>Excel
+                      </button>
         </div>
       </div>
 

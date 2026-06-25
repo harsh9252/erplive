@@ -256,19 +256,12 @@ const ProfitLossReport = () => {
           <h6 className="mb-0 fw-bold">Profit & Loss Report</h6>
         </div>
         <div className="my-xl-auto">
-          <div className="dropdown">
-            <button
-              className="btn btn-outline-white d-inline-flex align-items-center shadow-none border"
-              data-bs-toggle="dropdown"
-              data-bs-display="static"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </button>
-            <ul className="dropdown-menu border-0 shadow" style={{ position: 'absolute', right: 0, left: 'auto', transform: 'translateX(-100px)', top: '100%', marginTop: '5px', minWidth: '160px' }}>
-              <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={downloadPDF}>Download PDF</button></li>
-              <li><button className="dropdown-item py-2 border-0 bg-transparent" onClick={downloadExcel}>Download Excel</button></li>
-            </ul>
-          </div>
+          <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={downloadPDF}>
+                        <i className="isax isax-document-download me-2"></i>PDF
+                      </button>
+                      <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={downloadExcel}>
+                        <i className="isax isax-export-1 me-2"></i>Excel
+                      </button>
         </div>
       </div>
       

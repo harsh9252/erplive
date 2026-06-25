@@ -60,26 +60,12 @@ const LayoutRtl = () => {
               </li>
             </ul>
           </div>
-          <div className="dropdown">
-            <Link href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as PDF
-                </Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" href="#">
-                  Download as Excel
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={() => typeof handleExport === 'function' ? handleExport('PDF') : null}>
+                        <i className="isax isax-document-download me-2"></i>PDF
+                      </button>
+                      <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={() => typeof handleExport === 'function' ? handleExport('Excel') : null}>
+                        <i className="isax isax-export-1 me-2"></i>Excel
+                      </button>
         </div>
       </div>
       <div className="bg-primary rounded welcome-wrap position-relative mb-3 d-flex align-items-center justify-content-between">

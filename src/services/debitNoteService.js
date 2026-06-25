@@ -8,6 +8,9 @@ import {
 
 const normalizeDebitNotePayload = (data = {}) => ({
   vendor_id: toNumberOrValue(data.vendor_id ?? data.vendorId),
+  voucher_series_id: toNumberOrValue(data.voucher_series_id),
+  note_number: data.note_number || data.noteNumber,
+  debit_note_number: data.note_number || data.noteNumber || data.debit_note_number,
   debit_note_date: data.debit_note_date ?? data.debit_date ?? data.debitDate,
   purchase_invoice_id:
     toNumberOrValue(data.purchase_invoice_id ?? data.original_invoice_id ?? data.originalInvoiceId) || null,

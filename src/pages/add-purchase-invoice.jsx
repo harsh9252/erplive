@@ -190,7 +190,14 @@ const AddPurchaseInvoice = () => {
 
   const handleVendorSelect = (vendor) => {
     if (errors.vendor_id) setErrors(prev => ({ ...prev, vendor_id: null }));
-    if (!vendor) return;
+    if (!vendor) {
+      setFormData(prev => ({
+        ...prev,
+        vendor_id: '',
+        place_of_supply: companySettings?.state_code || companySettings?.data?.state_code || ''
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       vendor_id: vendor.id,
@@ -443,6 +450,7 @@ const AddPurchaseInvoice = () => {
     if (!formData.invoice_date) newErrors.invoice_date = 'Invoice Date is required';
     if (!formData.place_of_supply) newErrors.place_of_supply = 'Place of Supply is required';
     if (!formData.branch_id) newErrors.branch_id = 'Branch is required';
+    if (!formData.due_date) newErrors.due_date = 'Due Date is required';
     if (availableSeries.length > 0 && !formData.voucher_series_id) newErrors.voucher_series_id = 'Please select a purchase series';
     if (!formData.invoice_number || !formData.invoice_number.trim()) newErrors.invoice_number = 'Invoice Number is required';
 
@@ -646,6 +654,7 @@ const AddPurchaseInvoice = () => {
                     placeholder="Type to search vendor..."
                     defaultValue={vendors.find(v => String(v.id) === String(formData.vendor_id))}
                     displayKey="name"
+                    isClearable={true}
                   />
                 </div>
                 {errors.vendor_id && <div className="invalid-feedback d-block">{errors.vendor_id}</div>}
@@ -691,7 +700,7 @@ const AddPurchaseInvoice = () => {
                 {errors.invoice_date && <div className="invalid-feedback">{errors.invoice_date}</div>}
               </div>
               <div className="col-md-2">
-                <label className="form-label fw-600">Due Date</label>
+                <label className="form-label fw-600">Due Date <span className="text-danger">*</span></label>
                 <input type="date" className={`form-control shadow-none ${errors.due_date ? 'is-invalid' : ''}`} name="due_date" value={formData.due_date} onChange={handleHeaderChange} />
                 {errors.due_date && <div className="invalid-feedback">{errors.due_date}</div>}
               </div>
@@ -733,7 +742,7 @@ const AddPurchaseInvoice = () => {
                 <select className="form-select shadow-none" name="purchase_order_id" value={formData.purchase_order_id || ''} onChange={handleHeaderChange}>
                   <option value="">None</option>
                   {purchaseOrders.map(po => (
-                    <option key={po.id} value={po.id}>{po.order_number}</option>
+                    <option key={po.id} value={po.id}>{po.po_number || `PO-${po.id}`}</option>
                   ))}
                 </select>
               </div>

@@ -142,7 +142,7 @@ const EditSalesInvoice = () => {
             augmentedCustomers.push(inv.customer);
           }
           setCustomers(augmentedCustomers);
-          
+
           // Set selected customer for credit limit check
           const currentCust = augmentedCustomers.find(c => String(c.id).trim() === invCustId);
           if (currentCust) setSelectedCustomer(currentCust);
@@ -156,119 +156,119 @@ const EditSalesInvoice = () => {
           });
           setItems(augmentedItems);
 
-            const parsedCharges = (() => {
-              try {
-                return typeof inv.additional_charges === 'string' ? JSON.parse(inv.additional_charges) : (inv.additional_charges || []);
-              } catch(e) { return []; }
-            })();
-            
-            let chargesTotal = 0;
-            let chargesTax = 0;
-            parsedCharges.forEach(c => {
-               chargesTotal += parseFloat(c.amount) || 0;
-               chargesTax += ((parseFloat(c.amount) || 0) * (parseFloat(c.gstRate || c.gst_rate) || 0)) / 100;
-            });
-            
-            let baseSubtotal = parseFloat(inv.taxable_amount) || 0;
-            let baseTax = (parseFloat(inv.igst) || 0) + (parseFloat(inv.cgst) || 0) + (parseFloat(inv.sgst) || 0) + (parseFloat(inv.cess) || 0);
-            const currentNetTotal = parseFloat(inv.net_total) || 0;
-            const netWithoutCharges = Math.round(baseSubtotal + baseTax);
-            
-            let finalNetTotal = currentNetTotal;
-            let finalRoundOff = parseFloat(inv.round_off) || 0;
-            
-            if (Math.abs(currentNetTotal - netWithoutCharges) <= 1 && chargesTotal > 0) {
-               const beforeRoundOff = baseSubtotal + baseTax + chargesTotal + chargesTax;
-               finalNetTotal = Math.round(beforeRoundOff);
-               finalRoundOff = finalNetTotal - beforeRoundOff;
-            }
-
-            let parsedRemarksText = inv.remarks || '';
-            let isEcommerce = false;
-            let ecommerceOperatorId = inv.ecommerce_operator_id || '';
-            let ecommerceOperatorGstin = inv.ecommerce_operator_gstin || '';
-            let refCustomerName = inv.ref_customer_name || '';
-            let refCustomerAddress = inv.ref_customer_address || '';
-            let refCustomerType = inv.ref_customer_type || 'CONSUMER';
-            let refCustomerPlaceOfSupply = inv.ref_customer_place_of_supply || '';
-            let refCustomerInvoiceNo = inv.ref_customer_invoice_no || '';
-            let refCustomerInvoiceDate = inv.ref_customer_invoice_date || '';
-
+          const parsedCharges = (() => {
             try {
-              if (inv.remarks && inv.remarks.trim().startsWith('{')) {
-                const parsed = JSON.parse(inv.remarks);
-                if (parsed && (parsed.is_ecommerce || parsed.ecommerce_operator_id)) {
-                  parsedRemarksText = parsed.text || '';
-                  isEcommerce = true;
-                  if (parsed.ecommerce_operator_id) ecommerceOperatorId = String(parsed.ecommerce_operator_id);
-                  if (parsed.ref_customer_name) refCustomerName = parsed.ref_customer_name;
-                  if (parsed.ref_customer_address) refCustomerAddress = parsed.ref_customer_address;
-                  if (parsed.ref_customer_type) refCustomerType = parsed.ref_customer_type;
-                  if (parsed.ref_customer_place_of_supply) refCustomerPlaceOfSupply = parsed.ref_customer_place_of_supply;
-                  if (parsed.ref_customer_invoice_no) refCustomerInvoiceNo = parsed.ref_customer_invoice_no;
-                  if (parsed.ref_customer_invoice_date) refCustomerInvoiceDate = parsed.ref_customer_invoice_date;
-                }
-              }
-            } catch (e) {
-              console.warn("Failed to parse remarks JSON:", e);
-            }
+              return typeof inv.additional_charges === 'string' ? JSON.parse(inv.additional_charges) : (inv.additional_charges || []);
+            } catch (e) { return []; }
+          })();
 
-            setFormData({
-              branchId: String(inv.branch_id || '').trim(),
-              customerId: invCustId,
-              invoiceNumber: inv.invoice_number || '',
-              invoiceDate: (inv.invoice_date || '').split('T')[0],
-              dueDate: (inv.due_date || '').split('T')[0],
-              financialYearId: String(inv.financial_year_id || '').trim(),
-              salesOrderId: String(inv.sales_order_id || '').trim(),
-              invoiceType: inv.invoice_type || 'B2B',
-              placeOfSupply: String(inv.place_of_supply || inv.customer?.state_code || '27').trim(),
-              reverseCharge: inv.reverse_charge || false,
-              remarks: parsedRemarksText,
-              termsAndConditions: inv.terms_and_conditions || '',
-              invoice_layout: isEcommerce || inv.invoice_layout === 'ECOMMERCE' || inv.ecommerce_operator_gstin ? 'ECOMMERCE' : (inv.invoice_layout || 'PRODUCTS'),
-              ecommerce_operator_id: ecommerceOperatorId,
-              ecommerce_operator_gstin: ecommerceOperatorGstin,
-              ref_customer_name: refCustomerName,
-              ref_customer_address: refCustomerAddress,
-              ref_customer_type: refCustomerType,
-              ref_customer_place_of_supply: refCustomerPlaceOfSupply,
-              ref_customer_invoice_no: refCustomerInvoiceNo,
-              ref_customer_invoice_date: refCustomerInvoiceDate ? refCustomerInvoiceDate.split('T')[0] : '',
-              additional_charges: parsedCharges,
-              items: (inv.items || []).map(item => ({
-                itemId: String(item.item_id || item.itemId || '').trim(),
-                description: item.description || item.item?.name || '',
-                hsnCode: item.hsn_code || '',
-                qty: !isNaN(parseFloat(item.qty)) ? parseFloat(item.qty) : 1,
-                uomId: item.uom_id || '',
-                rate: parseFloat(item.rate) || 0,
-                discountPct: parseFloat(item.discount_percent || item.discount_pct) || 0,
-                discountAmount: parseFloat(item.discount_amount) || 0,
-                taxableAmount: parseFloat(item.taxable_amount) || 0,
-                gstRate: !isNaN(parseInt(item.gst_rate)) ? parseInt(item.gst_rate) : 18,
-                igstAmount: parseFloat(item.igst_amount) || 0,
-                cgstAmount: parseFloat(item.cgst_amount) || 0,
-                sgstAmount: parseFloat(item.sgst_amount) || 0,
-                cessAmount: parseFloat(item.cess_amount) || 0,
-                totalAmount: parseFloat(item.total_amount) || 0,
-                taxType: item.tax_type || item.taxType || 'TAXABLE',
-                warehouseId: String(item.warehouse_id || '').trim(),
-              })),
-              summary: {
-                subtotal: baseSubtotal,
-                totalDiscount: parseFloat(inv.discount) || 0,
-                taxableAmount: baseSubtotal,
-                igst: parseFloat(inv.igst) || 0,
-                cgst: parseFloat(inv.cgst) || 0,
-                sgst: parseFloat(inv.sgst) || 0,
-                cess: parseFloat(inv.cess) || 0,
-                additionalCharges: chargesTotal,
-                additionalChargesTax: chargesTax,
-                roundOff: finalRoundOff,
-                netTotal: finalNetTotal,
+          let chargesTotal = 0;
+          let chargesTax = 0;
+          parsedCharges.forEach(c => {
+            chargesTotal += parseFloat(c.amount) || 0;
+            chargesTax += ((parseFloat(c.amount) || 0) * (parseFloat(c.gstRate || c.gst_rate) || 0)) / 100;
+          });
+
+          let baseSubtotal = parseFloat(inv.taxable_amount) || 0;
+          let baseTax = (parseFloat(inv.igst) || 0) + (parseFloat(inv.cgst) || 0) + (parseFloat(inv.sgst) || 0) + (parseFloat(inv.cess) || 0);
+          const currentNetTotal = parseFloat(inv.net_total) || 0;
+          const netWithoutCharges = Math.round(baseSubtotal + baseTax);
+
+          let finalNetTotal = currentNetTotal;
+          let finalRoundOff = parseFloat(inv.round_off) || 0;
+
+          if (Math.abs(currentNetTotal - netWithoutCharges) <= 1 && chargesTotal > 0) {
+            const beforeRoundOff = baseSubtotal + baseTax + chargesTotal + chargesTax;
+            finalNetTotal = Math.round(beforeRoundOff);
+            finalRoundOff = finalNetTotal - beforeRoundOff;
+          }
+
+          let parsedRemarksText = inv.remarks || '';
+          let isEcommerce = false;
+          let ecommerceOperatorId = inv.ecommerce_operator_id || '';
+          let ecommerceOperatorGstin = inv.ecommerce_operator_gstin || '';
+          let refCustomerName = inv.ref_customer_name || '';
+          let refCustomerAddress = inv.ref_customer_address || '';
+          let refCustomerType = inv.ref_customer_type || 'CONSUMER';
+          let refCustomerPlaceOfSupply = inv.ref_customer_place_of_supply || '';
+          let refCustomerInvoiceNo = inv.ref_customer_invoice_no || '';
+          let refCustomerInvoiceDate = inv.ref_customer_invoice_date || '';
+
+          try {
+            if (inv.remarks && inv.remarks.trim().startsWith('{')) {
+              const parsed = JSON.parse(inv.remarks);
+              if (parsed && (parsed.is_ecommerce || parsed.ecommerce_operator_id)) {
+                parsedRemarksText = parsed.text || '';
+                isEcommerce = true;
+                if (parsed.ecommerce_operator_id) ecommerceOperatorId = String(parsed.ecommerce_operator_id);
+                if (parsed.ref_customer_name) refCustomerName = parsed.ref_customer_name;
+                if (parsed.ref_customer_address) refCustomerAddress = parsed.ref_customer_address;
+                if (parsed.ref_customer_type) refCustomerType = parsed.ref_customer_type;
+                if (parsed.ref_customer_place_of_supply) refCustomerPlaceOfSupply = parsed.ref_customer_place_of_supply;
+                if (parsed.ref_customer_invoice_no) refCustomerInvoiceNo = parsed.ref_customer_invoice_no;
+                if (parsed.ref_customer_invoice_date) refCustomerInvoiceDate = parsed.ref_customer_invoice_date;
               }
-            });
+            }
+          } catch (e) {
+            console.warn("Failed to parse remarks JSON:", e);
+          }
+
+          setFormData({
+            branchId: String(inv.branch_id || '').trim(),
+            customerId: invCustId,
+            invoiceNumber: inv.invoice_number || '',
+            invoiceDate: (inv.invoice_date || '').split('T')[0],
+            dueDate: (inv.due_date || '').split('T')[0],
+            financialYearId: String(inv.financial_year_id || '').trim(),
+            salesOrderId: String(inv.sales_order_id || '').trim(),
+            invoiceType: inv.invoice_type || 'B2B',
+            placeOfSupply: String(inv.place_of_supply || inv.customer?.state_code || '27').trim(),
+            reverseCharge: inv.reverse_charge || false,
+            remarks: parsedRemarksText,
+            termsAndConditions: inv.terms_and_conditions || '',
+            invoice_layout: isEcommerce || inv.invoice_layout === 'ECOMMERCE' || inv.ecommerce_operator_gstin ? 'ECOMMERCE' : (inv.invoice_layout || 'PRODUCTS'),
+            ecommerce_operator_id: ecommerceOperatorId,
+            ecommerce_operator_gstin: ecommerceOperatorGstin,
+            ref_customer_name: refCustomerName,
+            ref_customer_address: refCustomerAddress,
+            ref_customer_type: refCustomerType,
+            ref_customer_place_of_supply: refCustomerPlaceOfSupply,
+            ref_customer_invoice_no: refCustomerInvoiceNo,
+            ref_customer_invoice_date: refCustomerInvoiceDate ? refCustomerInvoiceDate.split('T')[0] : '',
+            additional_charges: parsedCharges,
+            items: (inv.items || []).map(item => ({
+              itemId: String(item.item_id || item.itemId || '').trim(),
+              description: item.description || item.item?.name || '',
+              hsnCode: item.hsn_code || '',
+              qty: !isNaN(parseFloat(item.qty)) ? parseFloat(item.qty) : 1,
+              uomId: item.uom_id || '',
+              rate: parseFloat(item.rate) || 0,
+              discountPct: parseFloat(item.discount_percent || item.discount_pct) || 0,
+              discountAmount: parseFloat(item.discount_amount) || 0,
+              taxableAmount: parseFloat(item.taxable_amount) || 0,
+              gstRate: !isNaN(parseInt(item.gst_rate)) ? parseInt(item.gst_rate) : 18,
+              igstAmount: parseFloat(item.igst_amount) || 0,
+              cgstAmount: parseFloat(item.cgst_amount) || 0,
+              sgstAmount: parseFloat(item.sgst_amount) || 0,
+              cessAmount: parseFloat(item.cess_amount) || 0,
+              totalAmount: parseFloat(item.total_amount) || 0,
+              taxType: item.tax_type || item.taxType || 'TAXABLE',
+              warehouseId: String(item.warehouse_id || '').trim(),
+            })),
+            summary: {
+              subtotal: baseSubtotal,
+              totalDiscount: parseFloat(inv.discount) || 0,
+              taxableAmount: baseSubtotal,
+              igst: parseFloat(inv.igst) || 0,
+              cgst: parseFloat(inv.cgst) || 0,
+              sgst: parseFloat(inv.sgst) || 0,
+              cess: parseFloat(inv.cess) || 0,
+              additionalCharges: chargesTotal,
+              additionalChargesTax: chargesTax,
+              roundOff: finalRoundOff,
+              netTotal: finalNetTotal,
+            }
+          });
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -306,9 +306,9 @@ const EditSalesInvoice = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
     const totalDiscount = items.reduce((sum, item) => sum + item.discountAmount, 0);
     const taxableAmount = items.reduce((sum, item) => sum + item.taxableAmount, 0);
-    
+
     let totalIgst = 0, totalCgst = 0, totalSgst = 0, totalCess = 0;
-    
+
     items.forEach(item => {
       const gst = calculateLineGST(item, companyState, placeOfSupply);
       totalIgst += gst.igst;
@@ -444,7 +444,7 @@ const EditSalesInvoice = () => {
         rate: selectedItem.sales_price || selectedItem.base_price || 0,
         gstRate: selectedItem.tax_rate || 18,
       };
-      
+
       const qty = parseFloat(newItems[index].qty) || 0;
       const rate = parseFloat(newItems[index].rate) || 0;
       const gstRate = parseFloat(newItems[index].gstRate) || 0;
@@ -461,7 +461,7 @@ const EditSalesInvoice = () => {
         newItems[index].discountAmount = discountAmount;
         taxableAmount = lineTotal - discountAmount;
       }
-      
+
       newItems[index].taxableAmount = taxableAmount;
 
       const gst = calculateLineGST(newItems[index], company?.state_code || '27', formData.placeOfSupply);
@@ -528,7 +528,7 @@ const EditSalesInvoice = () => {
 
     if (!formData.customerId) return toast.error('Please select a customer');
     if (formData.items.some(item => !item.itemId)) return toast.error('Please select items');
-    
+
     if (formData.invoice_layout === 'ECOMMERCE') {
       if (!formData.ecommerce_operator_id) {
         return toast.error('Please select an E-Commerce operator');
@@ -700,7 +700,7 @@ const EditSalesInvoice = () => {
                   const cust = customers.find(c => String(c.id) === customerId);
                   setSelectedCustomer(cust || null);
                   const newPlaceOfSupply = cust?.state_code || company?.state_code || '';
-                  
+
                   setFormData(prev => {
                     const updated = {
                       ...prev,
@@ -738,7 +738,7 @@ const EditSalesInvoice = () => {
                         totalAmount: item.taxableAmount + gst.igst + gst.cgst + gst.sgst + (gst.cess || 0),
                       };
                     });
-                    
+
                     return updated;
                   });
 
@@ -812,7 +812,7 @@ const EditSalesInvoice = () => {
                     </select>
                     {errors.ecommerce_operator_id && <div className="invalid-feedback">{errors.ecommerce_operator_id}</div>}
                   </div>
-                  
+
                   <div className="col-md-3">
                     <label className="form-label fs-13 text-muted">Operator GSTIN</label>
                     <input
@@ -1004,7 +1004,7 @@ const EditSalesInvoice = () => {
                   <label className="form-label fs-13 text-muted">Terms and Conditions</label>
                   <textarea className="form-control fs-14" rows="3" name="termsAndConditions" value={formData.termsAndConditions} onChange={handleInputChange} placeholder="Terms..."></textarea>
                 </div>
-                
+
                 <div className="card bg-light border-0 mt-4">
                   <div className="card-header bg-transparent border-0 py-3">
                     <div className="d-flex align-items-center justify-content-between">

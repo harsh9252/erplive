@@ -124,7 +124,7 @@ const AddSalesInvoice = () => {
         const isServiceOnly = localStorage.getItem('businessNature') === 'SERVICES' ||
           companyRes.data?.business_nature?.toUpperCase() === 'SERVICES' ||
           activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
-        
+
         if (isServiceOnly) {
           setFormData(prev => ({ ...prev, invoice_layout: 'SERVICES' }));
         }
@@ -269,6 +269,12 @@ const AddSalesInvoice = () => {
     if (errors.customerId) setErrors(prev => ({ ...prev, customerId: null }));
     if (!selectedCustomer) {
       setSelectedCustomer(null);
+      setFormData(prev => ({
+        ...prev,
+        customerId: '',
+        invoiceType: 'B2C',
+        placeOfSupply: company?.state_code || ''
+      }));
       return;
     }
     setSelectedCustomer(selectedCustomer);
@@ -536,7 +542,7 @@ const AddSalesInvoice = () => {
         newErrors.dueDate = 'Due Date cannot be earlier than Invoice Date';
       }
     }
-    
+
     if (formData.invoice_layout === 'ECOMMERCE') {
       if (!formData.ecommerce_operator_id) {
         newErrors.ecommerce_operator_id = 'Please select an E-Commerce operator';
@@ -556,7 +562,7 @@ const AddSalesInvoice = () => {
       if (!formData.ref_customer_invoice_date || formData.ref_customer_invoice_date.trim() === '') {
         newErrors.ref_customer_invoice_date = 'Reference Customer Invoice Date is required';
       }
-      
+
       if (!formData.ecommerce_operator_gstin || formData.ecommerce_operator_gstin.trim() === '') {
         newErrors.ecommerce_operator_gstin = 'GSTIN is required for E-Commerce layout';
       } else {
@@ -673,7 +679,7 @@ const AddSalesInvoice = () => {
       <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
           <form onSubmit={handleSubmit} noValidate>
-            
+
             {(() => {
               const isServiceOnly = localStorage.getItem('businessNature') === 'SERVICES' ||
                 company?.business_nature?.toUpperCase() === 'SERVICES' ||
@@ -728,10 +734,11 @@ const AddSalesInvoice = () => {
                     placeholder="Type to search customer..."
                     defaultValue={selectedCustomer ? { id: selectedCustomer.id, name: selectedCustomer.name } : null}
                     displayKey="name"
+                    isClearable={true}
                   />
                 </div>
                 {errors.customerId && <div className="invalid-feedback d-block">{errors.customerId}</div>}
-                
+
                 {selectedCustomer && (
                   <div className="mt-2 p-2 border rounded bg-white fs-12 text-muted">
                     <div className="fw-bold text-dark">{selectedCustomer.name}</div>
@@ -880,7 +887,7 @@ const AddSalesInvoice = () => {
                     </select>
                     {errors.ecommerce_operator_id && <div className="invalid-feedback">{errors.ecommerce_operator_id}</div>}
                   </div>
-                  
+
                   <div className="col-md-3">
                     <label className="form-label fw-600">Operator GSTIN</label>
                     <input

@@ -354,7 +354,7 @@ const EditProformaInvoice = () => {
                   <span className="text-muted fs-14">Sub Total</span>
                   <span className="fw-bold">₹{totals.grossTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                
+
                 {totals.totalDiscount > 0 && (
                   <div className="d-flex justify-content-between mb-2 text-danger">
                     <span className="fs-14">Discount</span>
@@ -372,7 +372,7 @@ const EditProformaInvoice = () => {
                   <span className="text-muted fs-14">Total Tax</span>
                   <span className="fw-bold">₹{totals.totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                
+
                 {Math.abs(totals.roundOff) > 0.001 && (
                   <div className="d-flex justify-content-between mb-3">
                     <span className="text-muted fs-14">Round Off</span>

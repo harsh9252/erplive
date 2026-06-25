@@ -5,7 +5,7 @@ import { getCustomers } from '../services/customerService';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import CollectPaymentModal from '../components/CollectPaymentModal';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 /* Using global bootstrap from window */
@@ -228,26 +228,18 @@ const SalesInvoices = () => {
           </nav>
         </div>
         <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
-          <div className="dropdown">
-            <button
-              className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none border"
-              data-bs-toggle="dropdown"
+          <button
+              className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2"
+              onClick={() => handleExport('PDF')}
             >
-              <i className="isax isax-export-1 me-1"></i>Export
+              <i className="isax isax-document-download me-2"></i>PDF
             </button>
-            <ul className="dropdown-menu border-0 shadow-sm rounded-12">
-              <li>
-                <button className="dropdown-item py-2" onClick={() => handleExport('PDF')}>
-                  <i className="isax isax-document-text me-2 text-danger"></i>Download as PDF
-                </button>
-              </li>
-              <li>
-                <button className="dropdown-item py-2" onClick={() => handleExport('Excel')}>
-                  <i className="isax isax-document-code me-2 text-success"></i>Download as Excel
-                </button>
-              </li>
-            </ul>
-          </div>
+            <button
+              className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none"
+              onClick={() => handleExport('Excel')}
+            >
+              <i className="isax isax-export-1 me-2"></i>Excel
+            </button>
           <Link to="/invoicing/sales/add" className="btn btn-primary d-flex align-items-center rounded-pill px-3">
             <i className="isax isax-add-circle me-1"></i>Create Invoice
           </Link>

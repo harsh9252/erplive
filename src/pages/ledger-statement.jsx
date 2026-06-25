@@ -7,7 +7,7 @@ import reportService from '../services/reportService';
 import branchService from '../services/branchService';
 import { financialYearService } from '../services/financialYearService';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useAuth } from '../components/AuthContext';
 
@@ -36,13 +36,15 @@ const LedgerStatement = () => {
     const fetchStatement = useCallback(async (forceRefresh = false) => {
         setLoading(true);
         try {
+            let currentLedger = ledger;
             // First get ledger info if not already loaded or if force refresh requested
-            if (!ledger || forceRefresh) {
+            if (!currentLedger || forceRefresh) {
                 const [ledgerResp, branchResp] = await Promise.all([
                     ledgerService.getLedger(id),
                     branchService.getBranches()
                 ]);
-                setLedger(ledgerResp.data || ledgerResp);
+                currentLedger = ledgerResp.data || ledgerResp;
+                setLedger(currentLedger);
                 setBranches(branchResp.data || []);
             }
 
@@ -83,16 +85,29 @@ const LedgerStatement = () => {
                     
                     // Build particulars from every known field name the backend might use
                     const particulars =
-                        entry.particulars ||
+                        currentLedger?.name ||
+                        entry.name ||
                         entry.ledger_name ||
                         entry.contra_ledger_name ||
+                        entry.contra_account_name ||
+                        entry.opposite_ledger_name ||
+                        entry.opposite_account_name ||
                         entry.against_ledger ||
                         entry.contra_ledger ||
                         entry.account_name ||
                         entry.against_account ||
+                        entry.party_name ||
+                        entry.contact_name ||
                         entry.ledger?.name ||
+                        entry.contra_ledger?.name ||
+                        entry.opposite_ledger?.name ||
                         entry.contra?.name ||
                         entry.account?.name ||
+                        entry.party?.name ||
+                        entry.contact?.name ||
+                        entry.particulars ||
+                        entry.voucher?.narration ||
+                        entry.voucher?.particulars ||
                         entry.narration ||
                         entry.description ||
                         '';

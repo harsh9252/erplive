@@ -12,7 +12,7 @@ const AddSalesOrder = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
-  
+
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -21,7 +21,7 @@ const AddSalesOrder = () => {
   const [proformaInvoices, setProformaInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
   const [errors, setErrors] = useState({});
-  
+
   const [formData, setFormData] = useState({
     customer_id: '',
     order_date: new Date().toISOString().split('T')[0],
@@ -32,13 +32,13 @@ const AddSalesOrder = () => {
     warehouse_id: '',
     remarks: '',
     items: [
-      { 
-        item_id: '', 
-        description: '', 
-        qty: 1, 
-        rate: 0, 
+      {
+        item_id: '',
+        description: '',
+        qty: 1,
+        rate: 0,
         discount_pct: 0,
-        warehouse_id: '' 
+        warehouse_id: ''
       }
     ]
   });
@@ -52,19 +52,19 @@ const AddSalesOrder = () => {
         getWarehouses(),
         getProformaInvoices()
       ]);
-      
+
       const customerList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.rows || []);
       const itemList = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.rows || []);
       const settings = settingsRes.data || settingsRes;
       const warehouseList = whRes.data || whRes || [];
       const proformaList = Array.isArray(proformaRes.data) ? proformaRes.data : (proformaRes.data?.rows || proformaRes?.items || []);
-      
+
       setCustomers(customerList);
       setItems(itemList);
       setCompanySettings(settings);
       setWarehouses(warehouseList);
       setProformaInvoices(proformaList);
-      
+
       if (!isEditMode) {
         const defaultState = settings.state_code;
         if (defaultState) {
@@ -73,7 +73,7 @@ const AddSalesOrder = () => {
       } else {
         const orderRes = await getSalesOrderById(id);
         const order = orderRes.data || orderRes;
-        
+
         console.log('API Order Data:', order);
 
         // Virtual Injection: If the customer or items are missing from the global lists, 
@@ -141,8 +141,8 @@ const AddSalesOrder = () => {
       return newErr;
     });
     const customer = customers.find(c => String(c.id) === String(customerId));
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       customer_id: customerId,
       place_of_supply: customer?.state_code || companySettings?.state_code || companySettings?.data?.state_code || ''
     }));
@@ -151,13 +151,13 @@ const AddSalesOrder = () => {
   const handleProformaChange = async (e) => {
     const pId = e.target.value;
     setFormData(prev => ({ ...prev, proforma_invoice_id: pId }));
-    
+
     if (pId) {
       try {
         setLoading(true);
         const res = await getProformaInvoiceById(pId);
         const pi = res.data || res;
-        
+
         setFormData(prev => ({
           ...prev,
           customer_id: String(pi.customer_id || prev.customer_id),
@@ -199,11 +199,11 @@ const AddSalesOrder = () => {
       ...prev,
       items: [
         ...prev.items,
-        { 
-          item_id: '', 
-          description: '', 
-          qty: 1, 
-          rate: 0, 
+        {
+          item_id: '',
+          description: '',
+          qty: 1,
+          rate: 0,
           discount_pct: 0,
           warehouse_id: prev.warehouse_id || ''
         }
@@ -221,7 +221,7 @@ const AddSalesOrder = () => {
   const summary = useMemo(() => {
     let subtotal = 0;
     let totalDiscount = 0;
-    
+
     formData.items.forEach(item => {
       const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
       const discount = amount * (parseFloat(item.discount_pct) || 0) / 100;

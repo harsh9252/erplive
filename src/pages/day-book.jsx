@@ -40,7 +40,7 @@ const DayBook = () => {
             } else {
                 processedVouchers.push({
                     date: vch.voucher_date || vch.date,
-                    particulars: vch.particulars || vch.narration || 'Voucher',
+                    particulars: vch.name || vch.ledger_name || vch.party_name || vch.contact_name || vch.ledger?.name || vch.particulars || vch.narration || 'Voucher',
                     vch_type: vch.voucher_type || vch.vch_type,
                     vch_no: vch.reference_number || vch.vch_no || `VCH-${vch.id}`,
                     debit: Number(vch.debit || 0),

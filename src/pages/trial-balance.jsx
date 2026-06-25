@@ -229,28 +229,12 @@ const TrialBalance = () => {
           <h6 className="mb-0">Trial Balance Report</h6>
         </div>
         <div className="my-xl-auto">
-          <div className="dropdown">
-            <Link
-              href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-              data-bs-display="static"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu dropdown-menu-end" style={{ right: 0, left: 'auto', transform: 'none', top: '100%', marginTop: '5px' }}>
-              <li>
-                <button className="dropdown-item border-0 bg-transparent" onClick={downloadPDF}>
-                  Download as PDF
-                </button>
-              </li>
-              <li>
-                <button className="dropdown-item border-0 bg-transparent" onClick={downloadExcel}>
-                  Download as Excel
-                </button>
-              </li>
-            </ul>
-          </div>
+          <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={downloadPDF}>
+                        <i className="isax isax-document-download me-2"></i>PDF
+                      </button>
+                      <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={downloadExcel}>
+                        <i className="isax isax-export-1 me-2"></i>Excel
+                      </button>
         </div>
       </div>
       <div className="border-bottom mb-3">

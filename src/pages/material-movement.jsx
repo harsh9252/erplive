@@ -100,14 +100,18 @@ const MaterialMovement = () => {
       doc.setFontSize(10);
       doc.text(`Date Range: ${fromDate} to ${toDate}`, 14, 22);
 
-      const tableData = movements.map(mov => [
-        mov.created_at ? new Date(mov.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—',
-        mov.item_name || '—',
-        mov.warehouse_name || '—',
-        mov.movement_type === 'RAW_MATERIAL' ? 'Consumed' : mov.movement_type === 'FINISHED_GOODS' ? 'Produced' : mov.movement_type,
-        mov.txn_type === 'OUT' ? `-${mov.qty}` : `+${mov.qty}`,
-        mov.production_order ? (mov.production_order.order_number || `Order #${mov.production_order.id}`) : '—'
-      ]);
+      const tableData = movements.map(mov => {
+        const type = mov.movement_type || (mov.reference_type === 'PRODUCTION' ? (mov.txn_type === 'OUT' ? 'RAW_MATERIAL' : 'FINISHED_GOODS') : mov.reference_type);
+        const po = mov.productionOrder || mov.production_order;
+        return [
+          mov.created_at ? new Date(mov.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—',
+          mov.item?.name || mov.item_name || '—',
+          mov.warehouse?.name || mov.warehouse_name || '—',
+          type === 'RAW_MATERIAL' ? 'Consumed' : type === 'FINISHED_GOODS' ? 'Produced' : type || '—',
+          mov.txn_type === 'OUT' ? `-${mov.qty}` : `+${mov.qty}`,
+          po ? (po.order_number || `Order #${po.id}`) : '—'
+        ];
+      });
 
       autoTable(doc, {
         startY: 30,
@@ -132,14 +136,18 @@ const MaterialMovement = () => {
     try {
       const XLSX = await import('xlsx');
       
-      const exportData = movements.map(mov => ({
-        Date: mov.created_at ? new Date(mov.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—',
-        Item: mov.item_name || '—',
-        Warehouse: mov.warehouse_name || '—',
-        Type: mov.movement_type === 'RAW_MATERIAL' ? 'Consumed' : mov.movement_type === 'FINISHED_GOODS' ? 'Produced' : mov.movement_type,
-        Qty: mov.txn_type === 'OUT' ? -mov.qty : mov.qty,
-        Reference: mov.production_order ? (mov.production_order.order_number || `Order #${mov.production_order.id}`) : '—'
-      }));
+      const exportData = movements.map(mov => {
+        const type = mov.movement_type || (mov.reference_type === 'PRODUCTION' ? (mov.txn_type === 'OUT' ? 'RAW_MATERIAL' : 'FINISHED_GOODS') : mov.reference_type);
+        const po = mov.productionOrder || mov.production_order;
+        return {
+          Date: mov.created_at ? new Date(mov.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—',
+          Item: mov.item?.name || mov.item_name || '—',
+          Warehouse: mov.warehouse?.name || mov.warehouse_name || '—',
+          Type: type === 'RAW_MATERIAL' ? 'Consumed' : type === 'FINISHED_GOODS' ? 'Produced' : type || '—',
+          Qty: mov.txn_type === 'OUT' ? -mov.qty : mov.qty,
+          Reference: po ? (po.order_number || `Order #${po.id}`) : '—'
+        };
+      });
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -153,14 +161,15 @@ const MaterialMovement = () => {
     }
   };
 
-  const getStatusBadge = (type) => {
+  const getStatusBadge = (mov) => {
+    const type = mov.movement_type || (mov.reference_type === 'PRODUCTION' ? (mov.txn_type === 'OUT' ? 'RAW_MATERIAL' : 'FINISHED_GOODS') : mov.reference_type);
     switch (type) {
       case 'RAW_MATERIAL':
         return <span className="badge bg-soft-danger text-danger">Raw Material (Consumed)</span>;
       case 'FINISHED_GOODS':
         return <span className="badge bg-soft-success text-success">Finished Goods (Produced)</span>;
       default:
-        return <span className="badge bg-light text-dark">{type}</span>;
+        return <span className="badge bg-light text-dark">{type || '—'}</span>;
     }
   };
 
@@ -363,17 +372,19 @@ const MaterialMovement = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {movements.map((mov) => (
+                      {movements.map((mov) => {
+                        const po = mov.productionOrder || mov.production_order;
+                        return (
                         <tr key={mov.id}>
                           <td className="ps-4 text-muted small">
                             {mov.created_at ? new Date(mov.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
                           </td>
-                          <td className="fw-medium text-dark">{mov.item_name}</td>
+                          <td className="fw-medium text-dark">{mov.item?.name || mov.item_name || '—'}</td>
                           <td>
-                            <span className="badge bg-light text-dark border"><i className="isax isax-building-3 me-1"></i>{mov.warehouse_name}</span>
+                            <span className="badge bg-light text-dark border"><i className="isax isax-building-3 me-1"></i>{mov.warehouse?.name || mov.warehouse_name || '—'}</span>
                           </td>
                           <td className="text-center">
-                            {getStatusBadge(mov.movement_type)}
+                            {getStatusBadge(mov)}
                           </td>
                           <td className="text-end fw-bold">
                             {mov.txn_type === 'OUT' ? (
@@ -383,16 +394,16 @@ const MaterialMovement = () => {
                             )}
                           </td>
                           <td className="ps-4 pe-4">
-                            {mov.production_order ? (
-                              <Link to={`/manufacturing/production-order/view/${mov.production_order.id}`} className="text-decoration-none fw-semibold">
-                                {mov.production_order.order_number || `Order #${mov.production_order.id}`}
+                            {po ? (
+                              <Link to={`/manufacturing/production-order/view/${po.id}`} className="text-decoration-none fw-semibold">
+                                {po.order_number || `Order #${po.id}`}
                               </Link>
                             ) : (
                               <span className="text-muted">—</span>
                             )}
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>

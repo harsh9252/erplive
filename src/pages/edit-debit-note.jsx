@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import vendorService from '../services/vendorService';
 import { getItems, searchItems } from '../services/itemService';
 import AsyncSearchableSelect from '../components/AsyncSearchableSelect';
-import { getCompanySettings } from '../services/settingsService';
+import { getCompanySettings, getVoucherSeries, getVoucherTypes } from '../services/settingsService';
 import { getPurchaseInvoices } from '../services/purchaseInvoiceService';
 import { getDebitNoteById, updateDebitNote } from '../services/debitNoteService';
 import { getUoms } from '../services/uomService';
@@ -23,9 +23,12 @@ const EditDebitNote = () => {
   const [vendorInvoices, setVendorInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
   const [errors, setErrors] = useState({});
+  const [availableSeries, setAvailableSeries] = useState([]);
 
   const [formData, setFormData] = useState({
     vendor_id: '',
+    voucher_series_id: '',
+    note_number: '',
     debit_date: '',
     original_invoice_id: '',
     reason: '',
@@ -43,11 +46,13 @@ const EditDebitNote = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [vendorsRes, itemsRes, settingsRes, uomsRes, dnRes] = await Promise.all([
+      const [vendorsRes, itemsRes, settingsRes, uomsRes, seriesRes, typesRes, dnRes] = await Promise.all([
         vendorService.getVendors({ page: 1, limit: 1000 }),
         getItems(1, 1000),
         getCompanySettings(),
         getUoms(1, 1000),
+        getVoucherSeries(),
+        getVoucherTypes(),
         getDebitNoteById(id)
       ]);
       setUoms(Array.isArray(uomsRes.data) ? uomsRes.data : (uomsRes.data?.rows || []));
@@ -65,12 +70,22 @@ const EditDebitNote = () => {
       setItems(augmentedItems);
       setCompanySettings(settingsRes.data || settingsRes);
 
+      if (seriesRes?.data && typesRes?.data) {
+        const debitNoteType = typesRes.data.find(t => String(t.code).toUpperCase() === 'DEBIT_NOTE' || String(t.name).toUpperCase().includes('DEBIT NOTE') || String(t.name).toUpperCase().includes('PURCHASE RETURN'));
+        if (debitNoteType) {
+          const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(debitNoteType.id));
+          setAvailableSeries(relatedSeries);
+        }
+      }
+
       const isServiceOnlyLocal = localStorage.getItem('businessNature') === 'SERVICES' ||
         (settingsRes.data || settingsRes)?.business_nature?.toUpperCase() === 'SERVICES' ||
         activeCompany?.business_nature?.toUpperCase() === 'SERVICES';
 
       setFormData({
         vendor_id: dnData.vendor_id,
+        voucher_series_id: dnData.voucher_series_id ? String(dnData.voucher_series_id) : '',
+        note_number: dnData.debit_note_number || dnData.note_number || '',
         debit_date: (dnData.debit_note_date || dnData.debit_date || dnData.date || '').split('T')[0],
         original_invoice_id: dnData.purchase_invoice_id ? String(dnData.purchase_invoice_id).trim() : String(dnData.original_invoice_id || '').trim(),
         reason: dnData.reason || '',
@@ -119,7 +134,16 @@ const EditDebitNote = () => {
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'voucher_series_id' && value) {
+        const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
+        if (selectedSeries) {
+          updated.note_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+        }
+      }
+      return updated;
+    });
   };
 
   const handleVendorChange = async (e) => {
@@ -296,6 +320,8 @@ const EditDebitNote = () => {
       const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
+        voucher_series_id: formData.voucher_series_id || null,
+        note_number: formData.note_number || undefined,
         purchase_invoice_id: formData.original_invoice_id || null,
         debit_note_date: formData.debit_date,
         invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
@@ -373,7 +399,7 @@ const EditDebitNote = () => {
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label fw-600">Vendor <span className="text-danger">*</span></label>
                 <select className={`form-select shadow-none ${errors.vendor_id ? 'is-invalid' : ''}`} name="vendor_id" value={formData.vendor_id} onChange={handleVendorChange}>
                   <option value="">Select Vendor</option>
@@ -382,6 +408,21 @@ const EditDebitNote = () => {
                   ))}
                 </select>
                 {errors.vendor_id && <div className="invalid-feedback">{errors.vendor_id}</div>}
+              </div>
+              {availableSeries.length > 0 && (
+                <div className="col-md-2">
+                  <label className="form-label fw-600">Voucher Series</label>
+                  <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id || ''} onChange={handleHeaderChange}>
+                    <option value="">Select Series</option>
+                    {availableSeries.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="col-md-2">
+                <label className="form-label fw-600">Note Number</label>
+                <input type="text" className="form-control shadow-none" name="note_number" value={formData.note_number || ''} onChange={handleHeaderChange} placeholder="Auto or Custom" />
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">Return Date <span className="text-danger">*</span></label>

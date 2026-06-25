@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toast } from 'react-toastify';
 import branchService from '../services/branchService';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
@@ -598,15 +598,12 @@ const Branches = () => {
             </nav>
           </div>
           <div className="d-flex gap-2">
-            <div className="dropdown">
-              <button className="btn btn-outline-white d-inline-flex align-items-center rounded-pill px-3 shadow-none dropdown-toggle" data-bs-toggle="dropdown">
-                <i className="isax isax-export-1 me-2 text-primary"></i>Export
-              </button>
-              <ul className="dropdown-menu">
-                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); exportToPDF(); }}>Download as PDF</a></li>
-                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); exportToExcel(); }}>Download as Excel</a></li>
-              </ul>
-            </div>
+            <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={() => typeof handleExport === 'function' ? handleExport('PDF') : null}>
+                          <i className="isax isax-document-download me-2"></i>PDF
+                        </button>
+                        <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={() => typeof handleExport === 'function' ? handleExport('Excel') : null}>
+                          <i className="isax isax-export-1 me-2"></i>Excel
+                        </button>
             <Link
               href="#"
               className="btn btn-primary d-flex align-items-center shadow-sm px-4 rounded-pill transition-all"

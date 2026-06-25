@@ -567,6 +567,12 @@ const AddItem = () => {
                       No units found. <Link to="/inventory/uom" className="text-primary text-decoration-none">Add Units</Link>
                     </div>
                   )}
+                  {uoms.length > 0 && (
+                    <div className="fs-11 text-muted mt-1">
+                      <i className="isax isax-info-circle me-1"></i>
+                      Ensure UOM matches the GST-approved unit for that product category.
+                    </div>
+                  )}
                 </div>
 
                 <div className="row g-3 mb-4">

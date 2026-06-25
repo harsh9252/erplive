@@ -3,6 +3,9 @@ import { cleanParams, normalizeListResponse, toDecimal, toNumberOrValue } from '
 
 const normalizeCreditNotePayload = (data = {}) => ({
   customer_id: toNumberOrValue(data.customer_id ?? data.customerId),
+  voucher_series_id: toNumberOrValue(data.voucher_series_id),
+  note_number: data.note_number || data.noteNumber,
+  credit_note_number: data.note_number || data.noteNumber || data.credit_note_number,
   credit_note_date: data.credit_note_date ?? data.credit_date ?? data.creditDate,
   sales_invoice_id: toNumberOrValue(data.sales_invoice_id ?? data.original_invoice_id ?? data.originalInvoiceId) || null,
   place_of_supply: data.place_of_supply || '',

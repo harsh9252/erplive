@@ -314,12 +314,13 @@ const EditPurchaseInvoice = () => {
 
     let hasItemErrors = false;
     const newErrors = {};
+    if (!formData.due_date) newErrors.due_date = 'Due Date is required';
     formData.items.forEach((item, index) => {
       if (formData.invoice_layout !== 'SERVICES' && item.item_id && !item.warehouse_id) {
         newErrors[`items_${index}_warehouse_id`] = 'Warehouse is required';
         hasItemErrors = true;
       }
-      
+
       if (item.mfg_date && item.expiry_date) {
         if (new Date(item.expiry_date) < new Date(item.mfg_date)) {
           newErrors[`items_${index}_expiry_date`] = 'Expiry cannot be earlier than Mfg Date';
@@ -493,7 +494,7 @@ const EditPurchaseInvoice = () => {
                 <input type="date" className="form-control shadow-none" name="invoice_date" value={formData.invoice_date} onChange={handleHeaderChange} required />
               </div>
               <div className="col-md-2">
-                <label className="form-label fw-600">Due Date</label>
+                <label className="form-label fw-600">Due Date <span className="text-danger">*</span></label>
                 <input type="date" className={`form-control shadow-none ${errors.due_date ? 'is-invalid' : ''}`} name="due_date" value={formData.due_date} onChange={handleHeaderChange} />
                 {errors.due_date && <div className="invalid-feedback">{errors.due_date}</div>}
               </div>
@@ -511,7 +512,7 @@ const EditPurchaseInvoice = () => {
                 <select className="form-select shadow-none" name="purchase_order_id" value={formData.purchase_order_id || ''} onChange={handleHeaderChange}>
                   <option value="">None</option>
                   {purchaseOrders.map(po => (
-                    <option key={po.id} value={po.id}>{po.order_number}</option>
+                    <option key={po.id} value={po.id}>{po.po_number || `PO-${po.id}`}</option>
                   ))}
                 </select>
               </div>

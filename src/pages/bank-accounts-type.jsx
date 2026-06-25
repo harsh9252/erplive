@@ -132,22 +132,12 @@ const BankAccountsType = () => {
           </h6>
         </div>
         <div className="d-flex my-xl-auto right-content align-items-center flex-wrap gap-2">
-          <div className="dropdown">
-            <Link href="#"
-              className="btn btn-outline-white d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
-            >
-              <i className="isax isax-export-1 me-1"></i>Export
-            </Link>
-            <ul className="dropdown-menu">
-              <li>
-                <button className="dropdown-item" onClick={handleExportPDF}>Download as PDF</button>
-              </li>
-              <li>
-                <button className="dropdown-item" onClick={handleExportExcel}>Download as Excel</button>
-              </li>
-            </ul>
-          </div>
+          <button className="btn btn-soft-danger d-inline-flex align-items-center rounded px-3 border border-danger shadow-none me-2" onClick={() => typeof handleExport === 'function' ? handleExport('PDF') : null}>
+                        <i className="isax isax-document-download me-2"></i>PDF
+                      </button>
+                      <button className="btn btn-soft-success d-inline-flex align-items-center rounded px-3 border border-success shadow-none" onClick={() => typeof handleExport === 'function' ? handleExport('Excel') : null}>
+                        <i className="isax isax-export-1 me-2"></i>Excel
+                      </button>
           <Link href="#"
             className="btn btn-primary d-flex align-items-center justify-content-center"
             data-bs-toggle="modal"

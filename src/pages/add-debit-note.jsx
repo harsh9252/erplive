@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import vendorService from "../services/vendorService";
 import { getItems, searchItems } from "../services/itemService";
-import { getCompanySettings } from "../services/settingsService";
+import { getCompanySettings, getVoucherSeries, getVoucherTypes } from "../services/settingsService";
 import { getPurchaseInvoices, getPurchaseInvoiceById } from "../services/purchaseInvoiceService";
 import { createDebitNote } from "../services/debitNoteService";
 import { getUoms } from "../services/uomService";
@@ -22,9 +22,12 @@ const AddDebitNote = () => {
   const [vendorInvoices, setVendorInvoices] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
   const [errors, setErrors] = useState({});
+  const [availableSeries, setAvailableSeries] = useState([]);
 
   const [formData, setFormData] = useState({
     vendor_id: "",
+    voucher_series_id: "",
+    note_number: "",
     debit_date: new Date().toISOString().split("T")[0],
     original_invoice_id: "",
     reason: "",
@@ -49,11 +52,13 @@ const AddDebitNote = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [vendorsRes, itemsRes, settingsRes, uomsRes] = await Promise.all([
+      const [vendorsRes, itemsRes, settingsRes, uomsRes, seriesRes, typesRes] = await Promise.all([
         vendorService.getVendors({ page: 1, limit: 1000 }),
         getItems(1, 1000),
         getCompanySettings(),
         getUoms(1, 1000),
+        getVoucherSeries(),
+        getVoucherTypes()
       ]);
       setUoms(Array.isArray(uomsRes.data) ? uomsRes.data : uomsRes.data?.rows || []);
 
@@ -68,6 +73,22 @@ const AddDebitNote = () => {
           : itemsRes.data?.rows || [],
       );
       setCompanySettings(settingsRes.data || settingsRes);
+
+      if (seriesRes?.data && typesRes?.data) {
+        const debitNoteType = typesRes.data.find(t => String(t.code).toUpperCase() === 'DEBIT_NOTE' || String(t.name).toUpperCase().includes('DEBIT NOTE') || String(t.name).toUpperCase().includes('PURCHASE RETURN'));
+        if (debitNoteType) {
+          const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(debitNoteType.id));
+          setAvailableSeries(relatedSeries);
+          if (relatedSeries.length > 0) {
+            const def = relatedSeries.find(s => s.is_default) || relatedSeries[0];
+            setFormData(prev => ({
+              ...prev,
+              voucher_series_id: def.id.toString(),
+              note_number: `${def.prefix || ''}${String(def.starting_number || '').padStart(def.padding || 0, '0')}${def.suffix || ''}`
+            }));
+          }
+        }
+      }
 
       if (settingsRes.data?.state_code || settingsRes.state_code) {
         setFormData((prev) => ({
@@ -126,7 +147,16 @@ const AddDebitNote = () => {
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'voucher_series_id' && value) {
+        const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
+        if (selectedSeries) {
+          updated.note_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+        }
+      }
+      return updated;
+    });
   };
 
   const handleVendorChange = (e) => {
@@ -176,9 +206,9 @@ const AddDebitNote = () => {
         try {
           const res = await getPurchaseInvoiceById(invoiceId);
           const fullInvoice = res.data;
-          
+
           const itemsToMap = fullInvoice?.items?.length ? fullInvoice.items : (invoice.items || []);
-          
+
           if (!itemsToMap || itemsToMap.length === 0) {
             toast.warning('No items found in this invoice');
             return;
@@ -406,6 +436,8 @@ const AddDebitNote = () => {
       const isServices = formData.invoice_layout === 'SERVICES';
       const payload = {
         ...formData,
+        voucher_series_id: formData.voucher_series_id || null,
+        note_number: formData.note_number || undefined,
         debit_note_date: formData.debit_date,
         invoice_type: formData.invoice_layout === 'PRODUCTS' ? 'PRODUCT' : formData.invoice_layout === 'SERVICES' ? 'SERVICE' : 'ECOMMERCE',
         ecommerce_gstin: formData.invoice_layout === 'ECOMMERCE' ? (formData.ecommerce_operator_gstin || null) : null,
@@ -419,7 +451,7 @@ const AddDebitNote = () => {
           amount: (isServices ? 1 : parseFloat(item.qty || 0)) * parseFloat(item.rate || 0)
         }))
       };
-      
+
       if (formData.original_invoice_id) {
         payload.purchase_invoice_id = Number(formData.original_invoice_id);
       } else {
@@ -431,7 +463,7 @@ const AddDebitNote = () => {
       navigate("/invoicing/debit-notes");
     } catch (error) {
       console.error("Error creating debit note:", error);
-      
+
       const humanizeError = (msg) => {
         if (typeof msg !== 'string') return msg;
         return msg
@@ -525,7 +557,7 @@ const AddDebitNote = () => {
           </div>
           <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label fw-600">
                   Vendor <span className="text-danger">*</span>
                 </label>
@@ -543,6 +575,20 @@ const AddDebitNote = () => {
                   ))}
                 </select>
                 {errors.vendor_id && <div className="invalid-feedback">{errors.vendor_id}</div>}
+              </div>
+              {availableSeries.length > 0 && (
+                <div className="col-md-2">
+                  <label className="form-label fw-600">Voucher Series</label>
+                  <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id || ''} onChange={handleHeaderChange}>
+                    {availableSeries.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="col-md-2">
+                <label className="form-label fw-600">Note Number</label>
+                <input type="text" className="form-control shadow-none" name="note_number" value={formData.note_number || ''} onChange={handleHeaderChange} placeholder="Auto or Custom" />
               </div>
               <div className="col-md-2">
                 <label className="form-label fw-600">
@@ -783,15 +829,15 @@ const AddDebitNote = () => {
                         </td>
                         {String(formData.place_of_supply).trim() !== String(companySettings?.state_code || companySettings?.data?.state_code || '27').trim() ? (
                           <td className="text-end fs-12 text-muted">
-                            ₹{line.taxRes.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            ₹{line.taxRes.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                         ) : (
                           <>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="text-end fs-12 text-muted">
-                              ₹{(line.taxRes / 2).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              ₹{(line.taxRes / 2).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                           </>
                         )}

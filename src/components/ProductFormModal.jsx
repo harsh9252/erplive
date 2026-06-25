@@ -236,6 +236,10 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess }) => {
                         <option value="PCS">PCS</option>
                       )}
                     </select>
+                    <div className="fs-11 text-muted mt-1">
+                      <i className="isax isax-info-circle me-1"></i>
+                      Ensure UOM matches the GST-approved unit for that product category.
+                    </div>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fs-13 fw-600">Selling Price *</label>
