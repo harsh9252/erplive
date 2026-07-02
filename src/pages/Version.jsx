@@ -3,6 +3,39 @@ import React, { useState, useRef } from "react";
 const Version = () => {
   const [versions, setVersions] = useState([
     {
+      current: "3.3.2",
+      releaseDate: "2026-07-02",
+      changes: `
+                <div class="mb-3">
+                    <h6 class="fw-bold">Atyani ERP — (02/07/2026)</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold border-bottom pb-1 text-primary">Ledger & Report Fixes</h6>
+                            <ul>
+                                <li>Fixed an issue where Ledger Particulars were not updating properly in reports.</li>
+                                <li>Resolved a bug where certain areas were not displaying GST Rates correctly.</li>
+                                <li>Fixed Stock Data update issues to ensure accurate inventory information.</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold border-bottom pb-1 text-primary mt-3 mt-md-0">Security & Access Control</h6>
+                            <ul>
+                                <li>Restricted UOM (Unit of Measure) visibility so it is no longer visible to all users; added proper action controls for maintaining UOM.</li>
+                                <li>Secured HSN (Harmonized System of Nomenclature) master data so that all saved HSN entries are no longer visible to all users; enforced user-level access restrictions.</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold border-bottom pb-1 text-primary mt-3 mt-md-0">Invoice and Billing</h6>
+                            <ul>
+                                <li>Added invoice series from voucher series in sales invoice</li>
+                               
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `,
+    },
+    {
       current: "3.3.1",
       releaseDate: "2026-06-05",
       changes: `
@@ -21,7 +54,7 @@ const Version = () => {
                                 <li>Enhanced User Profiling: A user's assigned role (e.g., Admin, Accountant) is now clearly identified and displayed in Profile Page.</li>
                                 <li>Fixed the "Blank Screen" error.</li>
                                  <li>Fix Calendar not loaded issue .</li>
-                                 
+                                  
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -34,7 +67,7 @@ const Version = () => {
                                 <li>Added 'Tax Type' (Taxable, Exempt) selection to item rows in both Add and Edit screens for Sales and Purchase Invoices.</li>
                             </ul>
                         </div>
-                       
+                        
                     </div>
                 </div>
             `,

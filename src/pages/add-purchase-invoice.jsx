@@ -106,10 +106,10 @@ const AddPurchaseInvoice = () => {
 
       // Handle Voucher Series
       if (seriesRes?.data && typesRes?.data) {
-        const purType = typesRes.data.find(t => 
-          t.code === 'PURCHASE_INVOICE' || 
-          t.name.toUpperCase() === 'PURCHASE INVOICE' || 
-          t.code === 'PURCHASE' || 
+        const purType = typesRes.data.find(t =>
+          t.code === 'PURCHASE_INVOICE' ||
+          t.name.toUpperCase() === 'PURCHASE INVOICE' ||
+          t.code === 'PURCHASE' ||
           t.name.toUpperCase() === 'PURCHASE'
         );
         if (purType) {
@@ -484,7 +484,7 @@ const AddPurchaseInvoice = () => {
         newErrors[`items_${index}_warehouse_id`] = 'Warehouse is required';
         hasItemErrors = true;
       }
-      
+
       if (item.mfg_date && item.expiry_date) {
         if (new Date(item.expiry_date) < new Date(item.mfg_date)) {
           newErrors[`items_${index}_expiry_date`] = 'Expiry cannot be earlier than Mfg Date';
@@ -754,14 +754,14 @@ const AddPurchaseInvoice = () => {
                 </select>
               </div>
 
-              <div className={`col-md-3 ${isServiceOnly ? 'd-none' : ''}`}>
+              {/* <div className={`col-md-3 ${isServiceOnly ? 'd-none' : ''}`}>
                 <label className="form-label fw-600">Invoice Layout</label>
                 <select className="form-select shadow-none" name="invoice_layout" value={formData.invoice_layout} onChange={handleHeaderChange}>
                   <option value="PRODUCTS">Products</option>
                   <option value="SERVICES">Services</option>
                   <option value="ECOMMERCE">E-Commerce</option>
                 </select>
-              </div>
+              </div>*/}
 
               {formData.invoice_layout === 'ECOMMERCE' && (
                 <div className="col-md-3">
