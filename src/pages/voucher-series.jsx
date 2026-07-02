@@ -196,7 +196,7 @@ const VoucherSeries = () => {
                       <td className="fw-bold">{s.name}</td>
                       <td>
                         <code className="bg-soft-primary text-primary px-2 py-1 rounded">
-                          {s.voucherType?.code ? `${s.voucherType.code}/` : (voucherTypes.find(t => t.id === s.voucher_type_id)?.code ? `${voucherTypes.find(t => t.id === s.voucher_type_id).code}/` : '')}{s.prefix}{paddedNext}
+                          {s.prefix || ''}{paddedNext}
                         </code>
                       </td>
                       <td className="text-muted fs-13">{s.starting_number}</td>
@@ -260,7 +260,6 @@ const VoucherSeries = () => {
                       <select className={`form-select ${errors.voucher_type_id ? 'is-invalid' : ''}`} name="voucher_type_id" value={formData.voucher_type_id} onChange={handleInputChange} required>
                         <option value="">Select Type</option>
                         {voucherTypes
-                          .filter(t => !['SALES', 'PURCHASE', 'CREDIT NOTE', 'DEBIT NOTE'].includes((t.name || '').toUpperCase()))
                           .map(t => (
                             <option key={t.id} value={t.id}>{t.name}</option>
                           ))}
@@ -322,9 +321,7 @@ const VoucherSeries = () => {
                     <h6 className="fs-12 fw-bold text-uppercase text-muted mb-2">Number Format Preview</h6>
                     <div className="h4 mb-0 text-primary font-monospace">
                       {(() => {
-                        const t = voucherTypes.find(type => String(type.id) === String(formData.voucher_type_id));
-                        const code = t ? t.code : '';
-                        return `${code ? code + '/' : ''}${formData.prefix || ''}${String(formData.starting_number || '').padStart(formData.padding || 0, '0')}`;
+                        return `${formData.prefix || ''}${String(formData.starting_number || '').padStart(formData.padding || 0, '0')}`;
                       })()}
                     </div>
                     <p className="fs-12 text-muted mb-0 mt-1">

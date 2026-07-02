@@ -106,16 +106,22 @@ const AddPurchaseInvoice = () => {
 
       // Handle Voucher Series
       if (seriesRes?.data && typesRes?.data) {
-        const purType = typesRes.data.find(t => t.code === 'PURCHASE_INVOICE' || t.name.toUpperCase() === 'PURCHASE INVOICE' || t.code === 'PURCHASE');
+        const purType = typesRes.data.find(t => 
+          t.code === 'PURCHASE_INVOICE' || 
+          t.name.toUpperCase() === 'PURCHASE INVOICE' || 
+          t.code === 'PURCHASE' || 
+          t.name.toUpperCase() === 'PURCHASE'
+        );
         if (purType) {
           const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(purType.id));
           setAvailableSeries(relatedSeries);
           if (relatedSeries.length > 0) {
             const def = relatedSeries.find(s => s.is_default) || relatedSeries[0];
+            const nextNum = def.current_number ? Number(def.current_number) + 1 : Number(def.starting_number || 1);
             setFormData(prev => ({
               ...prev,
               voucher_series_id: def.id.toString(),
-              invoice_number: `${def.prefix || ''}${String(def.starting_number || '').padStart(def.padding || 0, '0')}${def.suffix || ''}`
+              invoice_number: `${def.prefix || ''}${String(nextNum).padStart(def.padding || 0, '0')}${def.suffix || ''}`
             }));
           }
         }
@@ -181,7 +187,8 @@ const AddPurchaseInvoice = () => {
       if (name === 'voucher_series_id' && value) {
         const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
         if (selectedSeries) {
-          updated.invoice_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+          const nextNum = selectedSeries.current_number ? Number(selectedSeries.current_number) + 1 : Number(selectedSeries.starting_number || 1);
+          updated.invoice_number = `${selectedSeries.prefix || ''}${String(nextNum).padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
         }
       }
       return updated;
