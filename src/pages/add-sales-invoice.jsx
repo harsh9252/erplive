@@ -82,16 +82,22 @@ const AddSalesInvoice = () => {
 
         // Handle Voucher Series
         if (seriesRes?.data && typesRes?.data) {
-          const salesType = typesRes.data.find(t => t.code === 'SALES_INVOICE' || t.name.toUpperCase() === 'SALES INVOICE');
+          const salesType = typesRes.data.find(t => 
+            t.code === 'SALES_INVOICE' || 
+            t.code === 'SALES' || 
+            t.name.toUpperCase() === 'SALES INVOICE' || 
+            t.name.toUpperCase() === 'SALES'
+          );
           if (salesType) {
             const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(salesType.id));
             setAvailableSeries(relatedSeries);
             if (relatedSeries.length > 0) {
               const def = relatedSeries.find(s => s.is_default) || relatedSeries[0];
+              const nextNum = def.current_number ? Number(def.current_number) + 1 : Number(def.starting_number || 1);
               setFormData(prev => ({
                 ...prev,
                 voucher_series_id: def.id.toString(),
-                invoiceNumber: `${def.prefix || ''}${String(def.starting_number || '').padStart(def.padding || 0, '0')}${def.suffix || ''}`
+                invoiceNumber: `${def.prefix || ''}${String(nextNum).padStart(def.padding || 0, '0')}${def.suffix || ''}`
               }));
             }
           }
@@ -511,7 +517,8 @@ const AddSalesInvoice = () => {
       if (name === 'voucher_series_id' && value) {
         const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
         if (selectedSeries) {
-          updated.invoiceNumber = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+          const nextNum = selectedSeries.current_number ? Number(selectedSeries.current_number) + 1 : Number(selectedSeries.starting_number || 1);
+          updated.invoiceNumber = `${selectedSeries.prefix || ''}${String(nextNum).padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
         }
       }
       return updated;
@@ -767,16 +774,46 @@ const AddSalesInvoice = () => {
                 {errors.branchId && <div className="invalid-feedback">{errors.branchId}</div>}
               </div>
 
-              {availableSeries.length > 1 && (
+              {availableSeries.length > 0 && (
                 <div className="col-md-3">
                   <label className="form-label fw-600">Invoice Series</label>
                   <select className="form-select shadow-none" name="voucher_series_id" value={formData.voucher_series_id} onChange={handleInputChange}>
+                    <option value="">-- Select Series --</option>
                     {availableSeries.map(s => (
                       <option key={s.id} value={String(s.id)}>{s.name}</option>
                     ))}
                   </select>
                 </div>
               )}
+
+              <div className="col-md-3">
+                <label className="form-label fw-600">Invoice No.</label>
+                {availableSeries.length > 0 && formData.voucher_series_id ? (
+                  <input
+                    type="text"
+                    className="form-control shadow-none bg-light"
+                    value={formData.invoiceNumber}
+                    readOnly
+                    placeholder="Auto-generated from series"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    className="form-control shadow-none"
+                    name="invoiceNumber"
+                    value={formData.invoiceNumber}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        invoiceNumber: val,
+                        voucher_series_id: val ? '' : prev.voucher_series_id
+                      }));
+                    }}
+                    placeholder="Enter Invoice No"
+                  />
+                )}
+              </div>
 
               <div className="col-md-3">
                 <label className="form-label fw-600">Invoice Date <span className="text-danger">*</span></label>

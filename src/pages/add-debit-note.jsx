@@ -75,16 +75,22 @@ const AddDebitNote = () => {
       setCompanySettings(settingsRes.data || settingsRes);
 
       if (seriesRes?.data && typesRes?.data) {
-        const debitNoteType = typesRes.data.find(t => String(t.code).toUpperCase() === 'DEBIT_NOTE' || String(t.name).toUpperCase().includes('DEBIT NOTE') || String(t.name).toUpperCase().includes('PURCHASE RETURN'));
+        const debitNoteType = typesRes.data.find(t => 
+          String(t.code).toUpperCase() === 'DEBIT_NOTE' || 
+          String(t.name).toUpperCase().includes('DEBIT NOTE') || 
+          String(t.name).toUpperCase().includes('PURCHASE RETURN') ||
+          String(t.code).toUpperCase() === 'PURCHASE_RETURN'
+        );
         if (debitNoteType) {
           const relatedSeries = seriesRes.data.filter(s => String(s.voucher_type_id) === String(debitNoteType.id));
           setAvailableSeries(relatedSeries);
           if (relatedSeries.length > 0) {
             const def = relatedSeries.find(s => s.is_default) || relatedSeries[0];
+            const nextNum = def.current_number ? Number(def.current_number) + 1 : Number(def.starting_number || 1);
             setFormData(prev => ({
               ...prev,
               voucher_series_id: def.id.toString(),
-              note_number: `${def.prefix || ''}${String(def.starting_number || '').padStart(def.padding || 0, '0')}${def.suffix || ''}`
+              note_number: `${def.prefix || ''}${String(nextNum).padStart(def.padding || 0, '0')}${def.suffix || ''}`
             }));
           }
         }
@@ -152,7 +158,8 @@ const AddDebitNote = () => {
       if (name === 'voucher_series_id' && value) {
         const selectedSeries = availableSeries.find(s => String(s.id) === String(value));
         if (selectedSeries) {
-          updated.note_number = `${selectedSeries.prefix || ''}${String(selectedSeries.starting_number || '').padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
+          const nextNum = selectedSeries.current_number ? Number(selectedSeries.current_number) + 1 : Number(selectedSeries.starting_number || 1);
+          updated.note_number = `${selectedSeries.prefix || ''}${String(nextNum).padStart(selectedSeries.padding || 0, '0')}${selectedSeries.suffix || ''}`;
         }
       }
       return updated;
